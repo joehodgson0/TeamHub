@@ -35,12 +35,13 @@ export default function Dependents() {
     return teams.find((team: Team) => team.id === teamId);
   };
 
-  const getPlayerAge = (dateOfBirth: Date) => {
+  const getPlayerAge = (dateOfBirth: Date | string) => {
     const today = new Date();
-    const age = today.getFullYear() - dateOfBirth.getFullYear();
-    const monthDiff = today.getMonth() - dateOfBirth.getMonth();
+    const birthDate = typeof dateOfBirth === 'string' ? new Date(dateOfBirth) : dateOfBirth;
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
     
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       return age - 1;
     }
     return age;
