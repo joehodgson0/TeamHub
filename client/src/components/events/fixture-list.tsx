@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import EditFixtureModal from "@/components/modals/edit-fixture-modal";
+import type { Fixture } from "@shared/schema";
 
 export default function FixtureList() {
   const { user, hasRole } = useAuth();
   const { storage } = useStorage();
-  const [editingFixture, setEditingFixture] = useState(null);
+  const [editingFixture, setEditingFixture] = useState<Fixture | null>(null);
 
   const getFixtures = () => {
     if (!user) return [];
@@ -183,7 +184,7 @@ export default function FixtureList() {
         <EditFixtureModal
           fixture={editingFixture}
           open={!!editingFixture}
-          onOpenChange={(open) => !open && setEditingFixture(null)}
+          onOpenChange={(open: boolean) => !open && setEditingFixture(null)}
         />
       )}
     </>

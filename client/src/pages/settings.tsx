@@ -162,7 +162,6 @@ export default function Settings() {
                     >
                       <Checkbox
                         checked={selectedRoles.includes("coach")}
-                        onChange={() => toggleRole("coach")}
                       />
                       <span className="text-sm">Coach/Manager</span>
                     </div>
@@ -177,7 +176,6 @@ export default function Settings() {
                     >
                       <Checkbox
                         checked={selectedRoles.includes("parent")}
-                        onChange={() => toggleRole("parent")}
                       />
                       <span className="text-sm">Parent/Guardian</span>
                     </div>

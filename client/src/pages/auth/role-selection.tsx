@@ -104,7 +104,6 @@ export default function RoleSelection() {
                         >
                           <Checkbox
                             checked={selectedRoles.includes("coach")}
-                            onChange={() => toggleRole("coach")}
                             className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                           <div className="flex-1">
@@ -131,7 +130,6 @@ export default function RoleSelection() {
                         >
                           <Checkbox
                             checked={selectedRoles.includes("parent")}
-                            onChange={() => toggleRole("parent")}
                             className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                           <div className="flex-1">

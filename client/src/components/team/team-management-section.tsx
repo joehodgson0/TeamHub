@@ -16,7 +16,7 @@ export default function TeamManagementSection() {
       return storage.getTeamsByManagerId(user.id);
     } else if (hasRole("parent")) {
       const players = storage.getPlayersByParentId(user.id);
-      const teamIds = [...new Set(players.map(player => player.teamId))];
+      const teamIds = Array.from(new Set(players.map(player => player.teamId)));
       return teamIds.map(id => storage.getTeamById(id)).filter(Boolean);
     }
 
@@ -51,8 +51,10 @@ export default function TeamManagementSection() {
             </div>
           ) : (
             teams.map((team) => {
-              const playerCount = team.playerIds.length;
-              const totalGames = team.wins + team.draws + team.losses;
+              if (!team) return null;
+              
+              const playerCount = team.playerIds?.length || 0;
+              const totalGames = (team.wins || 0) + (team.draws || 0) + (team.losses || 0);
 
               return (
                 <div
@@ -63,10 +65,10 @@ export default function TeamManagementSection() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
                       <h4 className="font-medium" data-testid={`team-name-${team.id}`}>
-                        {team.name}
+                        {team.name || 'Unknown Team'}
                       </h4>
                       <Badge variant="outline" className="text-xs">
-                        {team.ageGroup}
+                        {team.ageGroup || 'Unknown'}
                       </Badge>
                     </div>
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
@@ -77,13 +79,13 @@ export default function TeamManagementSection() {
                         <>
                           <span>•</span>
                           <span data-testid={`team-record-${team.id}`}>
-                            {team.wins}W {team.draws}D {team.losses}L
+                            {team.wins || 0}W {team.draws || 0}D {team.losses || 0}L
                           </span>
                         </>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1" data-testid={`team-code-${team.id}`}>
-                      Code: {team.code}
+                      Code: {team.code || 'Unknown'}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -106,7 +108,7 @@ export default function TeamManagementSection() {
                   </div>
                 </div>
               );
-            })
+            }).filter(Boolean)
           )}
         </div>
       </CardContent>

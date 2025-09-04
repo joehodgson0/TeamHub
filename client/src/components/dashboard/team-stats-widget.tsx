@@ -13,13 +13,13 @@ export default function TeamStatsWidget() {
   const getTeamStats = () => {
     if (!user) return null;
 
-    let teams = [];
+    let teams: any[] = [];
     
     if (user.roles.includes("coach")) {
       teams = storage.getTeamsByManagerId(user.id);
     } else if (user.roles.includes("parent")) {
       const userPlayers = storage.getPlayersByParentId(user.id);
-      const teamIds = [...new Set(userPlayers.map(player => player.teamId))];
+      const teamIds = Array.from(new Set(userPlayers.map(player => player.teamId)));
       teams = teamIds.map(id => storage.getTeamById(id)).filter(Boolean);
     }
 

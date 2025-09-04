@@ -10,7 +10,7 @@ export default function PlayerAttendanceWidget() {
   const getPlayerAttendance = () => {
     if (!user) return [];
 
-    let players = [];
+    let players: any[] = [];
 
     if (user.roles.includes("coach")) {
       const userTeams = storage.getTeamsByManagerId(user.id);
@@ -25,7 +25,7 @@ export default function PlayerAttendanceWidget() {
       attendanceRate: player.totalEvents > 0 
         ? Math.round((player.attendance / player.totalEvents) * 100)
         : 0,
-      initials: player.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+      initials: player.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
     }));
   };
 

@@ -10,7 +10,7 @@ export default function TeamAwardsWidget() {
   const getTeamAwards = () => {
     if (!user) return [];
 
-    let awards = [];
+    let awards: any[] = [];
 
     if (user.roles.includes("coach")) {
       const userTeams = storage.getTeamsByManagerId(user.id);
@@ -18,7 +18,7 @@ export default function TeamAwardsWidget() {
       awards = teamIds.flatMap(teamId => storage.getAwardsByTeamId(teamId));
     } else if (user.roles.includes("parent")) {
       const userPlayers = storage.getPlayersByParentId(user.id);
-      const teamIds = [...new Set(userPlayers.map(player => player.teamId))];
+      const teamIds = Array.from(new Set(userPlayers.map(player => player.teamId)));
       awards = teamIds.flatMap(teamId => storage.getAwardsByTeamId(teamId));
     }
 
