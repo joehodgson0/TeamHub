@@ -99,11 +99,11 @@ export default function RoleSelection() {
                               ? "border-primary bg-primary/5" 
                               : "border-border hover:bg-muted"
                           }`}
-                          onClick={() => toggleRole("coach")}
                           data-testid="role-coach"
                         >
                           <Checkbox
                             checked={selectedRoles.includes("coach")}
+                            onCheckedChange={() => toggleRole("coach")}
                             className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                           <div className="flex-1">
@@ -125,11 +125,11 @@ export default function RoleSelection() {
                               ? "border-primary bg-primary/5" 
                               : "border-border hover:bg-muted"
                           }`}
-                          onClick={() => toggleRole("parent")}
                           data-testid="role-parent"
                         >
                           <Checkbox
                             checked={selectedRoles.includes("parent")}
+                            onCheckedChange={() => toggleRole("parent")}
                             className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                           <div className="flex-1">
