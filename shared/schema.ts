@@ -38,14 +38,13 @@ export const clubAssociationSchema = z.object({
   clubCode: z.string().length(8, "Club code must be 8 characters"),
 });
 
-// Team schema
+// Team schema  
 export const teamSchema = z.object({
   id: z.string(),
   name: z.string(),
   ageGroup: z.enum(["U7", "U8", "U9", "U10", "U11", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19", "U20", "U21"]),
   code: z.string().length(8),
   clubId: z.string(),
-  managerId: z.string(),
   playerIds: z.array(z.string()).default([]),
   wins: z.number().default(0),
   draws: z.number().default(0),
@@ -171,7 +170,6 @@ export const teams = pgTable("teams", {
   ageGroup: varchar("age_group").notNull(),
   code: varchar("code", { length: 8 }).notNull().unique(),
   clubId: varchar("club_id").notNull(),
-  managerId: varchar("manager_id").notNull(),
   playerIds: json("player_ids").$type<string[]>().notNull().default([]),
   wins: integer("wins").notNull().default(0),
   draws: integer("draws").notNull().default(0),

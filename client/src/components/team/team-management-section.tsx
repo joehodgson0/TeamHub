@@ -8,11 +8,15 @@ import { Users, Edit, Eye } from "lucide-react";
 export default function TeamManagementSection() {
   const { user, hasRole } = useAuth();
   const isCoach = hasRole("coach");
+  const isParent = hasRole("parent");
 
-  // Fetch teams from database API
+  // For coaches: fetch teams from their club
+  // For parents: fetch teams through their dependents
   const { data: teamsData = { teams: [] }, isLoading } = useQuery({
-    queryKey: ['/api/teams/manager', user?.id],
-    enabled: Boolean(user && isCoach), // Only fetch for coaches for now
+    queryKey: isCoach 
+      ? ['/api/teams/club', user?.clubId]
+      : ['/api/teams/user', user?.id],
+    enabled: Boolean(user && (isCoach ? user.clubId : isParent)),
   });
 
   const teams = teamsData.teams || [];

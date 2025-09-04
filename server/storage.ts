@@ -18,10 +18,10 @@ export interface IStorage {
 
   // Team methods
   getTeam(id: string): Promise<Team | undefined>;
+  getTeamById(id: string): Promise<Team | undefined>;
   getTeamByCode(code: string): Promise<Team | undefined>;
   getTeams(): Promise<Team[]>;
   getTeamsByClubId(clubId: string): Promise<Team[]>;
-  getTeamsByManagerId(managerId: string): Promise<Team[]>;
   createTeam(insertTeam: InsertTeam): Promise<Team>;
   updateTeam(id: string, updates: Partial<Team>): Promise<Team | undefined>;
 
@@ -115,6 +115,10 @@ export class DatabaseStorage implements IStorage {
     return team || undefined;
   }
 
+  async getTeamById(id: string): Promise<Team | undefined> {
+    return this.getTeam(id);
+  }
+
   async getTeamByCode(code: string): Promise<Team | undefined> {
     const [team] = await db.select().from(teams).where(eq(teams.code, code));
     return team || undefined;
@@ -128,9 +132,6 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(teams).where(eq(teams.clubId, clubId));
   }
 
-  async getTeamsByManagerId(managerId: string): Promise<Team[]> {
-    return await db.select().from(teams).where(eq(teams.managerId, managerId));
-  }
 
   async createTeam(insertTeam: InsertTeam): Promise<Team> {
     const [team] = await db

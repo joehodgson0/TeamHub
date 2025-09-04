@@ -122,9 +122,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/teams", async (req, res) => {
     try {
-      const { name, ageGroup, clubId, managerId } = req.body;
+      const { name, ageGroup, clubId } = req.body;
       
-      if (!name || !ageGroup || !clubId || !managerId) {
+      if (!name || !ageGroup || !clubId) {
         return res.status(400).json({ success: false, error: "Missing required fields" });
       }
 
@@ -138,7 +138,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ageGroup,
         code: teamCode,
         clubId,
-        managerId,
         playerIds: [],
         wins: 0,
         draws: 0,
@@ -152,18 +151,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/teams/manager/:managerId", async (req, res) => {
+  app.get("/api/teams/club/:clubId", async (req, res) => {
     try {
-      const { managerId } = req.params;
+      const { clubId } = req.params;
       
-      if (!managerId) {
-        return res.status(400).json({ success: false, error: "Manager ID required" });
+      if (!clubId) {
+        return res.status(400).json({ success: false, error: "Club ID required" });
       }
 
-      const teams = await storage.getTeamsByManagerId(managerId);
+      const teams = await storage.getTeamsByClubId(clubId);
       res.json({ success: true, teams });
     } catch (error) {
-      console.error("Get teams by manager error:", error);
+      console.error("Get teams by club error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch teams" });
+    }
+  });
+
+  app.get("/api/teams/user/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      if (!userId) {
+        return res.status(400).json({ success: false, error: "User ID required" });
+      }
+
+      // Get teams through user's dependents (players)
+      const players = await storage.getPlayersByParentId(userId);
+      const teamIds = Array.from(new Set(players.map(player => player.teamId)));
+      const teams = [];
+      
+      for (const teamId of teamIds) {
+        const team = await storage.getTeamById(teamId);
+        if (team) teams.push(team);
+      }
+
+      res.json({ success: true, teams });
+    } catch (error) {
+      console.error("Get teams by user error:", error);
       res.status(500).json({ success: false, error: "Failed to fetch teams" });
     }
   });

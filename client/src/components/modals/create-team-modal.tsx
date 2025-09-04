@@ -55,7 +55,6 @@ export default function CreateTeamModal({ open, onOpenChange }: CreateTeamModalP
           name: data.name,
           ageGroup: data.ageGroup,
           clubId: user.clubId,
-          managerId: user.id,
         }),
         credentials: "include",
       });
