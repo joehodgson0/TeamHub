@@ -114,6 +114,13 @@ export default function Register() {
               <CardDescription>Sign in to your account</CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Debug info */}
+              <div className="mb-4 p-2 bg-gray-100 text-xs">
+                <p>isLoading: {isLoading ? 'true' : 'false'}</p>
+                <p>Form values: {JSON.stringify(loginForm.getValues())}</p>
+                <p>Form state: {JSON.stringify(loginForm.formState.isSubmitting)}</p>
+              </div>
+              
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4" data-testid="form-login">
                   <FormField
