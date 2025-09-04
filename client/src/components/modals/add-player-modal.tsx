@@ -1,0 +1,208 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { addPlayerSchema, type AddPlayer, type Player } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { useStorage } from "@/hooks/use-storage";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { X } from "lucide-react";
+
+interface AddPlayerModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalProps) {
+  const { user } = useAuth();
+  const { storage, refresh } = useStorage();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<AddPlayer>({
+    resolver: zodResolver(addPlayerSchema),
+    defaultValues: {
+      name: "",
+      dateOfBirth: new Date(),
+      teamCode: "",
+    },
+  });
+
+  const onSubmit = async (data: AddPlayer) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You must be logged in to add players.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      if (!data.teamCode.startsWith("1")) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Team Code",
+          description: "No team found with code " + data.teamCode,
+        });
+        return;
+      }
+
+      const team = storage.getTeamByCode(data.teamCode);
+      if (!team) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Team Code",
+          description: "No team found with code " + data.teamCode,
+        });
+        return;
+      }
+
+      const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const newPlayer: Player = {
+        id: playerId,
+        name: data.name,
+        dateOfBirth: new Date(data.dateOfBirth),
+        teamId: team.id,
+        parentId: user.id,
+        attendance: 0,
+        totalEvents: 0,
+        createdAt: new Date(),
+      };
+
+      storage.createPlayer(newPlayer);
+      
+      // Update team's player list
+      storage.updateTeam(team.id, {
+        playerIds: [...team.playerIds, playerId]
+      });
+
+      refresh();
+
+      toast({
+        title: "Player Added Successfully",
+        description: `${data.name} has been added to ${team.name}.`,
+      });
+
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add player. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md" data-testid="modal-add-player">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Add Player to Team</DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              data-testid="button-close-modal"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-testid="form-add-player">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Player Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter player's full name"
+                      data-testid="input-player-name"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="dateOfBirth"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date of Birth</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      data-testid="input-date-of-birth"
+                      {...field}
+                      value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value}
+                      onChange={(e) => field.onChange(new Date(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="teamCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Team Code</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter 8-character team code"
+                      data-testid="input-team-code"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-xs text-muted-foreground">
+                    Get the team code from your team manager. Demo codes start with "1".
+                  </p>
+                </FormItem>
+              )}
+            />
+
+            <div className="flex space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => onOpenChange(false)}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={isLoading}
+                data-testid="button-add"
+              >
+                {isLoading ? "Adding..." : "Add Player"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
