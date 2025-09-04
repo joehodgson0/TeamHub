@@ -152,6 +152,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/teams/manager/:managerId", async (req, res) => {
+    try {
+      const { managerId } = req.params;
+      
+      if (!managerId) {
+        return res.status(400).json({ success: false, error: "Manager ID required" });
+      }
+
+      const teams = await storage.getTeamsByManagerId(managerId);
+      res.json({ success: true, teams });
+    } catch (error) {
+      console.error("Get teams by manager error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch teams" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

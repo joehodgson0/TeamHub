@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,24 +7,15 @@ import { Users, Edit, Eye } from "lucide-react";
 
 export default function TeamManagementSection() {
   const { user, hasRole } = useAuth();
-  const { storage } = useStorage();
-
-  const getTeams = () => {
-    if (!user) return [];
-
-    if (hasRole("coach")) {
-      return storage.getTeamsByManagerId(user.id);
-    } else if (hasRole("parent")) {
-      const players = storage.getPlayersByParentId(user.id);
-      const teamIds = Array.from(new Set(players.map(player => player.teamId)));
-      return teamIds.map(id => storage.getTeamById(id)).filter(Boolean);
-    }
-
-    return [];
-  };
-
-  const teams = getTeams();
   const isCoach = hasRole("coach");
+
+  // Fetch teams from database API
+  const { data: teamsData = { teams: [] }, isLoading } = useQuery({
+    queryKey: ['/api/teams/manager', user?.id],
+    enabled: Boolean(user && isCoach), // Only fetch for coaches for now
+  });
+
+  const teams = teamsData.teams || [];
 
   return (
     <Card data-testid="card-current-teams">
@@ -36,7 +27,12 @@ export default function TeamManagementSection() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {teams.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-6 text-muted-foreground">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-sm">Loading teams...</p>
+            </div>
+          ) : teams.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">
               <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">
