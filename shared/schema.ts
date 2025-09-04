@@ -6,7 +6,7 @@ import { createInsertSchema } from "drizzle-zod";
 export const userSchema = z.object({
   id: z.string(),
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(1),
   name: z.string().optional(),
   roles: z.array(z.enum(["coach", "parent"])),
   clubId: z.string().optional(),
