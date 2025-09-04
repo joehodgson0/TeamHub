@@ -1,9 +1,52 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { registerUserSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { email, password } = registerUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ success: false, error: "Email already in use" });
+      }
+
+      // Create new user with generated ID
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newUser = await storage.createUser({
+        id: userId,
+        email,
+        password,
+        roles: [],
+        teamIds: []
+      });
+
+      res.json({ success: true, userId: newUser.id });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ success: false, error: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = registerUserSchema.parse(req.body);
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user || user.password !== password) {
+        return res.status(401).json({ success: false, error: "Invalid credentials" });
+      }
+
+      res.json({ success: true, user });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ success: false, error: "Login failed" });
+    }
+  });
 
   const httpServer = createServer(app);
 

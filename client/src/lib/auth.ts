@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import { User } from "@shared/schema";
+import { apiRequest } from "./queryClient";
 
 export interface AuthState {
   user: User | null;
@@ -51,48 +52,29 @@ export class AuthManager {
 
   async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const user = storage.getUserByEmail(email);
+      const response = await apiRequest("POST", "/api/auth/login", { email, password });
+      const result = await response.json();
       
-      if (!user) {
-        return { success: false, error: "User not found" };
+      if (result.success && result.user) {
+        this.currentUser = result.user;
+        storage.setCurrentUser(result.user.id);
+        this.notifyListeners();
       }
-
-      if (user.password !== password) {
-        return { success: false, error: "Invalid password" };
-      }
-
-      this.currentUser = user;
-      storage.setCurrentUser(user.id);
-      this.notifyListeners();
-
-      return { success: true };
+      
+      return result;
     } catch (error) {
+      console.error("Login error:", error);
       return { success: false, error: "Login failed" };
     }
   }
 
   async register(email: string, password: string): Promise<{ success: boolean; error?: string; userId?: string }> {
     try {
-      const existingUser = storage.getUserByEmail(email);
-      
-      if (existingUser) {
-        return { success: false, error: "Email already in use" };
-      }
-
-      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const newUser: User = {
-        id: userId,
-        email,
-        password,
-        roles: [],
-        teamIds: [],
-        createdAt: new Date(),
-      };
-
-      storage.createUser(newUser);
-
-      return { success: true, userId };
+      const response = await apiRequest("POST", "/api/auth/register", { email, password });
+      const result = await response.json();
+      return result;
     } catch (error) {
+      console.error("Registration error:", error);
       return { success: false, error: "Registration failed" };
     }
   }

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { pgTable, varchar, text, timestamp, integer, json, serial } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
 
 // User schema
 export const userSchema = z.object({
@@ -141,6 +143,101 @@ export const awardSchema = z.object({
   createdAt: z.date().default(() => new Date()),
 });
 
+// Drizzle table definitions
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey(),
+  email: varchar("email").notNull().unique(),
+  password: varchar("password").notNull(),
+  name: varchar("name"),
+  roles: json("roles").$type<("coach" | "parent")[]>().notNull().default([]),
+  clubId: varchar("club_id"),
+  teamIds: json("team_ids").$type<string[]>().notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const clubs = pgTable("clubs", {
+  id: varchar("id").primaryKey(),
+  name: varchar("name").notNull(),
+  code: varchar("code", { length: 8 }).notNull().unique(),
+  established: varchar("established"),
+  totalTeams: integer("total_teams").notNull().default(0),
+  totalPlayers: integer("total_players").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const teams = pgTable("teams", {
+  id: varchar("id").primaryKey(),
+  name: varchar("name").notNull(),
+  ageGroup: varchar("age_group").notNull(),
+  code: varchar("code", { length: 8 }).notNull().unique(),
+  clubId: varchar("club_id").notNull(),
+  managerId: varchar("manager_id").notNull(),
+  playerIds: json("player_ids").$type<string[]>().notNull().default([]),
+  wins: integer("wins").notNull().default(0),
+  draws: integer("draws").notNull().default(0),
+  losses: integer("losses").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const players = pgTable("players", {
+  id: varchar("id").primaryKey(),
+  name: varchar("name").notNull(),
+  dateOfBirth: timestamp("date_of_birth").notNull(),
+  teamId: varchar("team_id").notNull(),
+  parentId: varchar("parent_id").notNull(),
+  attendance: integer("attendance").notNull().default(0),
+  totalEvents: integer("total_events").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const fixtures = pgTable("fixtures", {
+  id: varchar("id").primaryKey(),
+  type: varchar("type").notNull(),
+  name: varchar("name").notNull(),
+  opponent: varchar("opponent"),
+  location: varchar("location").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  additionalInfo: text("additional_info"),
+  teamId: varchar("team_id").notNull(),
+  result: json("result").$type<{homeScore: number; awayScore: number; outcome: "W" | "L" | "D"}>(),
+  availability: json("availability").$type<Record<string, "available" | "unavailable" | "pending">>().notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const posts = pgTable("posts", {
+  id: varchar("id").primaryKey(),
+  type: varchar("type").notNull(),
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  authorId: varchar("author_id").notNull(),
+  authorName: varchar("author_name").notNull(),
+  authorRole: varchar("author_role").notNull(),
+  teamId: varchar("team_id"),
+  clubId: varchar("club_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const awards = pgTable("awards", {
+  id: varchar("id").primaryKey(),
+  title: varchar("title").notNull(),
+  recipient: varchar("recipient").notNull(),
+  recipientId: varchar("recipient_id").notNull(),
+  teamId: varchar("team_id").notNull(),
+  month: varchar("month").notNull(),
+  year: integer("year").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true });
+export const insertClubSchema = createInsertSchema(clubs).omit({ createdAt: true });
+export const insertTeamSchema = createInsertSchema(teams).omit({ createdAt: true });
+export const insertPlayerSchema = createInsertSchema(players).omit({ createdAt: true });
+export const insertFixtureSchema = createInsertSchema(fixtures).omit({ createdAt: true });
+export const insertPostSchema = createInsertSchema(posts).omit({ createdAt: true });
+export const insertAwardSchema = createInsertSchema(awards).omit({ createdAt: true });
+
 // Type exports
 export type User = z.infer<typeof userSchema>;
 export type RegisterUser = z.infer<typeof registerUserSchema>;
@@ -157,3 +254,12 @@ export type CreateFixture = z.infer<typeof createFixtureSchema>;
 export type Post = z.infer<typeof postSchema>;
 export type CreatePost = z.infer<typeof createPostSchema>;
 export type Award = z.infer<typeof awardSchema>;
+
+// Insert types
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertClub = z.infer<typeof insertClubSchema>;
+export type InsertTeam = z.infer<typeof insertTeamSchema>;
+export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
+export type InsertFixture = z.infer<typeof insertFixtureSchema>;
+export type InsertPost = z.infer<typeof insertPostSchema>;
+export type InsertAward = z.infer<typeof insertAwardSchema>;
