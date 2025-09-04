@@ -52,7 +52,13 @@ export class AuthManager {
 
   async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await apiRequest("POST", "/api/auth/login", { email, password });
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
+      
       const result = await response.json();
       
       if (result.success && result.user) {
@@ -70,7 +76,13 @@ export class AuthManager {
 
   async register(email: string, password: string): Promise<{ success: boolean; error?: string; userId?: string }> {
     try {
-      const response = await apiRequest("POST", "/api/auth/register", { email, password });
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include",
+      });
+      
       const result = await response.json();
       return result;
     } catch (error) {
