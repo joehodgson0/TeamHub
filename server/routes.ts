@@ -120,6 +120,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/teams", async (req, res) => {
+    try {
+      const { name, ageGroup, clubId, managerId } = req.body;
+      
+      if (!name || !ageGroup || !clubId || !managerId) {
+        return res.status(400).json({ success: false, error: "Missing required fields" });
+      }
+
+      // Generate unique team ID and code
+      const teamId = `team_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const teamCode = `1${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
+      
+      const newTeam = await storage.createTeam({
+        id: teamId,
+        name,
+        ageGroup,
+        code: teamCode,
+        clubId,
+        managerId,
+        playerIds: [],
+        wins: 0,
+        draws: 0,
+        losses: 0
+      });
+
+      res.json({ success: true, team: newTeam, teamCode });
+    } catch (error) {
+      console.error("Create team error:", error);
+      res.status(500).json({ success: false, error: "Failed to create team" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

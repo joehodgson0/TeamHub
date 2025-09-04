@@ -48,33 +48,36 @@ export default function CreateTeamModal({ open, onOpenChange }: CreateTeamModalP
     setIsLoading(true);
 
     try {
-      const teamId = `team_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const teamCode = `1${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
-      
-      const newTeam: Team = {
-        id: teamId,
-        name: data.name,
-        ageGroup: data.ageGroup,
-        code: teamCode,
-        clubId: user.clubId,
-        managerId: user.id,
-        playerIds: [],
-        wins: 0,
-        draws: 0,
-        losses: 0,
-        createdAt: new Date(),
-      };
-
-      storage.createTeam(newTeam);
-      refresh();
-
-      toast({
-        title: "Team Created Successfully",
-        description: `${data.name} has been created with code: ${teamCode}`,
+      const response = await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          ageGroup: data.ageGroup,
+          clubId: user.clubId,
+          managerId: user.id,
+        }),
+        credentials: "include",
       });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Team Created Successfully",
+          description: `${data.name} has been created with code: ${result.teamCode}`,
+        });
 
-      form.reset();
-      onOpenChange(false);
+        form.reset();
+        onOpenChange(false);
+        refresh();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.error || "Failed to create team",
+        });
+      }
     } catch (error) {
       toast({
         variant: "destructive",
