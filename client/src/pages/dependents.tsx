@@ -1,23 +1,38 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Eye, CheckCircle, Trophy } from "lucide-react";
 import { format } from "date-fns";
 import AddPlayerModal from "@/components/modals/add-player-modal";
+import type { Player, Team } from "@shared/schema";
 
 export default function Dependents() {
   const { user, hasRole } = useAuth();
-  const { storage } = useStorage();
   const [showAddModal, setShowAddModal] = useState(false);
 
   const canAddPlayer = hasRole("parent");
-  const players = user ? storage.getPlayersByParentId(user.id) : [];
 
-  const getPlayerTeam = (teamId: string) => {
-    return storage.getTeamById(teamId);
+  // Fetch players from database API
+  const { data: playersData, isLoading: playersLoading } = useQuery<{ success: boolean; players: Player[] }>({
+    queryKey: ['/api/players/parent', user?.id],
+    enabled: Boolean(user && canAddPlayer),
+  });
+
+  const players = playersData?.players || [];
+
+  // Fetch teams data for player teams
+  const { data: teamsData } = useQuery<{ success: boolean; teams: Team[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: Boolean(user?.clubId),
+  });
+
+  const teams = teamsData?.teams || [];
+
+  const getPlayerTeam = (teamId: string): Team | undefined => {
+    return teams.find((team: Team) => team.id === teamId);
   };
 
   const getPlayerAge = (dateOfBirth: Date) => {
@@ -32,18 +47,9 @@ export default function Dependents() {
   };
 
   const getRecentActivity = (playerId: string) => {
-    const playerFixtures = storage.getFixtures()
-      .filter(fixture => {
-        const team = getPlayerTeam(fixture.teamId);
-        return team && team.playerIds.includes(playerId);
-      })
-      .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
-      .slice(0, 3);
-
-    return playerFixtures.map(fixture => ({
-      ...fixture,
-      isAttended: fixture.availability[playerId] === "available" && fixture.startTime < new Date(),
-    }));
+    // For now, return empty array since fixtures need to be migrated to API too
+    // TODO: Add fixtures API endpoint
+    return [];
   };
 
   return (
@@ -62,7 +68,16 @@ export default function Dependents() {
         )}
       </div>
 
-      {players.length === 0 ? (
+      {playersLoading ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading dependents...</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : players.length === 0 ? (
         <Card>
           <CardContent className="py-12">
             <div className="text-center">
@@ -88,7 +103,7 @@ export default function Dependents() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {players.map((player) => {
+                {players.map((player: Player) => {
                   const team = getPlayerTeam(player.teamId);
                   const age = getPlayerAge(player.dateOfBirth);
                   const attendanceRate = player.totalEvents > 0 
@@ -104,7 +119,7 @@ export default function Dependents() {
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                           <span className="text-primary font-semibold">
-                            {player.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                            {player.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                           </span>
                         </div>
                         <div>
@@ -147,42 +162,10 @@ export default function Dependents() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {getRecentActivity(players[0].id).map((activity) => (
-                    <div
-                      key={activity.id}
-                      className={`flex items-center space-x-3 p-3 rounded-lg border ${
-                        activity.isAttended 
-                          ? "bg-green-50 border-green-200" 
-                          : activity.type === "match"
-                          ? "bg-blue-50 border-blue-200"
-                          : "bg-muted/50 border-border"
-                      }`}
-                      data-testid={`activity-${activity.id}`}
-                    >
-                      {activity.isAttended ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      ) : activity.type === "match" ? (
-                        <Trophy className="w-5 h-5 text-blue-600" />
-                      ) : (
-                        <div className="w-5 h-5 bg-muted rounded-full" />
-                      )}
-                      <div className="flex-1">
-                        <p className="font-medium text-sm" data-testid={`activity-name-${activity.id}`}>
-                          {activity.isAttended ? `${activity.name} (Attended)` : activity.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground" data-testid={`activity-date-${activity.id}`}>
-                          {format(activity.startTime, "EEEE, MMM d 'at' h:mm a")}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {getRecentActivity(players[0].id).length === 0 && (
-                    <div className="text-center py-6 text-muted-foreground">
-                      <Trophy className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No recent activity</p>
-                    </div>
-                  )}
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Trophy className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No recent activity</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

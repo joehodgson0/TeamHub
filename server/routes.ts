@@ -253,6 +253,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/players/parent/:parentId", async (req, res) => {
+    try {
+      const { parentId } = req.params;
+      
+      if (!parentId) {
+        return res.status(400).json({ success: false, error: "Parent ID required" });
+      }
+
+      const players = await storage.getPlayersByParentId(parentId);
+      res.json({ success: true, players });
+    } catch (error) {
+      console.error("Get players by parent error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch players" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
