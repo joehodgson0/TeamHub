@@ -36,7 +36,13 @@ export default function Register() {
           title: "Welcome back!",
           description: "You have been signed in successfully.",
         });
-        setLocation("/role-selection");
+        
+        // Check if user already has roles, if so go to dashboard, otherwise go to role selection
+        if (result.user && result.user.roles && result.user.roles.length > 0) {
+          setLocation("/dashboard");
+        } else {
+          setLocation("/role-selection");
+        }
       } else {
         toast({
           variant: "destructive",
