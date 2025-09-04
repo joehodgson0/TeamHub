@@ -173,7 +173,7 @@ export class DatabaseStorage implements IStorage {
       .insert(players)
       .values(insertPlayer)
       .returning();
-    return player;
+    return player as Player;
   }
 
   // Fixture methods
