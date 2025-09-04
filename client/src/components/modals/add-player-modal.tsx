@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { addPlayerSchema, type AddPlayer, type Player } from "@shared/schema";
+import { addPlayerSchema, type AddPlayer } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
@@ -44,54 +44,36 @@ export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalPro
     setIsLoading(true);
 
     try {
-      if (!data.teamCode.startsWith("1")) {
+      const response = await fetch("/api/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          dateOfBirth: data.dateOfBirth,
+          teamCode: data.teamCode,
+          parentId: user.id,
+        }),
+        credentials: "include",
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Player Added Successfully",
+          description: `${data.name} has been added to ${result.team}.`,
+        });
+
+        form.reset();
+        onOpenChange(false);
+        refresh();
+      } else {
         toast({
           variant: "destructive",
           title: "Invalid Team Code",
-          description: "No team found with code " + data.teamCode,
+          description: result.error || "Failed to add player",
         });
-        return;
       }
-
-      const team = storage.getTeamByCode(data.teamCode);
-      if (!team) {
-        toast({
-          variant: "destructive",
-          title: "Invalid Team Code",
-          description: "No team found with code " + data.teamCode,
-        });
-        return;
-      }
-
-      const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const newPlayer: Player = {
-        id: playerId,
-        name: data.name,
-        dateOfBirth: new Date(data.dateOfBirth),
-        teamId: team.id,
-        parentId: user.id,
-        attendance: 0,
-        totalEvents: 0,
-        createdAt: new Date(),
-      };
-
-      storage.createPlayer(newPlayer);
-      
-      // Update team's player list
-      storage.updateTeam(team.id, {
-        playerIds: [...team.playerIds, playerId]
-      });
-
-      refresh();
-
-      toast({
-        title: "Player Added Successfully",
-        description: `${data.name} has been added to ${team.name}.`,
-      });
-
-      form.reset();
-      onOpenChange(false);
     } catch (error) {
       toast({
         variant: "destructive",

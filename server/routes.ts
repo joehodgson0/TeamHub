@@ -192,6 +192,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/teams/code/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      
+      if (!code) {
+        return res.status(400).json({ success: false, error: "Team code required" });
+      }
+
+      const team = await storage.getTeamByCode(code);
+      
+      if (!team) {
+        return res.status(404).json({ success: false, error: "No team found with that code" });
+      }
+
+      res.json({ success: true, team });
+    } catch (error) {
+      console.error("Get team by code error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch team" });
+    }
+  });
+
+  app.post("/api/players", async (req, res) => {
+    try {
+      const { name, dateOfBirth, teamCode, parentId } = req.body;
+      
+      if (!name || !dateOfBirth || !teamCode || !parentId) {
+        return res.status(400).json({ success: false, error: "Missing required fields" });
+      }
+
+      // Find team by code
+      const team = await storage.getTeamByCode(teamCode);
+      if (!team) {
+        return res.status(404).json({ success: false, error: "No team found with code " + teamCode });
+      }
+
+      // Generate unique player ID
+      const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const newPlayer = await storage.createPlayer({
+        id: playerId,
+        name,
+        dateOfBirth: new Date(dateOfBirth),
+        teamId: team.id,
+        parentId,
+        attendance: 0,
+        totalEvents: 0
+      });
+
+      // Update team's player list
+      const updatedPlayerIds = [...team.playerIds, playerId];
+      await storage.updateTeam(team.id, {
+        playerIds: updatedPlayerIds
+      });
+
+      res.json({ success: true, player: newPlayer, team: team.name });
+    } catch (error) {
+      console.error("Create player error:", error);
+      res.status(500).json({ success: false, error: "Failed to create player" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
