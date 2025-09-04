@@ -69,6 +69,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/auth/associate-club", async (req, res) => {
+    try {
+      const { userId, clubCode } = req.body;
+      
+      if (!userId || !clubCode) {
+        return res.status(400).json({ success: false, error: "Invalid request data" });
+      }
+
+      if (!clubCode.startsWith("1")) {
+        return res.status(404).json({ success: false, error: "No club found with that code" });
+      }
+
+      const club = await storage.getClubByCode(clubCode);
+      if (!club) {
+        return res.status(404).json({ success: false, error: "No club found with that code" });
+      }
+
+      const updatedUser = await storage.updateUser(userId, { clubId: club.id });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ success: false, error: "User not found" });
+      }
+
+      res.json({ success: true, user: updatedUser, clubName: club.name });
+    } catch (error) {
+      console.error("Associate club error:", error);
+      res.status(500).json({ success: false, error: "Failed to associate with club" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

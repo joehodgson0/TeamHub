@@ -120,28 +120,27 @@ export class AuthManager {
 
   async associateWithClub(userId: string, clubCode: string): Promise<{ success: boolean; error?: string; clubName?: string }> {
     try {
-      if (!clubCode.startsWith("1")) {
-        return { success: false, error: "No club found with that code" };
-      }
-
-      const club = storage.getClubByCode(clubCode);
-      if (!club) {
-        return { success: false, error: "No club found with that code" };
-      }
-
-      const updatedUser = storage.updateUser(userId, { clubId: club.id });
+      const response = await fetch("/api/auth/associate-club", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, clubCode }),
+        credentials: "include",
+      });
       
-      if (!updatedUser) {
-        return { success: false, error: "User not found" };
+      const result = await response.json();
+      
+      if (result.success && result.user) {
+        // Update current user if it's the same user
+        if (this.currentUser?.id === userId) {
+          this.currentUser = result.user;
+          this.notifyListeners();
+        }
+        return { success: true, clubName: result.clubName };
       }
-
-      if (this.currentUser?.id === userId) {
-        this.currentUser = updatedUser;
-        this.notifyListeners();
-      }
-
-      return { success: true, clubName: club.name };
+      
+      return { success: false, error: result.error || "Failed to associate with club" };
     } catch (error) {
+      console.error("Associate club error:", error);
       return { success: false, error: "Failed to associate with club" };
     }
   }
