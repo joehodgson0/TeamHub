@@ -67,7 +67,9 @@ export default function Register() {
   const onLogin = async (data: RegisterUser) => {
     setIsLoading(true);
     try {
+      console.log("Attempting login with:", data.email);
       const result = await login(data.email, data.password);
+      console.log("Login result:", result);
       
       if (result.success) {
         toast({
@@ -76,6 +78,7 @@ export default function Register() {
         });
         setLocation("/");
       } else {
+        // Don't reset form on error - keep the entered values
         toast({
           variant: "destructive",
           title: "Login Failed",
@@ -83,6 +86,8 @@ export default function Register() {
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
+      // Don't reset form on error - keep the entered values
       toast({
         variant: "destructive",
         title: "Login Failed",
