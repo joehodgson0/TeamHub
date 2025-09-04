@@ -48,6 +48,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/auth/update-roles", async (req, res) => {
+    try {
+      const { userId, roles } = req.body;
+      
+      if (!userId || !Array.isArray(roles)) {
+        return res.status(400).json({ success: false, error: "Invalid request data" });
+      }
+
+      const updatedUser = await storage.updateUser(userId, { roles });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ success: false, error: "User not found" });
+      }
+
+      res.json({ success: true, user: updatedUser });
+    } catch (error) {
+      console.error("Update roles error:", error);
+      res.status(500).json({ success: false, error: "Failed to update roles" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

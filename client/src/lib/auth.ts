@@ -93,20 +93,27 @@ export class AuthManager {
 
   async updateUserRoles(userId: string, roles: Array<"coach" | "parent">): Promise<{ success: boolean; error?: string }> {
     try {
-      const updatedUser = storage.updateUser(userId, { roles });
+      const response = await fetch("/api/auth/update-roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, roles }),
+        credentials: "include",
+      });
       
-      if (!updatedUser) {
-        return { success: false, error: "User not found" };
+      const result = await response.json();
+      
+      if (result.success && result.user) {
+        // Update current user if it's the same user
+        if (this.currentUser?.id === userId) {
+          this.currentUser = result.user;
+          this.notifyListeners();
+        }
+        return { success: true };
       }
-
-      if (this.currentUser?.id === userId) {
-        this.currentUser = updatedUser;
-        storage.setCurrentUser(userId);
-        this.notifyListeners();
-      }
-
-      return { success: true };
+      
+      return { success: false, error: result.error || "Failed to update roles" };
     } catch (error) {
+      console.error("Update roles error:", error);
       return { success: false, error: "Failed to update roles" };
     }
   }
