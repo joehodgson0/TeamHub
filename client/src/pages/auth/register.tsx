@@ -201,6 +201,13 @@ export default function Register() {
             <CardDescription>Join your sports team management platform</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Debug info for registration */}
+            <div className="mb-4 p-2 bg-yellow-100 text-xs">
+              <p>isLoading: {isLoading ? 'true' : 'false'}</p>
+              <p>Register form values: {JSON.stringify(registerForm.getValues())}</p>
+              <p>Form state ready: {registerForm.formState.isValid ? 'true' : 'false'}</p>
+            </div>
+            
             <Form {...registerForm}>
               <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4" data-testid="form-register">
                 <FormField
