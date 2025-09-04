@@ -21,6 +21,7 @@ export default function Register() {
 
   const registerForm = useForm<RegisterUser>({
     resolver: zodResolver(registerUserSchema),
+    mode: "onChange",
     defaultValues: {
       email: "",
       password: "",
@@ -29,6 +30,7 @@ export default function Register() {
 
   const loginForm = useForm<RegisterUser>({
     resolver: zodResolver(registerUserSchema),
+    mode: "onChange", 
     defaultValues: {
       email: "",
       password: "",
@@ -128,6 +130,8 @@ export default function Register() {
                             placeholder="Enter your email"
                             data-testid="input-email"
                             disabled={isLoading}
+                            autoComplete="email"
+                            tabIndex={0}
                             {...field}
                           />
                         </FormControl>
@@ -148,6 +152,8 @@ export default function Register() {
                             placeholder="Enter your password"
                             data-testid="input-password"
                             disabled={isLoading}
+                            autoComplete="current-password"
+                            tabIndex={0}
                             {...field}
                           />
                         </FormControl>
@@ -214,6 +220,9 @@ export default function Register() {
                           type="email"
                           placeholder="Enter your email"
                           data-testid="input-email"
+                          disabled={isLoading}
+                          autoComplete="email"
+                          tabIndex={0}
                           {...field}
                         />
                       </FormControl>
@@ -231,8 +240,11 @@ export default function Register() {
                       <FormControl>
                         <Input
                           type="password"
-                          placeholder="Create a password (min 8 characters)"
+                          placeholder="Create a password (min 1 character)"
                           data-testid="input-password"
+                          disabled={isLoading}
+                          autoComplete="new-password"
+                          tabIndex={0}
                           {...field}
                         />
                       </FormControl>
