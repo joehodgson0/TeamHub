@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { clubAssociationSchema, type ClubAssociation } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +14,17 @@ import { Building, Info, CheckCircle, XCircle } from "lucide-react";
 
 export default function Club() {
   const { user, associateWithClub } = useAuth();
-  const { storage } = useStorage();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  const club = user?.clubId ? storage.getClubById(user.clubId) : null;
+  // Fetch club data from database
+  const { data: clubData, isLoading: clubLoading } = useQuery({
+    queryKey: ["/api/clubs", user?.clubId],
+    enabled: !!user?.clubId,
+  });
+  
+  const club = clubData?.club;
 
   const form = useForm<ClubAssociation>({
     resolver: zodResolver(clubAssociationSchema),

@@ -99,6 +99,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/clubs/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      if (!id) {
+        return res.status(400).json({ success: false, error: "Club ID required" });
+      }
+
+      const club = await storage.getClub(id);
+      
+      if (!club) {
+        return res.status(404).json({ success: false, error: "Club not found" });
+      }
+
+      res.json({ success: true, club });
+    } catch (error) {
+      console.error("Get club error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch club" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
