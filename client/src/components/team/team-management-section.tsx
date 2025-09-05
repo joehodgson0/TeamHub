@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Users, Edit, Eye, Plus, Building, Info, CheckCircle, XCircle } from "lucide-react";
 import CreateTeamModal from "@/components/modals/create-team-modal";
+import EditTeamModal from "@/components/modals/edit-team-modal";
 
 export default function TeamManagementSection() {
   const { user, hasRole, associateWithClub } = useAuth();
@@ -20,6 +21,8 @@ export default function TeamManagementSection() {
   const isCoach = hasRole("coach");
   const isParent = hasRole("parent");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   
@@ -277,6 +280,10 @@ export default function TeamManagementSection() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => {
+                            setEditingTeam(team);
+                            setShowEditModal(true);
+                          }}
                           data-testid={`button-edit-team-${team.id}`}
                         >
                           <Edit className="w-4 h-4" />
@@ -300,6 +307,11 @@ export default function TeamManagementSection() {
         <CreateTeamModal 
           open={showCreateModal} 
           onOpenChange={setShowCreateModal} 
+        />
+        <EditTeamModal 
+          open={showEditModal} 
+          onOpenChange={setShowEditModal}
+          team={editingTeam}
         />
       </Card>
     </div>

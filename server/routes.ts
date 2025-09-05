@@ -167,6 +167,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/teams/:teamId", async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const { name, ageGroup } = req.body;
+      
+      if (!teamId) {
+        return res.status(400).json({ success: false, error: "Team ID required" });
+      }
+
+      if (!name || !ageGroup) {
+        return res.status(400).json({ success: false, error: "Missing required fields" });
+      }
+
+      const updatedTeam = await storage.updateTeam(teamId, { name, ageGroup });
+      
+      if (!updatedTeam) {
+        return res.status(404).json({ success: false, error: "Team not found" });
+      }
+
+      res.json({ success: true, team: updatedTeam });
+    } catch (error) {
+      console.error("Update team error:", error);
+      res.status(500).json({ success: false, error: "Failed to update team" });
+    }
+  });
+
   app.get("/api/teams/user/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
