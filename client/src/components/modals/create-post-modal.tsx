@@ -65,9 +65,7 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
   });
 
   const form = useForm<CreatePost & { scope: "team" | "club" }>({
-    resolver: zodResolver(createPostSchema.extend({
-      scope: createPostSchema.shape.type, // Use same validation as type for scope
-    })),
+    resolver: zodResolver(createPostSchema),
     defaultValues: {
       type: "announcement",
       title: "",
