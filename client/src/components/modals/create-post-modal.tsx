@@ -64,21 +64,19 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
     },
   });
 
-  const form = useForm<CreatePost & { scope: "team" | "club"; teamId?: string }>({
+  const form = useForm<CreatePost & { scope: "team" | "club" }>({
     resolver: zodResolver(createPostSchema.extend({
       scope: createPostSchema.shape.type, // Use same validation as type for scope
-      teamId: createPostSchema.shape.title.optional(), // Optional team selection
     })),
     defaultValues: {
       type: "announcement",
       title: "",
       content: "",
       scope: "team",
-      teamId: "",
     },
   });
 
-  const onSubmit = async (data: CreatePost & { scope: "team" | "club"; teamId?: string }) => {
+  const onSubmit = async (data: CreatePost & { scope: "team" | "club" }) => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -89,6 +87,9 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
     }
 
     try {
+      // Get manager's team automatically
+      const managerTeam = userTeams.length > 0 ? userTeams[0] : null;
+      
       const postData = {
         type: data.type,
         title: data.title,
@@ -96,7 +97,7 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
         authorId: user.id,
         authorName: user.name || user.email.split('@')[0],
         authorRole: user.roles.includes("coach") ? "Team Manager" : "Club Administrator",
-        teamId: data.scope === "team" ? data.teamId : undefined,
+        teamId: data.scope === "team" ? managerTeam?.id : undefined,
         clubId: data.scope === "club" ? user.clubId : undefined,
       };
 
@@ -192,30 +193,14 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
             </div>
 
             {selectedScope === "team" && userTeams.length > 0 && (
-              <FormField
-                control={form.control}
-                name="teamId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Team</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-team">
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select team" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {userTeams.map((team) => (
-                          <SelectItem key={team.id} value={team.id}>
-                            {team.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="p-4 bg-muted/50 rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Team:</strong> {userTeams[0]?.name}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Posts will be visible to your team members only
+                </p>
+              </div>
             )}
 
             <FormField
