@@ -166,16 +166,16 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               />
             </div>
 
-            {selectedType !== "match" && (
+            {(selectedType !== "match" || selectedType === "tournament") && (
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fixture Name</FormLabel>
+                    <FormLabel>{selectedType === "tournament" ? "Tournament Name" : "Fixture Name"}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="e.g., vs. Riverside United"
+                        placeholder={selectedType === "tournament" ? "e.g., Spring Cup 2025" : "e.g., vs. Riverside United"}
                         data-testid="input-fixture-name"
                         {...field}
                       />
@@ -186,23 +186,25 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               />
             )}
 
-            <FormField
-              control={form.control}
-              name="opponent"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{selectedType === "match" ? "Opponent" : "Opponent (if applicable)"}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter opponent name"
-                      data-testid="input-opponent"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {selectedType !== "tournament" && (
+              <FormField
+                control={form.control}
+                name="opponent"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{selectedType === "match" ? "Opponent" : "Opponent (if applicable)"}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter opponent name"
+                        data-testid="input-opponent"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
