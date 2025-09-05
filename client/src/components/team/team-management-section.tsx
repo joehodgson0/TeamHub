@@ -97,6 +97,14 @@ export default function TeamManagementSection() {
 
   const players = playersData?.players || [];
 
+  // Fetch teams data for resolving team names for players
+  const { data: allTeamsData } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: Boolean(user?.clubId && isParent),
+  });
+
+  const allTeams = allTeamsData?.teams || [];
+
   // If user has no club AND has no roles (not coach or parent), show join club form
   if (!user?.clubId && !isCoach && !isParent) {
     return (
@@ -187,6 +195,10 @@ export default function TeamManagementSection() {
       return age - 1;
     }
     return age;
+  };
+
+  const getPlayerTeam = (teamId: string) => {
+    return allTeams.find((team: any) => team.id === teamId);
   };
 
   // Show nothing if user has no roles
@@ -370,6 +382,7 @@ export default function TeamManagementSection() {
               ) : (
                 players.map((player: any) => {
                   const age = getPlayerAge(player.dateOfBirth);
+                  const team = getPlayerTeam(player.teamId);
                   const attendanceRate = player.totalEvents > 0 
                     ? Math.round((player.attendance / player.totalEvents) * 100) 
                     : 0;
@@ -385,8 +398,17 @@ export default function TeamManagementSection() {
                           <h4 className="font-medium" data-testid={`player-name-${player.id}`}>
                             {player.name}
                           </h4>
+                          {team && (
+                            <Badge variant="outline" className="text-xs">
+                              {team.ageGroup}
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span data-testid={`player-team-${player.id}`}>
+                            {team?.name || "Unknown Team"}
+                          </span>
+                          <span>•</span>
                           <span data-testid={`player-age-${player.id}`}>
                             Age {age}
                           </span>
