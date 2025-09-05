@@ -37,7 +37,7 @@ export default function Sidebar() {
     <aside className="w-64 bg-card border-r border-border min-h-[calc(100vh-4rem)]" data-testid="sidebar">
       <nav className="p-4 space-y-2">
         {navigationItems
-          .filter((item) => item.roles.some(role => hasRole(role)))
+          .filter((item) => item.roles.some(role => hasRole(role as "coach" | "parent")))
           .map((item) => {
           const Icon = item.icon;
           return (

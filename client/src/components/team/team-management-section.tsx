@@ -1,32 +1,50 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Edit, Eye } from "lucide-react";
+import { Users, Edit, Eye, Plus } from "lucide-react";
+import CreateTeamModal from "@/components/modals/create-team-modal";
+import { type Team } from "@shared/schema";
 
 export default function TeamManagementSection() {
   const { user, hasRole } = useAuth();
   const isCoach = hasRole("coach");
   const isParent = hasRole("parent");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  const canCreateTeam = isCoach && user?.clubId;
 
   // For coaches: fetch teams from their club
   // For parents: fetch teams through their dependents
-  const { data: teamsData = { teams: [] }, isLoading } = useQuery({
+  const { data: teamsData, isLoading } = useQuery<{ teams: Team[] }>({
     queryKey: isCoach 
       ? ['/api/teams/club', user?.clubId]
       : ['/api/teams/user', user?.id],
     enabled: Boolean(user && (isCoach ? user.clubId : isParent)),
   });
 
-  const teams = teamsData.teams || [];
+  const teams = teamsData?.teams || [];
 
   return (
     <Card data-testid="card-current-teams">
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Users className="w-5 h-5 text-primary" />
-          <span>{isCoach ? "Your Teams" : "Associated Teams"}</span>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Users className="w-5 h-5 text-primary" />
+            <span>{isCoach ? "Your Teams" : "Associated Teams"}</span>
+          </div>
+          {canCreateTeam && (
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              size="sm"
+              data-testid="button-create-team"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Team
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -50,7 +68,7 @@ export default function TeamManagementSection() {
               </p>
             </div>
           ) : (
-            teams.map((team) => {
+            teams.map((team: Team) => {
               if (!team) return null;
               
               const playerCount = team.playerIds?.length || 0;
@@ -112,6 +130,11 @@ export default function TeamManagementSection() {
           )}
         </div>
       </CardContent>
+      
+      <CreateTeamModal 
+        open={showCreateModal} 
+        onOpenChange={setShowCreateModal} 
+      />
     </Card>
   );
 }
