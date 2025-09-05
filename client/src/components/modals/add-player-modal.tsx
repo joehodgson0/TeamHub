@@ -3,8 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addPlayerSchema, type AddPlayer } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,7 +18,6 @@ interface AddPlayerModalProps {
 
 export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalProps) {
   const { user } = useAuth();
-  const { storage, refresh } = useStorage();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -66,7 +65,10 @@ export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalPro
 
         form.reset();
         onOpenChange(false);
-        refresh();
+        
+        // Invalidate related queries
+        queryClient.invalidateQueries({ queryKey: ['/api/players/parent'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
       } else {
         toast({
           variant: "destructive",

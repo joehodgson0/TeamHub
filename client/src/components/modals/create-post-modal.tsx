@@ -3,8 +3,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createPostSchema, type CreatePost, type Post } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,12 +28,41 @@ const postTypes = [
 
 export default function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
   const { user } = useAuth();
-  const { storage, refresh } = useStorage();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const userTeams = user ? storage.getTeamsByManagerId(user.id) : [];
-  const userClub = user?.clubId ? storage.getClubById(user.clubId) : null;
+  
+  // Fetch user's teams
+  const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: !!user?.clubId,
+  });
+  
+  // Fetch user's club
+  const { data: clubResponse } = useQuery<{ success: boolean; club: any }>({
+    queryKey: ['/api/clubs', user?.clubId],
+    enabled: !!user?.clubId,
+  });
+  
+  const userTeams = teamsResponse?.teams || [];
+  const userClub = clubResponse?.club || null;
+  
+  const createPostMutation = useMutation({
+    mutationFn: async (postData: any) => {
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData),
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result.post;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts/team'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts/club'] });
+    },
+  });
 
   const form = useForm<CreatePost & { scope: "team" | "club"; teamId?: string }>({
     resolver: zodResolver(createPostSchema.extend({
@@ -58,13 +88,8 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const postId = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const newPost: Post = {
-        id: postId,
+      const postData = {
         type: data.type,
         title: data.title,
         content: data.content,
@@ -73,11 +98,9 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
         authorRole: user.roles.includes("coach") ? "Team Manager" : "Club Administrator",
         teamId: data.scope === "team" ? data.teamId : undefined,
         clubId: data.scope === "club" ? user.clubId : undefined,
-        createdAt: new Date(),
       };
 
-      storage.createPost(newPost);
-      refresh();
+      await createPostMutation.mutateAsync(postData);
 
       toast({
         title: "Post Created Successfully",
@@ -92,8 +115,6 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
         title: "Error",
         description: "Failed to create post. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -247,10 +268,10 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
               <Button
                 type="submit"
                 className="flex-1"
-                disabled={isLoading}
+                disabled={createPostMutation.isPending}
                 data-testid="button-create"
               >
-                {isLoading ? "Creating..." : "Create Post"}
+                {createPostMutation.isPending ? "Creating..." : "Create Post"}
               </Button>
             </div>
           </form>

@@ -1,14 +1,19 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LogOut } from "lucide-react";
 
 export default function Header() {
   const { user, logout } = useAuth();
-  const { storage } = useStorage();
 
-  const club = user?.clubId ? storage.getClubById(user.clubId) : null;
+  // Fetch club data
+  const { data: clubResponse } = useQuery<{ success: boolean; club: any }>({
+    queryKey: ['/api/clubs', user?.clubId],
+    enabled: !!user?.clubId,
+  });
+
+  const club = clubResponse?.club;
   
   const getRoleLabel = () => {
     if (!user?.roles) return "User";

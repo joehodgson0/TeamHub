@@ -1,37 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
-import { storage } from "@/lib/storage";
-import { User, Club, Team, Player, Fixture, Post, Award } from "@shared/schema";
+// DEPRECATED: This hook has been replaced with React Query API calls
+// All components should now use useQuery and useMutation from @tanstack/react-query
 
 export function useStorage() {
-  const [data, setData] = useState({
-    users: [] as User[],
-    clubs: [] as Club[],
-    teams: [] as Team[],
-    players: [] as Player[],
-    fixtures: [] as Fixture[],
-    posts: [] as Post[],
-    awards: [] as Award[],
-  });
-
-  const refreshData = useCallback(() => {
-    setData({
-      users: storage.getUsers(),
-      clubs: storage.getClubs(),
-      teams: storage.getTeams(),
-      players: storage.getPlayers(),
-      fixtures: storage.getFixtures(),
-      posts: storage.getPosts(),
-      awards: storage.getAwards(),
-    });
-  }, []);
-
-  useEffect(() => {
-    refreshData();
-  }, [refreshData]);
-
+  console.warn('useStorage hook is deprecated. Use React Query API calls instead.');
+  
+  // Return empty data structure for compatibility during migration
   return {
-    ...data,
-    refresh: refreshData,
-    storage,
+    users: [],
+    clubs: [],
+    teams: [],
+    players: [],
+    fixtures: [],
+    posts: [],
+    awards: [],
+    refresh: () => console.warn('refresh() is deprecated. Use queryClient.invalidateQueries() instead.'),
+    storage: null,
   };
 }

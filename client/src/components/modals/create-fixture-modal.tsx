@@ -4,8 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,11 +30,34 @@ const eventTypes = [
 
 export default function CreateFixtureModal({ open, onOpenChange }: CreateFixtureModalProps) {
   const { user } = useAuth();
-  const { storage, refresh } = useStorage();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const userTeams = user ? storage.getTeamsByManagerId(user.id) : [];
+  
+  // Fetch user's teams 
+  const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: !!user?.clubId,
+  });
+  
+  const userTeams = teamsResponse?.teams || [];
+  
+  const createEventMutation = useMutation({
+    mutationFn: async (eventData: any) => {
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData),
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result.event;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/team'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming'] });
+    },
+  });
   
   const form = useForm<CreateEvent & { isFriendly: boolean; homeAway: string }>({
     resolver: zodResolver(createEventSchema.extend({ 
@@ -65,35 +89,28 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const fixtureId = `fixture_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Automatically use the manager's team
+      // Get manager's team from fetched teams
       const managerTeam = userTeams.length > 0 ? userTeams[0] : null;
       
-      const newEvent: Event = {
-        id: fixtureId,
+      const eventData = {
         type: data.isFriendly ? "friendly" : data.type,
         name: data.name,
         opponent: data.opponent || undefined,
         location: data.location,
-        startTime: new Date(data.startTime),
-        endTime: new Date(data.endTime),
+        startTime: data.startTime,
+        endTime: data.endTime,
         additionalInfo: data.additionalInfo || undefined,
-        teamId: managerTeam?.id || user.id, // Use manager's team or fallback to user ID
+        teamId: managerTeam?.id || user.id,
         homeAway: data.homeAway || undefined,
         availability: {},
-        createdAt: new Date(),
       };
 
-      storage.createEvent(newEvent);
-      refresh();
+      await createEventMutation.mutateAsync(eventData);
 
       toast({
         title: "Event Created Successfully",
-        description: `${data.name} has been scheduled.`,
+        description: `${data.name || 'Event'} has been scheduled.`,
       });
 
       form.reset();
@@ -104,8 +121,6 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         title: "Error",
         description: "Failed to create event. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -333,10 +348,10 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               <Button
                 type="submit"
                 className="flex-1"
-                disabled={isLoading}
+                disabled={createEventMutation.isPending}
                 data-testid="button-create"
               >
-                {isLoading ? "Creating..." : "Create Event"}
+                {createEventMutation.isPending ? "Creating..." : "Create Event"}
               </Button>
             </div>
           </form>

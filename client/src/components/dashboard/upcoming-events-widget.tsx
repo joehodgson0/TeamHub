@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, ExternalLink, Trophy, Clock } from "lucide-react";
@@ -7,25 +7,40 @@ import { format } from "date-fns";
 
 export default function UpcomingEventsWidget() {
   const { user } = useAuth();
-  const { storage } = useStorage();
 
+  // Fetch upcoming events
+  const { data: eventsResponse } = useQuery<{ success: boolean; events: any[] }>({
+    queryKey: ['/api/events/upcoming'],
+    enabled: !!user,
+  });
+  
+  // Fetch user's teams for filtering
+  const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: !!user?.clubId && user?.roles.includes('coach'),
+  });
+  
+  // Fetch user's players for filtering
+  const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: ['/api/players/parent', user?.id],
+    enabled: !!user && user?.roles.includes('parent'),
+  });
+  
   const getUpcomingEvents = () => {
-    if (!user) return [];
+    if (!user || !eventsResponse?.events) return [];
 
-    let fixtures = storage.getUpcomingFixtures();
+    let events = eventsResponse.events;
     
-    // Filter fixtures based on user's teams
-    if (user.roles.includes("coach")) {
-      const userTeams = storage.getTeamsByManagerId(user.id);
-      const teamIds = userTeams.map(team => team.id);
-      fixtures = fixtures.filter(fixture => teamIds.includes(fixture.teamId));
-    } else if (user.roles.includes("parent")) {
-      const userPlayers = storage.getPlayersByParentId(user.id);
-      const teamIds = userPlayers.map(player => player.teamId);
-      fixtures = fixtures.filter(fixture => teamIds.includes(fixture.teamId));
+    // Filter events based on user's teams
+    if (user.roles.includes("coach") && teamsResponse?.teams) {
+      const teamIds = teamsResponse.teams.map(team => team.id);
+      events = events.filter(event => teamIds.includes(event.teamId));
+    } else if (user.roles.includes("parent") && playersResponse?.players) {
+      const teamIds = playersResponse.players.map(player => player.teamId);
+      events = events.filter(event => teamIds.includes(event.teamId));
     }
 
-    return fixtures.slice(0, 3); // Show only next 3 events
+    return events.slice(0, 3); // Show only next 3 events
   };
 
   const upcomingEvents = getUpcomingEvents();

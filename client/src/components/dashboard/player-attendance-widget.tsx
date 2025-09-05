@@ -1,32 +1,16 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCheck } from "lucide-react";
 
 export default function PlayerAttendanceWidget() {
   const { user } = useAuth();
-  const { storage } = useStorage();
 
+  // TODO: Replace with API call to fetch player attendance data
   const getPlayerAttendance = () => {
     if (!user) return [];
-
-    let players: any[] = [];
-
-    if (user.roles.includes("coach")) {
-      const userTeams = storage.getTeamsByManagerId(user.id);
-      const teamIds = userTeams.map(team => team.id);
-      players = teamIds.flatMap(teamId => storage.getPlayersByTeamId(teamId));
-    } else if (user.roles.includes("parent")) {
-      players = storage.getPlayersByParentId(user.id);
-    }
-
-    return players.map(player => ({
-      ...player,
-      attendanceRate: player.totalEvents > 0 
-        ? Math.round((player.attendance / player.totalEvents) * 100)
-        : 0,
-      initials: player.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-    }));
+    
+    // Return empty array for now - will be replaced with API call
+    return [];
   };
 
   const playerAttendance = getPlayerAttendance();

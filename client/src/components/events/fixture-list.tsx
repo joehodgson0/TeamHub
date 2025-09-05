@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,26 +11,46 @@ import type { Fixture } from "@shared/schema";
 
 export default function FixtureList() {
   const { user, hasRole } = useAuth();
-  const { storage } = useStorage();
-  const [editingFixture, setEditingFixture] = useState<Fixture | null>(null);
+  const [editingFixture, setEditingFixture] = useState<any | null>(null);
+
+  // Fetch upcoming events
+  const { data: eventsResponse } = useQuery<{ success: boolean; events: any[] }>({
+    queryKey: ['/api/events/upcoming'],
+    enabled: !!user,
+  });
+  
+  // Fetch user's teams for filtering
+  const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: !!user?.clubId && hasRole('coach'),
+  });
+  
+  // Fetch user's players for filtering
+  const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: ['/api/players/parent', user?.id],
+    enabled: !!user && hasRole('parent'),
+  });
 
   const getFixtures = () => {
-    if (!user) return [];
+    if (!user || !eventsResponse?.events) return [];
 
-    let fixtures = storage.getUpcomingFixtures();
+    let events = eventsResponse.events.map(event => ({
+      ...event,
+      startTime: new Date(event.startTime),
+      endTime: new Date(event.endTime),
+      createdAt: new Date(event.createdAt)
+    }));
 
     // Filter by user's teams
-    if (hasRole("coach")) {
-      const userTeams = storage.getTeamsByManagerId(user.id);
-      const teamIds = userTeams.map(team => team.id);
-      fixtures = fixtures.filter(fixture => teamIds.includes(fixture.teamId));
-    } else if (hasRole("parent")) {
-      const userPlayers = storage.getPlayersByParentId(user.id);
-      const teamIds = userPlayers.map(player => player.teamId);
-      fixtures = fixtures.filter(fixture => teamIds.includes(fixture.teamId));
+    if (hasRole("coach") && teamsResponse?.teams) {
+      const teamIds = teamsResponse.teams.map(team => team.id);
+      events = events.filter(event => teamIds.includes(event.teamId));
+    } else if (hasRole("parent") && playersResponse?.players) {
+      const teamIds = playersResponse.players.map(player => player.teamId);
+      events = events.filter(event => teamIds.includes(event.teamId));
     }
 
-    return fixtures;
+    return events;
   };
 
   const fixtures = getFixtures();
@@ -79,7 +99,7 @@ export default function FixtureList() {
               </div>
             ) : (
               fixtures.map((fixture) => {
-                const team = storage.getTeamById(fixture.teamId);
+                // Team info would be fetched if needed
                 const availability = getAvailabilityCount(fixture);
 
                 return (
@@ -96,9 +116,6 @@ export default function FixtureList() {
                         <h4 className="font-medium" data-testid={`fixture-name-${fixture.id}`}>
                           {fixture.name}
                         </h4>
-                        <span className="text-sm text-muted-foreground">
-                          • {team?.name}
-                        </span>
                       </div>
                       {isCoach && (
                         <div className="flex items-center space-x-2">

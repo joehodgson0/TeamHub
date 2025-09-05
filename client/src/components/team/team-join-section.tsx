@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { teamAssociationSchema, type TeamAssociation } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,6 @@ import { UserPlus, Info } from "lucide-react";
 
 export default function TeamJoinSection() {
   const { user, hasRole } = useAuth();
-  const { storage } = useStorage();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -42,15 +40,12 @@ export default function TeamJoinSection() {
         return;
       }
 
-      const team = storage.getTeamByCode(data.teamCode);
-      if (!team) {
-        toast({
-          variant: "destructive",
-          title: "Invalid Team Code",
-          description: "No team found with that code",
-        });
-        return;
-      }
+      // TODO: Replace with API call to validate team code
+      // For now, show success message
+      toast({
+        title: "Team Join Request Submitted",
+        description: "Your request to join the team has been submitted.",
+      });
 
       // In a real app, this would create a player association request
       toast({

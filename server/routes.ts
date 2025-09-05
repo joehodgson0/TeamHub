@@ -295,6 +295,194 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Event routes
+  app.get("/api/events", async (req, res) => {
+    try {
+      const events = await storage.getEvents();
+      res.json({ success: true, events });
+    } catch (error) {
+      console.error("Get events error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch events" });
+    }
+  });
+
+  app.get("/api/events/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const event = await storage.getEvent(id);
+      
+      if (!event) {
+        return res.status(404).json({ success: false, error: "Event not found" });
+      }
+
+      res.json({ success: true, event });
+    } catch (error) {
+      console.error("Get event error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch event" });
+    }
+  });
+
+  app.get("/api/events/team/:teamId", async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const events = await storage.getEventsByTeamId(teamId);
+      res.json({ success: true, events });
+    } catch (error) {
+      console.error("Get events by team error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch events" });
+    }
+  });
+
+  app.get("/api/events/upcoming/:teamId?", async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const events = await storage.getUpcomingEvents(teamId);
+      res.json({ success: true, events });
+    } catch (error) {
+      console.error("Get upcoming events error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch upcoming events" });
+    }
+  });
+
+  app.post("/api/events", async (req, res) => {
+    try {
+      const eventData = req.body;
+      
+      // Generate unique event ID
+      const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const newEvent = await storage.createEvent({
+        ...eventData,
+        id: eventId,
+        startTime: new Date(eventData.startTime),
+        endTime: new Date(eventData.endTime),
+        availability: eventData.availability || {},
+        createdAt: new Date()
+      });
+
+      res.json({ success: true, event: newEvent });
+    } catch (error) {
+      console.error("Create event error:", error);
+      res.status(500).json({ success: false, error: "Failed to create event" });
+    }
+  });
+
+  app.put("/api/events/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      if (updates.startTime) updates.startTime = new Date(updates.startTime);
+      if (updates.endTime) updates.endTime = new Date(updates.endTime);
+      
+      const updatedEvent = await storage.updateEvent(id, updates);
+      
+      if (!updatedEvent) {
+        return res.status(404).json({ success: false, error: "Event not found" });
+      }
+
+      res.json({ success: true, event: updatedEvent });
+    } catch (error) {
+      console.error("Update event error:", error);
+      res.status(500).json({ success: false, error: "Failed to update event" });
+    }
+  });
+
+  // Post routes
+  app.get("/api/posts", async (req, res) => {
+    try {
+      const posts = await storage.getPosts();
+      res.json({ success: true, posts });
+    } catch (error) {
+      console.error("Get posts error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch posts" });
+    }
+  });
+
+  app.get("/api/posts/team/:teamId", async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const posts = await storage.getPostsByTeamId(teamId);
+      res.json({ success: true, posts });
+    } catch (error) {
+      console.error("Get posts by team error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch posts" });
+    }
+  });
+
+  app.get("/api/posts/club/:clubId", async (req, res) => {
+    try {
+      const { clubId } = req.params;
+      const posts = await storage.getPostsByClubId(clubId);
+      res.json({ success: true, posts });
+    } catch (error) {
+      console.error("Get posts by club error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch posts" });
+    }
+  });
+
+  app.post("/api/posts", async (req, res) => {
+    try {
+      const postData = req.body;
+      
+      // Generate unique post ID
+      const postId = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const newPost = await storage.createPost({
+        ...postData,
+        id: postId,
+        createdAt: new Date()
+      });
+
+      res.json({ success: true, post: newPost });
+    } catch (error) {
+      console.error("Create post error:", error);
+      res.status(500).json({ success: false, error: "Failed to create post" });
+    }
+  });
+
+  // Award routes
+  app.get("/api/awards", async (req, res) => {
+    try {
+      const awards = await storage.getAwards();
+      res.json({ success: true, awards });
+    } catch (error) {
+      console.error("Get awards error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch awards" });
+    }
+  });
+
+  app.get("/api/awards/team/:teamId", async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const awards = await storage.getAwardsByTeamId(teamId);
+      res.json({ success: true, awards });
+    } catch (error) {
+      console.error("Get awards by team error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch awards" });
+    }
+  });
+
+  app.post("/api/awards", async (req, res) => {
+    try {
+      const awardData = req.body;
+      
+      // Generate unique award ID
+      const awardId = `award_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const newAward = await storage.createAward({
+        ...awardData,
+        id: awardId,
+        createdAt: new Date()
+      });
+
+      res.json({ success: true, award: newAward });
+    } catch (error) {
+      console.error("Create award error:", error);
+      res.status(500).json({ success: false, error: "Failed to create award" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

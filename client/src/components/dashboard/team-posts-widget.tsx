@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Megaphone } from "lucide-react";
@@ -7,12 +7,31 @@ import { format } from "date-fns";
 
 export default function TeamPostsWidget() {
   const { user } = useAuth();
-  const { storage } = useStorage();
+
+  // Fetch posts
+  const { data: postsResponse } = useQuery<{ success: boolean; posts: any[] }>({
+    queryKey: ['/api/posts'],
+    enabled: !!user,
+  });
+  
+  // Fetch user's teams for filtering
+  const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: !!user?.clubId && user?.roles.includes('coach'),
+  });
+  
+  // Fetch user's players for filtering
+  const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: ['/api/players/parent', user?.id],
+    enabled: !!user && user?.roles.includes('parent'),
+  });
 
   const getTeamPosts = () => {
-    if (!user) return [];
+    if (!user || !postsResponse?.posts) return [];
 
-    let posts = storage.getPosts().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    let posts = postsResponse.posts
+      .map(post => ({ ...post, createdAt: new Date(post.createdAt) }))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     // Filter posts based on user's teams and club
     if (user.clubId) {
@@ -22,12 +41,10 @@ export default function TeamPostsWidget() {
         
         // Show team-specific posts for user's teams
         if (post.teamId) {
-          if (user.roles.includes("coach")) {
-            const userTeams = storage.getTeamsByManagerId(user.id);
-            return userTeams.some(team => team.id === post.teamId);
-          } else if (user.roles.includes("parent")) {
-            const userPlayers = storage.getPlayersByParentId(user.id);
-            return userPlayers.some(player => player.teamId === post.teamId);
+          if (user.roles.includes("coach") && teamsResponse?.teams) {
+            return teamsResponse.teams.some(team => team.id === post.teamId);
+          } else if (user.roles.includes("parent") && playersResponse?.players) {
+            return playersResponse.players.some(player => player.teamId === post.teamId);
           }
         }
         

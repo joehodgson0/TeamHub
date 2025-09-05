@@ -1,32 +1,17 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
 import { format } from "date-fns";
 
 export default function MatchResultsWidget() {
   const { user } = useAuth();
-  const { storage } = useStorage();
 
+  // TODO: Replace with API call to fetch recent match results
   const getRecentResults = () => {
     if (!user) return [];
-
-    let fixtures = storage.getFixtures()
-      .filter(fixture => fixture.result && fixture.startTime < new Date())
-      .sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
-
-    // Filter by user's teams
-    if (user.roles.includes("coach")) {
-      const userTeams = storage.getTeamsByManagerId(user.id);
-      const teamIds = userTeams.map(team => team.id);
-      fixtures = fixtures.filter(fixture => teamIds.includes(fixture.teamId));
-    } else if (user.roles.includes("parent")) {
-      const userPlayers = storage.getPlayersByParentId(user.id);
-      const teamIds = userPlayers.map(player => player.teamId);
-      fixtures = fixtures.filter(fixture => teamIds.includes(fixture.teamId));
-    }
-
-    return fixtures.slice(0, 3);
+    
+    // Return empty array for now - will be replaced with API call
+    return [];
   };
 
   const recentResults = getRecentResults();

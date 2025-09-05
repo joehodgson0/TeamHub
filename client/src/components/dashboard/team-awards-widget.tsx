@@ -1,28 +1,46 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Medal, Star, Trophy } from "lucide-react";
 
 export default function TeamAwardsWidget() {
   const { user } = useAuth();
-  const { storage } = useStorage();
+
+  // Fetch awards
+  const { data: awardsResponse } = useQuery<{ success: boolean; awards: any[] }>({
+    queryKey: ['/api/awards'],
+    enabled: !!user,
+  });
+  
+  // Fetch user's teams for filtering
+  const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: !!user?.clubId && user?.roles.includes('coach'),
+  });
+  
+  // Fetch user's players for filtering
+  const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: ['/api/players/parent', user?.id],
+    enabled: !!user && user?.roles.includes('parent'),
+  });
 
   const getTeamAwards = () => {
-    if (!user) return [];
+    if (!user || !awardsResponse?.awards) return [];
 
-    let awards: any[] = [];
+    let awards = awardsResponse.awards;
 
-    if (user.roles.includes("coach")) {
-      const userTeams = storage.getTeamsByManagerId(user.id);
-      const teamIds = userTeams.map(team => team.id);
-      awards = teamIds.flatMap(teamId => storage.getAwardsByTeamId(teamId));
-    } else if (user.roles.includes("parent")) {
-      const userPlayers = storage.getPlayersByParentId(user.id);
-      const teamIds = Array.from(new Set(userPlayers.map(player => player.teamId)));
-      awards = teamIds.flatMap(teamId => storage.getAwardsByTeamId(teamId));
+    if (user.roles.includes("coach") && teamsResponse?.teams) {
+      const teamIds = teamsResponse.teams.map(team => team.id);
+      awards = awards.filter(award => teamIds.includes(award.teamId));
+    } else if (user.roles.includes("parent") && playersResponse?.players) {
+      const teamIds = Array.from(new Set(playersResponse.players.map(player => player.teamId)));
+      awards = awards.filter(award => teamIds.includes(award.teamId));
     }
 
-    return awards.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 3);
+    return awards
+      .map(award => ({ ...award, createdAt: new Date(award.createdAt) }))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 3);
   };
 
   const teamAwards = getTeamAwards();

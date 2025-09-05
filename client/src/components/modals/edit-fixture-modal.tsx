@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
-import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,9 +28,26 @@ const fixtureTypes = [
 ];
 
 export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFixtureModalProps) {
-  const { storage, refresh } = useStorage();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  
+  const updateEventMutation = useMutation({
+    mutationFn: async (eventData: any) => {
+      const response = await fetch(`/api/events/${fixture.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData),
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result.event;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/team'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming'] });
+    },
+  });
 
   const form = useForm<CreateEvent>({
     resolver: zodResolver(createEventSchema),
@@ -45,22 +63,18 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
   });
 
   const onSubmit = async (data: CreateEvent) => {
-    setIsLoading(true);
-
     try {
-      const updatedEvent = {
-        ...fixture,
+      const eventData = {
         type: data.type,
         name: data.name,
         opponent: data.opponent || undefined,
         location: data.location,
-        startTime: new Date(data.startTime),
-        endTime: new Date(data.endTime),
+        startTime: data.startTime,
+        endTime: data.endTime,
         additionalInfo: data.additionalInfo || undefined,
       };
 
-      storage.updateEvent(fixture.id, updatedEvent);
-      refresh();
+      await updateEventMutation.mutateAsync(eventData);
 
       toast({
         title: "Event Updated Successfully",
@@ -74,8 +88,6 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
         title: "Error",
         description: "Failed to update event. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -253,10 +265,10 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
               <Button
                 type="submit"
                 className="flex-1"
-                disabled={isLoading}
+                disabled={updateEventMutation.isPending}
                 data-testid="button-update"
               >
-                {isLoading ? "Updating..." : "Update Fixture"}
+                {updateEventMutation.isPending ? "Updating..." : "Update Fixture"}
               </Button>
             </div>
           </form>

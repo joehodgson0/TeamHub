@@ -1,11 +1,16 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Footer() {
   const { user } = useAuth();
-  const { storage } = useStorage();
 
-  const club = user?.clubId ? storage.getClubById(user.clubId) : null;
+  // Fetch club data
+  const { data: clubResponse } = useQuery<{ success: boolean; club: any }>({
+    queryKey: ['/api/clubs', user?.clubId],
+    enabled: !!user?.clubId,
+  });
+
+  const club = clubResponse?.club;
   const currentYear = new Date().getFullYear();
   const nextYear = currentYear + 1;
 

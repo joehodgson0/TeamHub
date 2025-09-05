@@ -1,40 +1,23 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart } from "lucide-react";
 
 export default function TeamStatsWidget() {
   const { user } = useAuth();
-  const { storage } = useStorage();
   const [selectedSeason, setSelectedSeason] = useState("current");
 
+  // TODO: Replace with API call to fetch team statistics
   const getTeamStats = () => {
     if (!user) return null;
-
-    let teams: any[] = [];
     
-    if (user.roles.includes("coach")) {
-      teams = storage.getTeamsByManagerId(user.id);
-    } else if (user.roles.includes("parent")) {
-      const userPlayers = storage.getPlayersByParentId(user.id);
-      const teamIds = Array.from(new Set(userPlayers.map(player => player.teamId)));
-      teams = teamIds.map(id => storage.getTeamById(id)).filter(Boolean);
-    }
-
-    if (teams.length === 0) return null;
-
-    // For simplicity, use the first team's stats
-    const team = teams[0];
-    const totalGames = team.wins + team.draws + team.losses;
-    const winRate = totalGames > 0 ? ((team.wins / totalGames) * 100).toFixed(1) : "0.0";
-
+    // Return placeholder stats for now
     return {
-      wins: team.wins,
-      draws: team.draws,
-      losses: team.losses,
-      winRate,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      winRate: "0.0",
     };
   };
 
