@@ -11,10 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle } from "lucide-react";
+import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle, UserIcon } from "lucide-react";
 import CreateTeamModal from "@/components/modals/create-team-modal";
 import EditTeamModal from "@/components/modals/edit-team-modal";
 import TeamJoinSection from "@/components/team/team-join-section";
+import AddPlayerModal from "@/components/modals/add-player-modal";
 
 export default function TeamManagementSection() {
   const { user, hasRole, associateWithClub } = useAuth();
@@ -26,6 +27,7 @@ export default function TeamManagementSection() {
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   
   const canCreateTeam = isCoach && user?.clubId;
 
@@ -80,18 +82,23 @@ export default function TeamManagementSection() {
   };
 
   // For coaches: fetch teams from their club
-  // For parents: fetch teams through their dependents
   const { data: teamsData, isLoading } = useQuery<{ teams: Team[] }>({
-    queryKey: isCoach 
-      ? ['/api/teams/club', user?.clubId]
-      : ['/api/teams/user', user?.id],
-    enabled: Boolean(user && (isCoach ? user.clubId : isParent)),
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: Boolean(user && isCoach && user.clubId),
   });
 
   const teams = teamsData?.teams || [];
 
-  // If user has no club, show join club form
-  if (!user?.clubId) {
+  // For parents: fetch players/dependents
+  const { data: playersData, isLoading: playersLoading } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: ['/api/players/parent', user?.id],
+    enabled: Boolean(user && isParent),
+  });
+
+  const players = playersData?.players || [];
+
+  // If user has no club AND has no roles (not coach or parent), show join club form
+  if (!user?.clubId && !isCoach && !isParent) {
     return (
       <Card data-testid="card-join-club">
         <CardHeader>
@@ -169,11 +176,28 @@ export default function TeamManagementSection() {
     );
   }
 
-  // If user has a club, show teams management
+  // Helper functions for dependents
+  const getPlayerAge = (dateOfBirth: Date | string) => {
+    const today = new Date();
+    const birthDate = typeof dateOfBirth === 'string' ? new Date(dateOfBirth) : dateOfBirth;
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      return age - 1;
+    }
+    return age;
+  };
+
+  // Show nothing if user has no roles
+  if (!isCoach && !isParent) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
-      {/* Current Club Info */}
-      {club && (
+      {/* Current Club Info - only show if user has a club */}
+      {club && user?.clubId && (
         <Card data-testid="card-current-club">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -197,8 +221,9 @@ export default function TeamManagementSection() {
         </Card>
       )}
 
-      {/* Teams Management */}
-      <Card data-testid="card-current-teams">
+      {/* Teams Management - Only for Coaches */}
+      {isCoach && (
+        <Card data-testid="card-current-teams">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -308,11 +333,97 @@ export default function TeamManagementSection() {
           team={editingTeam}
         />
       </Card>
+      )}
+
+      {/* Dependents Management - Only for Parents */}
+      {isParent && (
+        <Card data-testid="card-dependents">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <UserIcon className="w-5 h-5 text-primary" />
+                <span>Dependents</span>
+              </div>
+              <Button
+                onClick={() => setShowAddPlayerModal(true)}
+                size="sm"
+                data-testid="button-add-dependent"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Dependent
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {playersLoading ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-sm">Loading dependents...</p>
+                </div>
+              ) : players.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <UserIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No dependents added yet</p>
+                  <p className="text-xs mt-1">Add your first dependent to get started</p>
+                </div>
+              ) : (
+                players.map((player: any) => {
+                  const age = getPlayerAge(player.dateOfBirth);
+                  const attendanceRate = player.totalEvents > 0 
+                    ? Math.round((player.attendance / player.totalEvents) * 100) 
+                    : 0;
+
+                  return (
+                    <div
+                      key={player.id}
+                      className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
+                      data-testid={`player-card-${player.id}`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="font-medium" data-testid={`player-name-${player.id}`}>
+                            {player.name}
+                          </h4>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span data-testid={`player-age-${player.id}`}>
+                            Age {age}
+                          </span>
+                          <span>•</span>
+                          <span data-testid={`player-attendance-${player.id}`}>
+                            {attendanceRate}% attendance
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Team Join Section for Parents */}
       {isParent && user?.clubId && (
         <TeamJoinSection />
       )}
+
+      {/* Modals */}
+      <CreateTeamModal 
+        open={showCreateModal} 
+        onOpenChange={setShowCreateModal} 
+      />
+      <EditTeamModal 
+        open={showEditModal} 
+        onOpenChange={setShowEditModal}
+        team={editingTeam}
+      />
+      <AddPlayerModal 
+        open={showAddPlayerModal} 
+        onOpenChange={setShowAddPlayerModal} 
+      />
     </div>
   );
 }
