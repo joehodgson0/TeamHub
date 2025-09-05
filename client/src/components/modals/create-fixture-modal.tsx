@@ -34,8 +34,11 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
 
   const userTeams = user ? storage.getTeamsByManagerId(user.id) : [];
   
-  const form = useForm<CreateFixture & { isFriendly: boolean }>({
-    resolver: zodResolver(createFixtureSchema.extend({ isFriendly: createFixtureSchema.shape.type.optional() })),
+  const form = useForm<CreateFixture & { isFriendly: boolean; homeAway: string }>({
+    resolver: zodResolver(createFixtureSchema.extend({ 
+      isFriendly: createFixtureSchema.shape.type.optional(),
+      homeAway: createFixtureSchema.shape.type.optional()
+    })),
     defaultValues: {
       type: "match",
       name: "",
@@ -45,12 +48,13 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       endTime: new Date(),
       additionalInfo: "",
       isFriendly: false,
+      homeAway: "home",
     },
   });
 
   const selectedType = form.watch("type");
 
-  const onSubmit = async (data: CreateFixture & { isFriendly: boolean }) => {
+  const onSubmit = async (data: CreateFixture & { isFriendly: boolean; homeAway: string }) => {
     if (!user || userTeams.length === 0) {
       toast({
         variant: "destructive",
@@ -188,24 +192,48 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               />
             )}
 
-            {selectedType !== "tournament" && selectedType !== "training" && selectedType !== "social" && (
-              <FormField
-                control={form.control}
-                name="opponent"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{selectedType === "match" ? "Opponent" : "Opponent (if applicable)"}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter opponent name"
-                        data-testid="input-opponent"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {selectedType === "match" && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="opponent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Opponent</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter opponent name"
+                          data-testid="input-opponent"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="homeAway"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Home/Away</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-home-away">
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="home">Home</SelectItem>
+                          <SelectItem value="away">Away</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             )}
 
             <FormField
