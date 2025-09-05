@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFixtureSchema, type CreateFixture, type Fixture } from "@shared/schema";
+import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
@@ -36,8 +37,8 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
   
   const form = useForm<CreateFixture & { isFriendly: boolean; homeAway: string }>({
     resolver: zodResolver(createFixtureSchema.extend({ 
-      isFriendly: createFixtureSchema.shape.type.optional(),
-      homeAway: createFixtureSchema.shape.type.optional()
+      isFriendly: z.boolean().optional(),
+      homeAway: z.string().optional()
     })),
     defaultValues: {
       type: "match",
