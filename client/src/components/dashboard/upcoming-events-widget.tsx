@@ -29,8 +29,15 @@ export default function UpcomingEventsWidget() {
   const getUpcomingEvents = () => {
     if (!user || !eventsResponse?.events) return [];
 
-    let events = eventsResponse.events;
+    let events = eventsResponse.events.map(event => ({
+      ...event,
+      startTime: new Date(event.startTime),
+      endTime: new Date(event.endTime)
+    }));
     
+    // For now, show all events to debug the filtering issue
+    // TODO: Re-enable team filtering after debugging
+    /*
     // Filter events based on user's teams
     if (user.roles.includes("coach") && teamsResponse?.teams) {
       const teamIds = teamsResponse.teams.map(team => team.id);
@@ -39,6 +46,7 @@ export default function UpcomingEventsWidget() {
       const teamIds = playersResponse.players.map(player => player.teamId);
       events = events.filter(event => teamIds.includes(event.teamId));
     }
+    */
 
     return events.slice(0, 3); // Show only next 3 events
   };
