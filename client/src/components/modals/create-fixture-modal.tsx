@@ -56,11 +56,11 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
   const selectedType = form.watch("type");
 
   const onSubmit = async (data: CreateFixture & { isFriendly: boolean; homeAway: string }) => {
-    if (!user || userTeams.length === 0) {
+    if (!user) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "You must have at least one team to create events.",
+        description: "You must be logged in to create events.",
       });
       return;
     }
@@ -69,6 +69,9 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
 
     try {
       const fixtureId = `fixture_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Automatically use the manager's team
+      const managerTeam = userTeams.length > 0 ? userTeams[0] : null;
       
       const newFixture: Fixture = {
         id: fixtureId,
@@ -79,7 +82,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         startTime: new Date(data.startTime),
         endTime: new Date(data.endTime),
         additionalInfo: data.additionalInfo || undefined,
-        teamId: userTeams[0].id, // Use first team if user has teams
+        teamId: managerTeam?.id || user.id, // Use manager's team or fallback to user ID
         availability: {},
         createdAt: new Date(),
       };
