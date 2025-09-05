@@ -14,7 +14,7 @@ import {
 
 const navigationItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["coach", "parent"] },
-  { path: "/club", label: "Club", icon: Building, roles: ["coach", "parent"] },
+  { path: "/club", label: "Club", icon: Building, roles: ["parent"] },
   { path: "/team", label: "Team", icon: Users, roles: ["coach", "parent"] },
   { path: "/events", label: "Events", icon: Calendar, roles: ["coach", "parent"] },
   { path: "/dependents", label: "Dependents", icon: Baby, roles: ["parent"] },
