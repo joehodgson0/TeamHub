@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +13,46 @@ import type { Fixture } from "@shared/schema";
 
 export default function FixtureList() {
   const { user, hasRole } = useAuth();
+  const { toast } = useToast();
   const [editingFixture, setEditingFixture] = useState<any | null>(null);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/team'] });
+      toast({
+        title: "Event Deleted",
+        description: "The event has been deleted successfully.",
+      });
+      setDeletingEventId(null);
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete event. Please try again.",
+      });
+      setDeletingEventId(null);
+    },
+  });
+
+  const handleDeleteEvent = (eventId: string, eventName: string) => {
+    if (window.confirm(`Are you sure you want to delete "${eventName}"? This action cannot be undone.`)) {
+      setDeletingEventId(eventId);
+      deleteEventMutation.mutate(eventId);
+    }
+  };
 
   // Fetch upcoming events
   const { data: eventsResponse } = useQuery<{ success: boolean; events: any[] }>({
@@ -131,6 +172,8 @@ export default function FixtureList() {
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteEvent(fixture.id, fixture.name || 'event')}
+                            disabled={deletingEventId === fixture.id}
                             data-testid={`button-delete-fixture-${fixture.id}`}
                           >
                             <Trash2 className="w-4 h-4" />

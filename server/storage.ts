@@ -231,6 +231,13 @@ export class DatabaseStorage implements IStorage {
     return event || undefined;
   }
 
+  async deleteEvent(id: string): Promise<boolean> {
+    const deletedRows = await db
+      .delete(events)
+      .where(eq(events.id, id));
+    return deletedRows.rowCount > 0;
+  }
+
   // Legacy fixture methods for backward compatibility
   async getFixture(id: string): Promise<Event | undefined> {
     return this.getEvent(id);
@@ -254,6 +261,10 @@ export class DatabaseStorage implements IStorage {
 
   async updateFixture(id: string, updates: Partial<Event>): Promise<Event | undefined> {
     return this.updateEvent(id, updates);
+  }
+
+  async deleteFixture(id: string): Promise<boolean> {
+    return this.deleteEvent(id);
   }
 
   // Post methods
