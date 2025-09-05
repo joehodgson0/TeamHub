@@ -34,10 +34,8 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
 
   const userTeams = user ? storage.getTeamsByManagerId(user.id) : [];
 
-  const form = useForm<CreateFixture & { teamId: string }>({
-    resolver: zodResolver(createFixtureSchema.extend({
-      teamId: createFixtureSchema.shape.name, // Use same validation as name for teamId
-    })),
+  const form = useForm<CreateFixture>({
+    resolver: zodResolver(createFixtureSchema),
     defaultValues: {
       type: "match",
       name: "",
@@ -46,11 +44,10 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       startTime: new Date(),
       endTime: new Date(),
       additionalInfo: "",
-      teamId: "",
     },
   });
 
-  const onSubmit = async (data: CreateFixture & { teamId: string }) => {
+  const onSubmit = async (data: CreateFixture) => {
     if (!user || userTeams.length === 0) {
       toast({
         variant: "destructive",
@@ -74,7 +71,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         startTime: new Date(data.startTime),
         endTime: new Date(data.endTime),
         additionalInfo: data.additionalInfo || undefined,
-        teamId: data.teamId,
+        teamId: userTeams[0].id, // Use first team if user has teams
         availability: {},
         createdAt: new Date(),
       };
@@ -119,57 +116,30 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-testid="form-create-fixture">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fixture Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-fixture-type">
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {fixtureTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="teamId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Team</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-team">
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select team" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {userTeams.map((team) => (
-                          <SelectItem key={team.id} value={team.id}>
-                            {team.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fixture Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-fixture-type">
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {fixtureTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
