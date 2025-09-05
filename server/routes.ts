@@ -306,33 +306,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/events/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const event = await storage.getEvent(id);
-      
-      if (!event) {
-        return res.status(404).json({ success: false, error: "Event not found" });
-      }
-
-      res.json({ success: true, event });
-    } catch (error) {
-      console.error("Get event error:", error);
-      res.status(500).json({ success: false, error: "Failed to fetch event" });
-    }
-  });
-
-  app.get("/api/events/team/:teamId", async (req, res) => {
-    try {
-      const { teamId } = req.params;
-      const events = await storage.getEventsByTeamId(teamId);
-      res.json({ success: true, events });
-    } catch (error) {
-      console.error("Get events by team error:", error);
-      res.status(500).json({ success: false, error: "Failed to fetch events" });
-    }
-  });
-
   app.get("/api/events/upcoming", async (req, res) => {
     try {
       const events = await storage.getUpcomingEvents();
@@ -351,6 +324,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get upcoming events error:", error);
       res.status(500).json({ success: false, error: "Failed to fetch upcoming events" });
+    }
+  });
+
+  app.get("/api/events/team/:teamId", async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const events = await storage.getEventsByTeamId(teamId);
+      res.json({ success: true, events });
+    } catch (error) {
+      console.error("Get events by team error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch events" });
+    }
+  });
+
+  app.get("/api/events/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const event = await storage.getEvent(id);
+      
+      if (!event) {
+        return res.status(404).json({ success: false, error: "Event not found" });
+      }
+
+      res.json({ success: true, event });
+    } catch (error) {
+      console.error("Get event error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch event" });
     }
   });
 
