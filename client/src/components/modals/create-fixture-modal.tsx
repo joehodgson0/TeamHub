@@ -159,7 +159,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Is Friendly</FormLabel>
+                        <FormLabel>Friendly</FormLabel>
                       </div>
                       <FormMessage />
                     </FormItem>
