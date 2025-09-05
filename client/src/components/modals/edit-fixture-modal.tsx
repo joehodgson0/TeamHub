@@ -2,12 +2,15 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
+import { z } from "zod";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -19,16 +22,24 @@ interface EditFixtureModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const fixtureTypes = [
+const eventTypes = [
   { value: "match", label: "Match" },
-  { value: "friendly", label: "Friendly" },
   { value: "tournament", label: "Tournament" },
   { value: "training", label: "Training" },
   { value: "social", label: "Social Event" },
 ];
 
 export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFixtureModalProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Fetch user's teams 
+  const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: !!user?.clubId,
+  });
+  
+  const userTeams = teamsResponse?.teams || [];
   
   const updateEventMutation = useMutation({
     mutationFn: async (eventData: any) => {
@@ -49,36 +60,53 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
     },
   });
 
-  const form = useForm<CreateEvent>({
-    resolver: zodResolver(createEventSchema),
+  const form = useForm<CreateEvent & { isFriendly: boolean; homeAway: string }>({
+    resolver: zodResolver(createEventSchema.extend({ 
+      isFriendly: z.boolean().optional(),
+      homeAway: z.string().optional()
+    })),
     defaultValues: {
-      type: fixture.type,
-      name: fixture.name,
+      type: fixture.type === "friendly" ? "match" : fixture.type,
+      name: fixture.name || "",
       opponent: fixture.opponent || "",
       location: fixture.location,
       startTime: fixture.startTime,
       endTime: fixture.endTime,
       additionalInfo: fixture.additionalInfo || "",
+      isFriendly: fixture.type === "friendly",
+      homeAway: fixture.homeAway || "home",
     },
   });
 
-  const onSubmit = async (data: CreateEvent) => {
+  const selectedType = form.watch("type");
+
+  const onSubmit = async (data: CreateEvent & { isFriendly: boolean; homeAway: string }) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You must be logged in to update events.",
+      });
+      return;
+    }
+
     try {
       const eventData = {
-        type: data.type,
+        type: data.isFriendly ? "friendly" : data.type,
         name: data.name,
         opponent: data.opponent || undefined,
         location: data.location,
         startTime: data.startTime,
         endTime: data.endTime,
         additionalInfo: data.additionalInfo || undefined,
+        homeAway: data.homeAway || undefined,
       };
 
       await updateEventMutation.mutateAsync(eventData);
 
       toast({
         title: "Event Updated Successfully",
-        description: `${data.name} has been updated.`,
+        description: `${data.name || 'Event'} has been updated.`,
       });
 
       onOpenChange(false);
@@ -96,7 +124,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
       <DialogContent className="sm:max-w-2xl" data-testid="modal-edit-fixture">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>Edit Fixture</DialogTitle>
+            <DialogTitle>Edit Event</DialogTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -109,22 +137,22 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-testid="form-edit-fixture">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-testid="form-edit-event">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fixture Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-fixture-type">
+                    <FormLabel>Event Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-event-type">
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {fixtureTypes.map((type) => (
+                        {eventTypes.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {type.label}
                           </SelectItem>
@@ -136,16 +164,40 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
                 )}
               />
 
+              {selectedType !== "tournament" && selectedType !== "training" && selectedType !== "social" && (
+                <FormField
+                  control={form.control}
+                  name="isFriendly"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-8">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-is-friendly"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Friendly</FormLabel>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
+            {(selectedType === "tournament" || selectedType === "social") && (
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fixture Name</FormLabel>
+                    <FormLabel>{selectedType === "tournament" ? "Tournament Name" : "Name"}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="e.g., vs. Riverside United"
-                        data-testid="input-fixture-name"
+                        placeholder={selectedType === "tournament" ? "e.g., Spring Cup 2025" : "e.g., Team BBQ"}
+                        data-testid="input-event-name"
                         {...field}
                       />
                     </FormControl>
@@ -153,25 +205,51 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
                   </FormItem>
                 )}
               />
-            </div>
+            )}
 
-            <FormField
-              control={form.control}
-              name="opponent"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Opponent (if applicable)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter opponent name"
-                      data-testid="input-opponent"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {selectedType === "match" && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="opponent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Opponent</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter opponent name"
+                          data-testid="input-opponent"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="homeAway"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Home/Away</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-home-away">
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="home">Home</SelectItem>
+                          <SelectItem value="away">Away</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -268,7 +346,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
                 disabled={updateEventMutation.isPending}
                 data-testid="button-update"
               >
-                {updateEventMutation.isPending ? "Updating..." : "Update Fixture"}
+                {updateEventMutation.isPending ? "Updating..." : "Update Event"}
               </Button>
             </div>
           </form>
