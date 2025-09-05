@@ -145,7 +145,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                 )}
               />
 
-              {selectedType !== "tournament" && (
+              {selectedType !== "tournament" && selectedType !== "training" && (
                 <FormField
                   control={form.control}
                   name="isFriendly"
@@ -168,7 +168,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               )}
             </div>
 
-            {selectedType !== "match" && (
+            {selectedType !== "match" && selectedType !== "training" && (
               <FormField
                 control={form.control}
                 name="name"
@@ -188,7 +188,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               />
             )}
 
-            {selectedType !== "tournament" && (
+            {selectedType !== "tournament" && selectedType !== "training" && (
               <FormField
                 control={form.control}
                 name="opponent"
