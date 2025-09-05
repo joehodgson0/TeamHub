@@ -82,7 +82,7 @@ export default function TeamManagementSection() {
   };
 
   // For coaches: fetch teams from their club
-  const { data: teamsData, isLoading } = useQuery<{ teams: Team[] }>({
+  const { data: teamsData, isLoading } = useQuery<{ success: boolean; teams: Team[] }>({
     queryKey: ['/api/teams/club', user?.clubId],
     enabled: Boolean(user && isCoach && user.clubId),
   });
@@ -198,7 +198,11 @@ export default function TeamManagementSection() {
   };
 
   const getPlayerTeam = (teamId: string) => {
-    return allTeams.find((team: any) => team.id === teamId);
+    console.log('Looking for teamId:', teamId);
+    console.log('Available teams:', allTeams);
+    const foundTeam = allTeams.find((team: any) => team.id === teamId);
+    console.log('Found team:', foundTeam);
+    return foundTeam;
   };
 
   // Show nothing if user has no roles
@@ -381,6 +385,7 @@ export default function TeamManagementSection() {
                 </div>
               ) : (
                 players.map((player: any) => {
+                  console.log('Player data:', player);
                   const age = getPlayerAge(player.dateOfBirth);
                   const team = getPlayerTeam(player.teamId);
                   const attendanceRate = player.totalEvents > 0 
