@@ -132,6 +132,20 @@ export default function Register() {
                 </Button>
               </form>
             </Form>
+            
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Don't have an account?{" "}
+                <Button
+                  variant="link"
+                  className="p-0 h-auto font-semibold text-primary"
+                  onClick={() => setLocation("/sign-up")}
+                  data-testid="link-sign-up"
+                >
+                  Sign up here
+                </Button>
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
