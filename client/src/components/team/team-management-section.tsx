@@ -97,10 +97,10 @@ export default function TeamManagementSection() {
 
   const players = playersData?.players || [];
 
-  // Fetch teams data for resolving team names for players
+  // Fetch teams data for resolving team names for players - use user-based API for parents
   const { data: allTeamsData } = useQuery<{ success: boolean; teams: any[] }>({
-    queryKey: ['/api/teams/club', user?.clubId],
-    enabled: Boolean(user?.clubId && isParent),
+    queryKey: ['/api/teams/user', user?.id],
+    enabled: Boolean(user?.id && isParent),
   });
 
   const allTeams = allTeamsData?.teams || [];
@@ -198,11 +198,7 @@ export default function TeamManagementSection() {
   };
 
   const getPlayerTeam = (teamId: string) => {
-    console.log('Looking for teamId:', teamId);
-    console.log('Available teams:', allTeams);
-    const foundTeam = allTeams.find((team: any) => team.id === teamId);
-    console.log('Found team:', foundTeam);
-    return foundTeam;
+    return allTeams.find((team: any) => team.id === teamId);
   };
 
   // Show nothing if user has no roles
@@ -385,7 +381,6 @@ export default function TeamManagementSection() {
                 </div>
               ) : (
                 players.map((player: any) => {
-                  console.log('Player data:', player);
                   const age = getPlayerAge(player.dateOfBirth);
                   const team = getPlayerTeam(player.teamId);
                   const attendanceRate = player.totalEvents > 0 
