@@ -333,7 +333,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/events/upcoming/:teamId?", async (req, res) => {
+  app.get("/api/events/upcoming", async (req, res) => {
+    try {
+      const events = await storage.getUpcomingEvents();
+      res.json({ success: true, events });
+    } catch (error) {
+      console.error("Get upcoming events error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch upcoming events" });
+    }
+  });
+
+  app.get("/api/events/upcoming/:teamId", async (req, res) => {
     try {
       const { teamId } = req.params;
       const events = await storage.getUpcomingEvents(teamId);
