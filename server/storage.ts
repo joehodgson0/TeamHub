@@ -1,4 +1,4 @@
-import { users, clubs, teams, players, fixtures, posts, awards, type User, type Club, type Team, type Player, type Fixture, type Post, type Award, type InsertUser, type InsertClub, type InsertTeam, type InsertPlayer, type InsertFixture, type InsertPost, type InsertAward } from "@shared/schema";
+import { users, clubs, teams, players, events, posts, awards, type User, type Club, type Team, type Player, type Event, type Post, type Award, type InsertUser, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertAward } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt } from "drizzle-orm";
 
@@ -32,13 +32,21 @@ export interface IStorage {
   getPlayersByParentId(parentId: string): Promise<Player[]>;
   createPlayer(insertPlayer: InsertPlayer): Promise<Player>;
 
-  // Fixture methods
-  getFixture(id: string): Promise<Fixture | undefined>;
-  getFixtures(): Promise<Fixture[]>;
-  getFixturesByTeamId(teamId: string): Promise<Fixture[]>;
-  getUpcomingFixtures(teamId?: string): Promise<Fixture[]>;
-  createFixture(insertFixture: InsertFixture): Promise<Fixture>;
-  updateFixture(id: string, updates: Partial<Fixture>): Promise<Fixture | undefined>;
+  // Event methods
+  getEvent(id: string): Promise<Event | undefined>;
+  getEvents(): Promise<Event[]>;
+  getEventsByTeamId(teamId: string): Promise<Event[]>;
+  getUpcomingEvents(teamId?: string): Promise<Event[]>;
+  createEvent(insertEvent: InsertEvent): Promise<Event>;
+  updateEvent(id: string, updates: Partial<Event>): Promise<Event | undefined>;
+  
+  // Legacy fixture methods for backward compatibility
+  getFixture(id: string): Promise<Event | undefined>;
+  getFixtures(): Promise<Event[]>;
+  getFixturesByTeamId(teamId: string): Promise<Event[]>;
+  getUpcomingFixtures(teamId?: string): Promise<Event[]>;
+  createFixture(insertEvent: InsertEvent): Promise<Event>;
+  updateFixture(id: string, updates: Partial<Event>): Promise<Event | undefined>;
 
   // Post methods
   getPost(id: string): Promise<Post | undefined>;
@@ -176,51 +184,76 @@ export class DatabaseStorage implements IStorage {
     return player as Player;
   }
 
-  // Fixture methods
-  async getFixture(id: string): Promise<Fixture | undefined> {
-    const [fixture] = await db.select().from(fixtures).where(eq(fixtures.id, id));
-    return fixture || undefined;
+  // Event methods
+  async getEvent(id: string): Promise<Event | undefined> {
+    const [event] = await db.select().from(events).where(eq(events.id, id));
+    return event || undefined;
   }
 
-  async getFixtures(): Promise<Fixture[]> {
-    return await db.select().from(fixtures);
+  async getEvents(): Promise<Event[]> {
+    return await db.select().from(events);
   }
 
-  async getFixturesByTeamId(teamId: string): Promise<Fixture[]> {
-    return await db.select().from(fixtures).where(eq(fixtures.teamId, teamId));
+  async getEventsByTeamId(teamId: string): Promise<Event[]> {
+    return await db.select().from(events).where(eq(events.teamId, teamId));
   }
 
-  async getUpcomingFixtures(teamId?: string): Promise<Fixture[]> {
+  async getUpcomingEvents(teamId?: string): Promise<Event[]> {
     const now = new Date();
     if (teamId) {
       return await db
         .select()
-        .from(fixtures)
-        .where(and(eq(fixtures.teamId, teamId), gt(fixtures.startTime, now)))
-        .orderBy(fixtures.startTime);
+        .from(events)
+        .where(and(eq(events.teamId, teamId), gt(events.startTime, now)))
+        .orderBy(events.startTime);
     }
     return await db
       .select()
-      .from(fixtures)
-      .where(gt(fixtures.startTime, now))
-      .orderBy(fixtures.startTime);
+      .from(events)
+      .where(gt(events.startTime, now))
+      .orderBy(events.startTime);
   }
 
-  async createFixture(insertFixture: InsertFixture): Promise<Fixture> {
-    const [fixture] = await db
-      .insert(fixtures)
-      .values(insertFixture)
+  async createEvent(insertEvent: InsertEvent): Promise<Event> {
+    const [event] = await db
+      .insert(events)
+      .values(insertEvent)
       .returning();
-    return fixture;
+    return event;
   }
 
-  async updateFixture(id: string, updates: Partial<Fixture>): Promise<Fixture | undefined> {
-    const [fixture] = await db
-      .update(fixtures)
+  async updateEvent(id: string, updates: Partial<Event>): Promise<Event | undefined> {
+    const [event] = await db
+      .update(events)
       .set(updates)
-      .where(eq(fixtures.id, id))
+      .where(eq(events.id, id))
       .returning();
-    return fixture || undefined;
+    return event || undefined;
+  }
+
+  // Legacy fixture methods for backward compatibility
+  async getFixture(id: string): Promise<Event | undefined> {
+    return this.getEvent(id);
+  }
+
+  async getFixtures(): Promise<Event[]> {
+    return this.getEvents();
+  }
+
+  async getFixturesByTeamId(teamId: string): Promise<Event[]> {
+    return this.getEventsByTeamId(teamId);
+  }
+
+  async getUpcomingFixtures(teamId?: string): Promise<Event[]> {
+    return this.getUpcomingEvents(teamId);
+  }
+
+  async createFixture(insertEvent: InsertEvent): Promise<Event> {
+    return this.createEvent(insertEvent);
+  }
+
+  async updateFixture(id: string, updates: Partial<Event>): Promise<Event | undefined> {
+    return this.updateEvent(id, updates);
   }
 
   // Post methods

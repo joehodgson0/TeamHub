@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createFixtureSchema, type CreateFixture, type Fixture } from "@shared/schema";
+import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
 import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { X } from "lucide-react";
 
 interface EditFixtureModalProps {
-  fixture: Fixture;
+  fixture: Event;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -31,8 +31,8 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<CreateFixture>({
-    resolver: zodResolver(createFixtureSchema),
+  const form = useForm<CreateEvent>({
+    resolver: zodResolver(createEventSchema),
     defaultValues: {
       type: fixture.type,
       name: fixture.name,
@@ -44,11 +44,11 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
     },
   });
 
-  const onSubmit = async (data: CreateFixture) => {
+  const onSubmit = async (data: CreateEvent) => {
     setIsLoading(true);
 
     try {
-      const updatedFixture = {
+      const updatedEvent = {
         ...fixture,
         type: data.type,
         name: data.name,
@@ -59,11 +59,11 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
         additionalInfo: data.additionalInfo || undefined,
       };
 
-      storage.updateFixture(fixture.id, updatedFixture);
+      storage.updateEvent(fixture.id, updatedEvent);
       refresh();
 
       toast({
-        title: "Fixture Updated Successfully",
+        title: "Event Updated Successfully",
         description: `${data.name} has been updated.`,
       });
 
@@ -72,7 +72,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update fixture. Please try again.",
+        description: "Failed to update event. Please try again.",
       });
     } finally {
       setIsLoading(false);

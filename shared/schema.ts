@@ -80,17 +80,18 @@ export const addPlayerSchema = playerSchema.pick({
   teamCode: z.string().length(8, "Team code must be 8 characters"),
 });
 
-// Fixture schema
-export const fixtureSchema = z.object({
+// Event schema
+export const eventSchema = z.object({
   id: z.string(),
   type: z.enum(["match", "friendly", "tournament", "training", "social"]),
-  name: z.string(),
+  name: z.string().optional(),
   opponent: z.string().optional(),
   location: z.string(),
   startTime: z.date(),
   endTime: z.date(),
   additionalInfo: z.string().optional(),
   teamId: z.string(),
+  homeAway: z.enum(["home", "away"]).optional(),
   result: z.object({
     homeScore: z.number(),
     awayScore: z.number(),
@@ -100,7 +101,7 @@ export const fixtureSchema = z.object({
   createdAt: z.date().default(() => new Date()),
 });
 
-export const createFixtureSchema = fixtureSchema.pick({
+export const createEventSchema = eventSchema.pick({
   type: true,
   name: true,
   opponent: true,
@@ -108,6 +109,7 @@ export const createFixtureSchema = fixtureSchema.pick({
   startTime: true,
   endTime: true,
   additionalInfo: true,
+  homeAway: true,
 });
 
 // Post schema
@@ -188,16 +190,17 @@ export const players = pgTable("players", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const fixtures = pgTable("fixtures", {
+export const events = pgTable("events", {
   id: varchar("id").primaryKey(),
   type: varchar("type").notNull(),
-  name: varchar("name").notNull(),
+  name: varchar("name"),
   opponent: varchar("opponent"),
   location: varchar("location").notNull(),
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   additionalInfo: text("additional_info"),
   teamId: varchar("team_id").notNull(),
+  homeAway: varchar("home_away"),
   result: json("result").$type<{homeScore: number; awayScore: number; outcome: "W" | "L" | "D"}>(),
   availability: json("availability").$type<Record<string, "available" | "unavailable" | "pending">>().notNull().default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -232,7 +235,7 @@ export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true
 export const insertClubSchema = createInsertSchema(clubs).omit({ createdAt: true });
 export const insertTeamSchema = createInsertSchema(teams).omit({ createdAt: true });
 export const insertPlayerSchema = createInsertSchema(players).omit({ createdAt: true });
-export const insertFixtureSchema = createInsertSchema(fixtures).omit({ createdAt: true });
+export const insertEventSchema = createInsertSchema(events).omit({ createdAt: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ createdAt: true });
 export const insertAwardSchema = createInsertSchema(awards).omit({ createdAt: true });
 
@@ -247,8 +250,11 @@ export type CreateTeam = z.infer<typeof createTeamSchema>;
 export type TeamAssociation = z.infer<typeof teamAssociationSchema>;
 export type Player = z.infer<typeof playerSchema>;
 export type AddPlayer = z.infer<typeof addPlayerSchema>;
-export type Fixture = z.infer<typeof fixtureSchema>;
-export type CreateFixture = z.infer<typeof createFixtureSchema>;
+export type Event = z.infer<typeof eventSchema>;
+export type CreateEvent = z.infer<typeof createEventSchema>;
+// Legacy types for backward compatibility
+export type Fixture = Event;
+export type CreateFixture = CreateEvent;
 export type Post = z.infer<typeof postSchema>;
 export type CreatePost = z.infer<typeof createPostSchema>;
 export type Award = z.infer<typeof awardSchema>;
@@ -258,6 +264,8 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertClub = z.infer<typeof insertClubSchema>;
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
-export type InsertFixture = z.infer<typeof insertFixtureSchema>;
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+// Legacy type for backward compatibility
+export type InsertFixture = InsertEvent;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type InsertAward = z.infer<typeof insertAwardSchema>;

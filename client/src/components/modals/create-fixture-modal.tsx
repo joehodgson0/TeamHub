@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createFixtureSchema, type CreateFixture, type Fixture } from "@shared/schema";
+import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useStorage } from "@/hooks/use-storage";
@@ -35,8 +35,8 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
 
   const userTeams = user ? storage.getTeamsByManagerId(user.id) : [];
   
-  const form = useForm<CreateFixture & { isFriendly: boolean; homeAway: string }>({
-    resolver: zodResolver(createFixtureSchema.extend({ 
+  const form = useForm<CreateEvent & { isFriendly: boolean; homeAway: string }>({
+    resolver: zodResolver(createEventSchema.extend({ 
       isFriendly: z.boolean().optional(),
       homeAway: z.string().optional()
     })),
@@ -55,7 +55,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
 
   const selectedType = form.watch("type");
 
-  const onSubmit = async (data: CreateFixture & { isFriendly: boolean; homeAway: string }) => {
+  const onSubmit = async (data: CreateEvent & { isFriendly: boolean; homeAway: string }) => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -73,7 +73,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       // Automatically use the manager's team
       const managerTeam = userTeams.length > 0 ? userTeams[0] : null;
       
-      const newFixture: Fixture = {
+      const newEvent: Event = {
         id: fixtureId,
         type: data.isFriendly ? "friendly" : data.type,
         name: data.name,
@@ -83,11 +83,12 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         endTime: new Date(data.endTime),
         additionalInfo: data.additionalInfo || undefined,
         teamId: managerTeam?.id || user.id, // Use manager's team or fallback to user ID
+        homeAway: data.homeAway || undefined,
         availability: {},
         createdAt: new Date(),
       };
 
-      storage.createFixture(newFixture);
+      storage.createEvent(newEvent);
       refresh();
 
       toast({
