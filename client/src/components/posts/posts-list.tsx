@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ThumbsUp, MessageCircle, User, Bus } from "lucide-react";
+import { User, Bus, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 export default function PostsList() {
@@ -93,7 +93,7 @@ export default function PostsList() {
         <Card>
           <CardContent className="py-12">
             <div className="text-center text-muted-foreground">
-              <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium mb-2">No Posts Yet</p>
               <p className="text-sm">Posts and announcements will appear here</p>
             </div>
@@ -145,27 +145,6 @@ export default function PostsList() {
                   <p className="text-muted-foreground" data-testid={`post-content-${post.id}`}>
                     {post.content}
                   </p>
-                  
-                  <div className="flex items-center space-x-4 pt-3 border-t border-border">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-foreground"
-                      data-testid={`button-like-${post.id}`}
-                    >
-                      <ThumbsUp className="w-4 h-4 mr-1" />
-                      <span>3 Helpful</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-foreground"
-                      data-testid={`button-reply-${post.id}`}
-                    >
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      <span>Reply</span>
-                    </Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>

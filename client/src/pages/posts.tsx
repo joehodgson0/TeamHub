@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import CreatePostModal from "@/components/modals/create-post-modal";
 import PostsList from "@/components/posts/posts-list";
-import PostCategories from "@/components/posts/post-categories";
 
 export default function Posts() {
   const { hasRole } = useAuth();
@@ -28,14 +27,7 @@ export default function Posts() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
-          <PostsList />
-        </div>
-        <div>
-          <PostCategories />
-        </div>
-      </div>
+      <PostsList />
 
       <CreatePostModal
         open={showCreateModal}
