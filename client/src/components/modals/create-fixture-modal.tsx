@@ -168,16 +168,16 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               )}
             </div>
 
-            {selectedType !== "match" && selectedType !== "training" && selectedType !== "social" && (
+            {(selectedType === "tournament" || selectedType === "social") && (
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{selectedType === "tournament" ? "Tournament Name" : "Event Name"}</FormLabel>
+                    <FormLabel>{selectedType === "tournament" ? "Tournament Name" : "Name"}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={selectedType === "tournament" ? "e.g., Spring Cup 2025" : "e.g., vs. Riverside United"}
+                        placeholder={selectedType === "tournament" ? "e.g., Spring Cup 2025" : "e.g., Team BBQ"}
                         data-testid="input-event-name"
                         {...field}
                       />
