@@ -19,7 +19,7 @@ interface CreateFixtureModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const fixtureTypes = [
+const eventTypes = [
   { value: "match", label: "Match" },
   { value: "tournament", label: "Tournament" },
   { value: "training", label: "Training" },
@@ -55,7 +55,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       toast({
         variant: "destructive",
         title: "Error",
-        description: "You must have at least one team to create fixtures.",
+        description: "You must have at least one team to create events.",
       });
       return;
     }
@@ -83,7 +83,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       refresh();
 
       toast({
-        title: "Fixture Created Successfully",
+        title: "Event Created Successfully",
         description: `${data.name} has been scheduled.`,
       });
 
@@ -93,7 +93,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create fixture. Please try again.",
+        description: "Failed to create event. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -105,7 +105,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       <DialogContent className="sm:max-w-2xl" data-testid="modal-create-fixture">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>Add New Fixture</DialogTitle>
+            <DialogTitle>Add New Event</DialogTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -118,22 +118,22 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-testid="form-create-fixture">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-testid="form-create-event">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fixture Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-fixture-type">
+                    <FormLabel>Event Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-event-type">
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {fixtureTypes.map((type) => (
+                        {eventTypes.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {type.label}
                           </SelectItem>
@@ -168,17 +168,17 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               )}
             </div>
 
-            {(selectedType !== "match" || selectedType === "tournament") && (
+            {selectedType !== "match" && (
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{selectedType === "tournament" ? "Tournament Name" : "Fixture Name"}</FormLabel>
+                    <FormLabel>{selectedType === "tournament" ? "Tournament Name" : "Event Name"}</FormLabel>
                     <FormControl>
                       <Input
                         placeholder={selectedType === "tournament" ? "e.g., Spring Cup 2025" : "e.g., vs. Riverside United"}
-                        data-testid="input-fixture-name"
+                        data-testid="input-event-name"
                         {...field}
                       />
                     </FormControl>
@@ -303,7 +303,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                 disabled={isLoading}
                 data-testid="button-create"
               >
-                {isLoading ? "Creating..." : "Create Fixture"}
+                {isLoading ? "Creating..." : "Create Event"}
               </Button>
             </div>
           </form>

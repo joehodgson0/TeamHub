@@ -22,10 +22,10 @@ export default function Events() {
           <Button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center space-x-2"
-            data-testid="button-add-fixture"
+            data-testid="button-add-event"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Fixture</span>
+            <span>Add Event</span>
           </Button>
         )}
       </div>
