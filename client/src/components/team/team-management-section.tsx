@@ -98,12 +98,22 @@ export default function TeamManagementSection() {
   const players = playersData?.players || [];
 
   // Fetch teams data for resolving team names for players - use user-based API for parents
-  const { data: allTeamsData } = useQuery<{ success: boolean; teams: any[] }>({
+  const { data: allTeamsData, isLoading: teamsLoading, error: teamsError } = useQuery<{ success: boolean; teams: any[] }>({
     queryKey: ['/api/teams/user', user?.id],
-    enabled: Boolean(user?.id && isParent),
+    enabled: Boolean(user?.id && isParent && players.length > 0),
   });
 
   const allTeams = allTeamsData?.teams || [];
+  
+  // Debug logging
+  console.log('Teams query enabled:', Boolean(user?.id && isParent && players.length > 0));
+  console.log('User ID:', user?.id);
+  console.log('Is parent:', isParent);
+  console.log('Players count:', players.length);
+  console.log('Teams loading:', teamsLoading);
+  console.log('Teams error:', teamsError);
+  console.log('Teams data:', allTeamsData);
+  console.log('All teams:', allTeams);
 
   // If user has no club AND has no roles (not coach or parent), show join club form
   if (!user?.clubId && !isCoach && !isParent) {
