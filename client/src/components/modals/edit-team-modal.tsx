@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { X } from "lucide-react";
 
 interface EditTeamModalProps {
   open: boolean;
@@ -107,17 +106,7 @@ export default function EditTeamModal({ open, onOpenChange, team }: EditTeamModa
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" data-testid="modal-edit-team">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Edit Team</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              data-testid="button-close-modal"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <DialogTitle>Edit Team</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>

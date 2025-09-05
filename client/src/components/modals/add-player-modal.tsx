@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { X } from "lucide-react";
 
 interface AddPlayerModalProps {
   open: boolean;
@@ -91,17 +90,7 @@ export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" data-testid="modal-add-player">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Add Player to Team</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              data-testid="button-close-modal"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <DialogTitle>Add Player to Team</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>

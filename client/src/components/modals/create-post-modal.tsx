@@ -12,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { X } from "lucide-react";
 
 interface CreatePostModalProps {
   open: boolean;
@@ -123,17 +122,7 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl" data-testid="modal-create-post">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Create New Post</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              data-testid="button-close-modal"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <DialogTitle>Create New Post</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
