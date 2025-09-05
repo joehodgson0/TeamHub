@@ -1,4 +1,3 @@
-import TeamJoinSection from "@/components/team/team-join-section";
 import TeamManagementSection from "@/components/team/team-management-section";
 
 export default function Team() {
@@ -8,10 +7,7 @@ export default function Team() {
         <h1 className="text-2xl font-bold" data-testid="heading-team">Team Management</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TeamManagementSection />
-        <TeamJoinSection />
-      </div>
+      <TeamManagementSection />
     </div>
   );
 }
