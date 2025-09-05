@@ -33,7 +33,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
   const [isLoading, setIsLoading] = useState(false);
 
   const userTeams = user ? storage.getTeamsByManagerId(user.id) : [];
-
+  
   const form = useForm<CreateFixture>({
     resolver: zodResolver(createFixtureSchema),
     defaultValues: {
@@ -46,6 +46,8 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       additionalInfo: "",
     },
   });
+
+  const selectedType = form.watch("type");
 
   const onSubmit = async (data: CreateFixture) => {
     if (!user || userTeams.length === 0) {
@@ -141,30 +143,32 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fixture Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., vs. Riverside United"
-                      data-testid="input-fixture-name"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {selectedType !== "match" && (
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fixture Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., vs. Riverside United"
+                        data-testid="input-fixture-name"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
               name="opponent"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Opponent (if applicable)</FormLabel>
+                  <FormLabel>{selectedType === "match" ? "Opponent" : "Opponent (if applicable)"}</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Enter opponent name"
