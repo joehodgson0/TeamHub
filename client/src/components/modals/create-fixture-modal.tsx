@@ -59,27 +59,26 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
     },
   });
   
-  const form = useForm<CreateEvent & { isFriendly: boolean; homeAway: string }>({
+  const form = useForm<CreateEvent & { homeAway: string }>({
     resolver: zodResolver(createEventSchema.extend({ 
-      isFriendly: z.boolean().optional(),
       homeAway: z.string().optional()
     })),
     defaultValues: {
       type: "match",
+      friendly: false,
       name: "",
       opponent: "",
       location: "",
       startTime: new Date(),
       endTime: new Date(),
       additionalInfo: "",
-      isFriendly: false,
       homeAway: "home",
     },
   });
 
   const selectedType = form.watch("type");
 
-  const onSubmit = async (data: CreateEvent & { isFriendly: boolean; homeAway: string }) => {
+  const onSubmit = async (data: CreateEvent & { homeAway: string }) => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -94,7 +93,8 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       const managerTeam = userTeams.length > 0 ? userTeams[0] : null;
       
       const eventData = {
-        type: data.isFriendly ? "friendly" : data.type,
+        type: data.type,
+        friendly: data.friendly || false,
         name: data.name,
         opponent: data.opponent || undefined,
         location: data.location,
@@ -169,10 +169,10 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                 )}
               />
 
-              {selectedType !== "tournament" && selectedType !== "training" && selectedType !== "social" && (
+              {selectedType === "match" && (
                 <FormField
                   control={form.control}
-                  name="isFriendly"
+                  name="friendly"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-8">
                       <FormControl>

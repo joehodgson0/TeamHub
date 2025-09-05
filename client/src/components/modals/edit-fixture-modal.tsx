@@ -60,26 +60,25 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
     },
   });
 
-  const form = useForm<CreateEvent & { isFriendly: boolean; homeAway: string }>({
+  const form = useForm<CreateEvent & { homeAway: string }>({
     resolver: zodResolver(createEventSchema.extend({ 
-      isFriendly: z.boolean().optional(),
       homeAway: z.string().optional()
     })),
     defaultValues: {
-      type: fixture.type === "friendly" ? "match" : fixture.type,
+      type: fixture.type,
+      friendly: fixture.friendly || false,
       name: fixture.name || "",
       opponent: fixture.opponent || "",
       location: fixture.location,
       startTime: fixture.startTime,
       endTime: fixture.endTime,
       additionalInfo: fixture.additionalInfo || "",
-      isFriendly: fixture.type === "friendly",
       homeAway: fixture.homeAway || "home",
     },
   });
 
 
-  const onSubmit = async (data: CreateEvent & { isFriendly: boolean; homeAway: string }) => {
+  const onSubmit = async (data: CreateEvent & { homeAway: string }) => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -91,7 +90,8 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
 
     try {
       const eventData = {
-        type: data.isFriendly ? "friendly" : data.type,
+        type: data.type,
+        friendly: data.friendly || false,
         name: data.name,
         opponent: data.opponent || undefined,
         location: data.location,
@@ -137,10 +137,10 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-testid="form-edit-event">
-            {(fixture.type === "match" || fixture.type === "friendly") && (
+            {fixture.type === "match" && (
               <FormField
                 control={form.control}
-                name="isFriendly"
+                name="friendly"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
@@ -179,7 +179,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
               />
             )}
 
-            {(fixture.type === "match" || fixture.type === "friendly") && (
+            {fixture.type === "match" && (
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}

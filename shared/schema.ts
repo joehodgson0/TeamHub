@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, varchar, text, timestamp, integer, json, serial } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, timestamp, integer, json, serial, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 // User schema
@@ -83,7 +83,8 @@ export const addPlayerSchema = playerSchema.pick({
 // Event schema
 export const eventSchema = z.object({
   id: z.string(),
-  type: z.enum(["match", "friendly", "tournament", "training", "social"]),
+  type: z.enum(["match", "tournament", "training", "social"]),
+  friendly: z.boolean().default(false),
   name: z.string().optional(),
   opponent: z.string().optional(),
   location: z.string(),
@@ -103,6 +104,7 @@ export const eventSchema = z.object({
 
 export const createEventSchema = eventSchema.pick({
   type: true,
+  friendly: true,
   name: true,
   opponent: true,
   location: true,
@@ -193,6 +195,7 @@ export const players = pgTable("players", {
 export const events = pgTable("events", {
   id: varchar("id").primaryKey(),
   type: varchar("type").notNull(),
+  friendly: boolean("friendly").notNull().default(false),
   name: varchar("name"),
   opponent: varchar("opponent"),
   location: varchar("location").notNull(),
