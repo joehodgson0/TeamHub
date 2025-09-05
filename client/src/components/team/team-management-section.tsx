@@ -1,20 +1,79 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { clubAssociationSchema, type ClubAssociation, type Team } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Edit, Eye, Plus } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Users, Edit, Eye, Plus, Building, Info, CheckCircle, XCircle } from "lucide-react";
 import CreateTeamModal from "@/components/modals/create-team-modal";
-import { type Team } from "@shared/schema";
 
 export default function TeamManagementSection() {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, associateWithClub } = useAuth();
+  const { toast } = useToast();
   const isCoach = hasRole("coach");
   const isParent = hasRole("parent");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   
   const canCreateTeam = isCoach && user?.clubId;
+
+  // Fetch club data from database
+  const { data: clubData, isLoading: clubLoading } = useQuery<{ club: any }>({
+    queryKey: ["/api/clubs", user?.clubId],
+    enabled: !!user?.clubId,
+  });
+  
+  const club = clubData?.club;
+
+  const clubForm = useForm<ClubAssociation>({
+    resolver: zodResolver(clubAssociationSchema),
+    defaultValues: {
+      clubCode: "",
+    },
+  });
+
+  const onJoinClub = async (data: ClubAssociation) => {
+    if (!user) return;
+
+    setIsJoining(true);
+    setFeedback(null);
+
+    try {
+      const result = await associateWithClub(user.id, data.clubCode);
+      
+      if (result.success) {
+        setFeedback({
+          type: "success",
+          message: `Successfully joined ${result.clubName}!`
+        });
+        clubForm.reset();
+        toast({
+          title: "Club Association Successful",
+          description: `You have joined ${result.clubName}`,
+        });
+      } else {
+        setFeedback({
+          type: "error",
+          message: result.error || "Failed to join club"
+        });
+      }
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: "An unexpected error occurred"
+      });
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   // For coaches: fetch teams from their club
   // For parents: fetch teams through their dependents
@@ -27,114 +86,222 @@ export default function TeamManagementSection() {
 
   const teams = teamsData?.teams || [];
 
-  return (
-    <Card data-testid="card-current-teams">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Users className="w-5 h-5 text-primary" />
-            <span>{isCoach ? "Your Teams" : "Associated Teams"}</span>
-          </div>
-          {canCreateTeam && (
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              size="sm"
-              data-testid="button-create-team"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Team
-            </Button>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {isLoading ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-              <p className="text-sm">Loading teams...</p>
-            </div>
-          ) : teams.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">
-                {isCoach ? "No teams created yet" : "No teams associated"}
-              </p>
-              <p className="text-xs mt-1">
-                {isCoach 
-                  ? "Create your first team to get started" 
-                  : "Join a team using a team code"
-                }
-              </p>
-            </div>
-          ) : (
-            teams.map((team: Team) => {
-              if (!team) return null;
-              
-              const playerCount = team.playerIds?.length || 0;
-              const totalGames = (team.wins || 0) + (team.draws || 0) + (team.losses || 0);
+  // If user has no club, show join club form
+  if (!user?.clubId) {
+    return (
+      <Card data-testid="card-join-club">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Building className="w-5 h-5 text-primary" />
+            <span>Join Club to Manage Teams</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            You need to join a club before you can create or manage teams.
+          </p>
+          
+          <Form {...clubForm}>
+            <form onSubmit={clubForm.handleSubmit(onJoinClub)} className="space-y-4" data-testid="form-join-club">
+              <FormField
+                control={clubForm.control}
+                name="clubCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Club Code</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter 8-character club code"
+                        data-testid="input-club-code"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              return (
-                <div
-                  key={team.id}
-                  className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
-                  data-testid={`team-card-${team.id}`}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h4 className="font-medium" data-testid={`team-name-${team.id}`}>
-                        {team.name || 'Unknown Team'}
-                      </h4>
-                      <Badge variant="outline" className="text-xs">
-                        {team.ageGroup || 'Unknown'}
-                      </Badge>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isJoining}
+                data-testid="button-join-club"
+              >
+                {isJoining ? "Joining..." : "Join Club"}
+              </Button>
+            </form>
+          </Form>
+
+          {feedback && (
+            <Alert className={feedback.type === "success" ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"} data-testid="club-feedback">
+              <div className="flex items-center space-x-2">
+                {feedback.type === "success" ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-red-600" />
+                )}
+                <AlertDescription className={feedback.type === "success" ? "text-green-800" : "text-red-800"}>
+                  {feedback.message}
+                </AlertDescription>
+              </div>
+            </Alert>
+          )}
+
+          <Alert data-testid="demo-info">
+            <Info className="w-4 h-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p className="font-medium">Demo Information</p>
+                <ul className="text-sm space-y-1">
+                  <li>• Club: <strong>Hilly Fielders FC</strong></li>
+                  <li>• Valid codes start with "1" (e.g., "1ABC2345")</li>
+                  <li>• Invalid codes show error message</li>
+                </ul>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // If user has a club, show teams management
+  return (
+    <div className="space-y-6">
+      {/* Current Club Info */}
+      {club && (
+        <Card data-testid="card-current-club">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building className="w-5 h-5 text-primary" />
+              <span>Current Club</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-4 p-3 bg-primary/10 rounded-lg">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                <Building className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h4 className="font-semibold" data-testid="text-club-name">{club.name}</h4>
+                <p className="text-sm text-muted-foreground" data-testid="text-club-established">
+                  Established {club.established}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Teams Management */}
+      <Card data-testid="card-current-teams">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Users className="w-5 h-5 text-primary" />
+              <span>{isCoach ? "Your Teams" : "Associated Teams"}</span>
+            </div>
+            {canCreateTeam && (
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                size="sm"
+                data-testid="button-create-team"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Team
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {isLoading ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-sm">Loading teams...</p>
+              </div>
+            ) : teams.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">
+                  {isCoach ? "No teams created yet" : "No teams associated"}
+                </p>
+                <p className="text-xs mt-1">
+                  {isCoach 
+                    ? "Create your first team to get started" 
+                    : "Join a team using a team code"
+                  }
+                </p>
+              </div>
+            ) : (
+              teams.map((team: Team) => {
+                if (!team) return null;
+                
+                const playerCount = team.playerIds?.length || 0;
+                const totalGames = (team.wins || 0) + (team.draws || 0) + (team.losses || 0);
+
+                return (
+                  <div
+                    key={team.id}
+                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
+                    data-testid={`team-card-${team.id}`}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h4 className="font-medium" data-testid={`team-name-${team.id}`}>
+                          {team.name || 'Unknown Team'}
+                        </h4>
+                        <Badge variant="outline" className="text-xs">
+                          {team.ageGroup || 'Unknown'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <span data-testid={`team-players-${team.id}`}>
+                          {playerCount} players
+                        </span>
+                        {totalGames > 0 && (
+                          <>
+                            <span>•</span>
+                            <span data-testid={`team-record-${team.id}`}>
+                              {team.wins || 0}W {team.draws || 0}D {team.losses || 0}L
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1" data-testid={`team-code-${team.id}`}>
+                        Code: {team.code || 'Unknown'}
+                      </p>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span data-testid={`team-players-${team.id}`}>
-                        {playerCount} players
-                      </span>
-                      {totalGames > 0 && (
-                        <>
-                          <span>•</span>
-                          <span data-testid={`team-record-${team.id}`}>
-                            {team.wins || 0}W {team.draws || 0}D {team.losses || 0}L
-                          </span>
-                        </>
+                    <div className="flex items-center space-x-2">
+                      {isCoach && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          data-testid={`button-edit-team-${team.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
                       )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1" data-testid={`team-code-${team.id}`}>
-                      Code: {team.code || 'Unknown'}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {isCoach && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        data-testid={`button-edit-team-${team.id}`}
+                        data-testid={`button-view-team-${team.id}`}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Eye className="w-4 h-4" />
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      data-testid={`button-view-team-${team.id}`}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              );
-            }).filter(Boolean)
-          )}
-        </div>
-      </CardContent>
-      
-      <CreateTeamModal 
-        open={showCreateModal} 
-        onOpenChange={setShowCreateModal} 
-      />
-    </Card>
+                );
+              }).filter(Boolean)
+            )}
+          </div>
+        </CardContent>
+        
+        <CreateTeamModal 
+          open={showCreateModal} 
+          onOpenChange={setShowCreateModal} 
+        />
+      </Card>
+    </div>
   );
 }
