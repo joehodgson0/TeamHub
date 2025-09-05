@@ -78,7 +78,6 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
     },
   });
 
-  const selectedType = form.watch("type");
 
   const onSubmit = async (data: CreateEvent & { isFriendly: boolean; homeAway: string }) => {
     if (!user) {
@@ -138,65 +137,38 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-testid="form-edit-event">
-            <div className="grid grid-cols-2 gap-4">
+            {(fixture.type === "match" || fixture.type === "friendly") && (
               <FormField
                 control={form.control}
-                name="type"
+                name="isFriendly"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Event Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-event-type">
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {eventTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid="checkbox-is-friendly"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Friendly</FormLabel>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            )}
 
-              {selectedType !== "tournament" && selectedType !== "training" && selectedType !== "social" && (
-                <FormField
-                  control={form.control}
-                  name="isFriendly"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-8">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="checkbox-is-friendly"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Friendly</FormLabel>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-            </div>
-
-            {(selectedType === "tournament" || selectedType === "social") && (
+            {(fixture.type === "tournament" || fixture.type === "social") && (
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{selectedType === "tournament" ? "Tournament Name" : "Name"}</FormLabel>
+                    <FormLabel>{fixture.type === "tournament" ? "Tournament Name" : "Name"}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={selectedType === "tournament" ? "e.g., Spring Cup 2025" : "e.g., Team BBQ"}
+                        placeholder={fixture.type === "tournament" ? "e.g., Spring Cup 2025" : "e.g., Team BBQ"}
                         data-testid="input-event-name"
                         {...field}
                       />
@@ -207,7 +179,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
               />
             )}
 
-            {selectedType === "match" && (
+            {(fixture.type === "match" || fixture.type === "friendly") && (
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
