@@ -67,8 +67,6 @@ export default function PostsList() {
         return { label: "Player Request", color: "bg-primary/10 text-primary" };
       case "announcement":
         return { label: "Announcement", color: "bg-secondary/10 text-secondary" };
-      case "event":
-        return { label: "Event", color: "bg-green-100 text-green-700" };
       default:
         return { label: type, color: "bg-muted text-muted-foreground" };
     }

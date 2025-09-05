@@ -117,7 +117,7 @@ export const createEventSchema = eventSchema.pick({
 // Post schema
 export const postSchema = z.object({
   id: z.string(),
-  type: z.enum(["kit_request", "player_request", "announcement", "event"]),
+  type: z.enum(["kit_request", "player_request", "announcement"]),
   title: z.string(),
   content: z.string(),
   authorId: z.string(),

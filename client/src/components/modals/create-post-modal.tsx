@@ -22,7 +22,6 @@ const postTypes = [
   { value: "kit_request", label: "Kit Request", description: "Request equipment or kit items" },
   { value: "player_request", label: "Player Request", description: "Looking for new team members" },
   { value: "announcement", label: "Announcement", description: "General team or club announcements" },
-  { value: "event", label: "Event", description: "Social events or special occasions" },
 ];
 
 export default function CreatePostModal({ open, onOpenChange }: CreatePostModalProps) {
