@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import CreateFixtureModal from "@/components/modals/create-fixture-modal";
 import FixtureList from "@/components/events/fixture-list";
-import EventsStats from "@/components/events/events-stats";
 import ClubCalendar from "@/components/events/club-calendar";
+import TeamCalendar from "@/components/events/team-calendar";
 
 export default function Events() {
   const { hasRole } = useAuth();
@@ -36,8 +36,8 @@ export default function Events() {
         </div>
 
         <div className="space-y-4">
-          <EventsStats />
           <ClubCalendar />
+          <TeamCalendar />
         </div>
       </div>
 
