@@ -3,8 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTeamSchema, type CreateTeam, type Team } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { useStorage } from "@/hooks/use-storage";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,7 +23,6 @@ const ageGroups = [
 
 export default function CreateTeamModal({ open, onOpenChange }: CreateTeamModalProps) {
   const { user } = useAuth();
-  const { storage, refresh } = useStorage();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,7 +68,11 @@ export default function CreateTeamModal({ open, onOpenChange }: CreateTeamModalP
 
         form.reset();
         onOpenChange(false);
-        refresh();
+        
+        // Invalidate and refetch teams query
+        queryClient.invalidateQueries({
+          queryKey: ['/api/teams/club', user.clubId]
+        });
       } else {
         toast({
           variant: "destructive",
