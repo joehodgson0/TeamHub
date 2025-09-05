@@ -54,6 +54,8 @@ export interface IStorage {
   getPostsByTeamId(teamId: string): Promise<Post[]>;
   getPostsByClubId(clubId: string): Promise<Post[]>;
   createPost(insertPost: InsertPost): Promise<Post>;
+  updatePost(id: string, updates: Partial<Post>): Promise<Post | undefined>;
+  deletePost(id: string): Promise<boolean>;
 
   // Award methods
   getAwards(): Promise<Award[]>;
@@ -291,6 +293,20 @@ export class DatabaseStorage implements IStorage {
       .values(insertPost)
       .returning();
     return post;
+  }
+
+  async updatePost(id: string, updates: Partial<Post>): Promise<Post | undefined> {
+    const [post] = await db
+      .update(posts)
+      .set(updates)
+      .where(eq(posts.id, id))
+      .returning();
+    return post || undefined;
+  }
+
+  async deletePost(id: string): Promise<boolean> {
+    const result = await db.delete(posts).where(eq(posts.id, id));
+    return result.count > 0;
   }
 
   // Award methods

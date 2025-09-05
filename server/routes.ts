@@ -468,6 +468,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/posts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      const updatedPost = await storage.updatePost(id, updateData);
+      
+      if (!updatedPost) {
+        return res.status(404).json({ success: false, error: "Post not found" });
+      }
+
+      res.json({ success: true, post: updatedPost });
+    } catch (error) {
+      console.error("Update post error:", error);
+      res.status(500).json({ success: false, error: "Failed to update post" });
+    }
+  });
+
+  app.delete("/api/posts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const deleted = await storage.deletePost(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ success: false, error: "Post not found" });
+      }
+
+      res.json({ success: true, message: "Post deleted successfully" });
+    } catch (error) {
+      console.error("Delete post error:", error);
+      res.status(500).json({ success: false, error: "Failed to delete post" });
+    }
+  });
+
   // Award routes
   app.get("/api/awards", async (req, res) => {
     try {
