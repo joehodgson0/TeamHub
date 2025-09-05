@@ -1,11 +1,11 @@
-import { User, Club, Team, Player, Fixture, Post, Award } from "@shared/schema";
+import { User, Club, Team, Player, Event, Post, Award } from "@shared/schema";
 
 export interface StorageData {
   users: User[];
   clubs: Club[];
   teams: Team[];
   players: Player[];
-  fixtures: Fixture[];
+  events: Event[];
   posts: Post[];
   awards: Award[];
   currentUserId: string | null;
@@ -42,7 +42,7 @@ const defaultData: StorageData = {
     },
   ],
   players: [],
-  fixtures: [],
+  events: [],
   posts: [],
   awards: [],
   currentUserId: null,
@@ -78,11 +78,11 @@ class LocalStorage {
           dateOfBirth: new Date(player.dateOfBirth),
           createdAt: new Date(player.createdAt),
         })),
-        fixtures: parsed.fixtures.map((fixture: any) => ({
-          ...fixture,
-          startTime: new Date(fixture.startTime),
-          endTime: new Date(fixture.endTime),
-          createdAt: new Date(fixture.createdAt),
+        events: (parsed.events || parsed.fixtures || []).map((event: any) => ({
+          ...event,
+          startTime: new Date(event.startTime),
+          endTime: new Date(event.endTime),
+          createdAt: new Date(event.createdAt),
         })),
         posts: parsed.posts.map((post: any) => ({
           ...post,
@@ -237,45 +237,70 @@ class LocalStorage {
     return player;
   }
 
-  // Fixture methods
-  getFixtures(): Fixture[] {
-    return this.getData().fixtures;
+  // Event methods
+  getEvents(): Event[] {
+    return this.getData().events;
   }
 
-  getFixtureById(id: string): Fixture | undefined {
-    return this.getFixtures().find(fixture => fixture.id === id);
+  getEvent(id: string): Event | undefined {
+    return this.getEvents().find(event => event.id === id);
   }
 
-  getFixturesByTeamId(teamId: string): Fixture[] {
-    return this.getFixtures().filter(fixture => fixture.teamId === teamId);
+  getEventsByTeamId(teamId: string): Event[] {
+    return this.getEvents().filter(event => event.teamId === teamId);
   }
 
-  getUpcomingFixtures(teamId?: string): Fixture[] {
+  getUpcomingEvents(teamId?: string): Event[] {
     const now = new Date();
-    let fixtures = this.getFixtures().filter(fixture => fixture.startTime > now);
+    let events = this.getEvents().filter(event => event.startTime > now);
     
     if (teamId) {
-      fixtures = fixtures.filter(fixture => fixture.teamId === teamId);
+      events = events.filter(event => event.teamId === teamId);
     }
     
-    return fixtures.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    return events.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   }
 
-  createFixture(fixture: Fixture): Fixture {
+  createEvent(event: Event): Event {
     const data = this.getData();
-    data.fixtures.push(fixture);
+    data.events.push(event);
     this.setData(data);
-    return fixture;
+    return event;
   }
 
-  updateFixture(fixtureId: string, updates: Partial<Fixture>): Fixture | undefined {
+  updateEvent(eventId: string, updates: Partial<Event>): Event | undefined {
     const data = this.getData();
-    const fixtureIndex = data.fixtures.findIndex(fixture => fixture.id === fixtureId);
-    if (fixtureIndex === -1) return undefined;
+    const eventIndex = data.events.findIndex(event => event.id === eventId);
+    if (eventIndex === -1) return undefined;
     
-    data.fixtures[fixtureIndex] = { ...data.fixtures[fixtureIndex], ...updates };
+    data.events[eventIndex] = { ...data.events[eventIndex], ...updates };
     this.setData(data);
-    return data.fixtures[fixtureIndex];
+    return data.events[eventIndex];
+  }
+
+  // Legacy fixture methods for backward compatibility
+  getFixtures(): Event[] {
+    return this.getEvents();
+  }
+
+  getFixtureById(id: string): Event | undefined {
+    return this.getEvent(id);
+  }
+
+  getFixturesByTeamId(teamId: string): Event[] {
+    return this.getEventsByTeamId(teamId);
+  }
+
+  getUpcomingFixtures(teamId?: string): Event[] {
+    return this.getUpcomingEvents(teamId);
+  }
+
+  createFixture(event: Event): Event {
+    return this.createEvent(event);
+  }
+
+  updateFixture(eventId: string, updates: Partial<Event>): Event | undefined {
+    return this.updateEvent(eventId, updates);
   }
 
   // Post methods
