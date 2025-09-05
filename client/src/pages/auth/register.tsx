@@ -22,8 +22,8 @@ export default function Register() {
     resolver: zodResolver(registerUserSchema),
     mode: "onChange", 
     defaultValues: {
-      email: "joehodgson0@gmail.com",
-      password: "t",
+      email: "",
+      password: "",
     },
   });
 
@@ -55,8 +55,8 @@ export default function Register() {
           });
         }
       } else {
-        // Handle sign in - always sign in as joehodgson0@gmail.com for demo
-        const result = await login("joehodgson0@gmail.com", "t");
+        // Handle sign in with form data
+        const result = await login(data.email, data.password);
         
         if (result.success) {
           toast({
