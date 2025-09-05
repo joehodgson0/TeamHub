@@ -11,10 +11,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 export default function Register() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { login } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  
+  const isSignUpMode = location === "/sign-up";
 
   const loginForm = useForm<RegisterUser>({
     resolver: zodResolver(registerUserSchema),
@@ -25,35 +27,61 @@ export default function Register() {
     },
   });
 
-  const onLogin = async (data: RegisterUser) => {
+  const onSubmit = async (data: RegisterUser) => {
     setIsLoading(true);
     try {
-      // Always sign in as joehodgson0@gmail.com
-      const result = await login("joehodgson0@gmail.com", "t");
-      
-      if (result.success) {
-        toast({
-          title: "Welcome back!",
-          description: "You have been signed in successfully.",
+      if (isSignUpMode) {
+        // Handle sign up
+        const response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+          credentials: "include",
         });
         
-        // Check if user already has roles, if so go to dashboard, otherwise go to role selection
-        if (result.user && result.user.roles && result.user.roles.length > 0) {
-          setLocation("/dashboard");
+        const result = await response.json();
+        
+        if (result.success) {
+          toast({
+            title: "Account Created!",
+            description: "Your account has been created successfully. Please sign in.",
+          });
+          setLocation("/"); // Redirect to sign in page
         } else {
-          setLocation("/role-selection");
+          toast({
+            variant: "destructive",
+            title: "Sign Up Failed",
+            description: result.error || "Failed to create account.",
+          });
         }
       } else {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: result.error || "Invalid email or password.",
-        });
+        // Handle sign in - always sign in as joehodgson0@gmail.com for demo
+        const result = await login("joehodgson0@gmail.com", "t");
+        
+        if (result.success) {
+          toast({
+            title: "Welcome back!",
+            description: "You have been signed in successfully.",
+          });
+          
+          // Check if user already has roles, if so go to dashboard, otherwise go to role selection
+          if (result.user && result.user.roles && result.user.roles.length > 0) {
+            setLocation("/dashboard");
+          } else {
+            setLocation("/role-selection");
+          }
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: result.error || "Invalid email or password.",
+          });
+        }
       }
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Login Failed",
+        title: isSignUpMode ? "Sign Up Failed" : "Login Failed",
         description: "An unexpected error occurred.",
       });
     } finally {
@@ -72,12 +100,17 @@ export default function Register() {
               </div>
               <CardTitle className="text-2xl">TeamHub</CardTitle>
             </div>
-            <CardTitle className="text-xl">Sign In</CardTitle>
-            <CardDescription>Welcome back to your team management platform</CardDescription>
+            <CardTitle className="text-xl">{isSignUpMode ? "Sign Up" : "Sign In"}</CardTitle>
+            <CardDescription>
+              {isSignUpMode 
+                ? "Create your account to start managing your team" 
+                : "Welcome back to your team management platform"
+              }
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4" data-testid="form-login">
+              <form onSubmit={loginForm.handleSubmit(onSubmit)} className="space-y-4" data-testid={isSignUpMode ? "form-signup" : "form-login"}>
                 <FormField
                   control={loginForm.control}
                   name="email"
@@ -126,23 +159,26 @@ export default function Register() {
                   type="submit"
                   className="w-full"
                   disabled={isLoading}
-                  data-testid="button-login"
+                  data-testid={isSignUpMode ? "button-signup" : "button-login"}
                 >
-                  {isLoading ? "Signing in..." : "Sign In"}
+                  {isLoading 
+                    ? (isSignUpMode ? "Creating account..." : "Signing in...") 
+                    : (isSignUpMode ? "Create Account" : "Sign In")
+                  }
                 </Button>
               </form>
             </Form>
             
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
-                Don't have an account?{" "}
+                {isSignUpMode ? "Already have an account?" : "Don't have an account?"}{" "}
                 <Button
                   variant="link"
                   className="p-0 h-auto font-semibold text-primary"
-                  onClick={() => setLocation("/sign-up")}
-                  data-testid="link-sign-up"
+                  onClick={() => setLocation(isSignUpMode ? "/" : "/sign-up")}
+                  data-testid={isSignUpMode ? "link-sign-in" : "link-sign-up"}
                 >
-                  Sign up here
+                  {isSignUpMode ? "Sign in here" : "Sign up here"}
                 </Button>
               </p>
             </div>

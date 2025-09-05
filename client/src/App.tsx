@@ -35,6 +35,7 @@ function Router() {
     return (
       <Switch>
         <Route path="/role-selection" component={RoleSelection} />
+        <Route path="/sign-up" component={Register} />
         <Route path="/" component={Register} />
         <Route component={Register} />
       </Switch>
