@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Users, Edit, Eye, Plus, Building, Info, CheckCircle, XCircle } from "lucide-react";
+import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle } from "lucide-react";
 import CreateTeamModal from "@/components/modals/create-team-modal";
 import EditTeamModal from "@/components/modals/edit-team-modal";
 
@@ -289,13 +289,6 @@ export default function TeamManagementSection() {
                           <Edit className="w-4 h-4" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        data-testid={`button-view-team-${team.id}`}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
                     </div>
                   </div>
                 );
