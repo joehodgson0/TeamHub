@@ -97,15 +97,27 @@ export default function FixtureList() {
   const fixtures = getFixtures();
   const isCoach = hasRole("coach");
 
-  const getFixtureTypeColor = (type: string) => {
+  const getFixtureTypeColor = (type: string, friendly: boolean = false) => {
+    if (type === "match") {
+      return friendly 
+        ? "bg-green-100 text-green-700"
+        : "bg-blue-100 text-blue-700";
+    }
     switch (type) {
-      case "match": return "bg-primary/10 text-primary";
-      case "friendly": return "bg-secondary/10 text-secondary";
       case "training": return "bg-accent/10 text-accent";
       case "tournament": return "bg-purple-100 text-purple-700";
       case "social": return "bg-green-100 text-green-700";
       default: return "bg-muted text-muted-foreground";
     }
+  };
+
+  const getFixtureDisplayType = (fixture: any) => {
+    if (fixture.type === "match") {
+      const homeAway = fixture.homeAway?.charAt(0).toUpperCase() + fixture.homeAway?.slice(1) || "Home";
+      const matchType = fixture.friendly ? "Friendly" : "Match";
+      return `${homeAway} ${matchType}`;
+    }
+    return fixture.type.charAt(0).toUpperCase() + fixture.type.slice(1);
   };
 
   const getAvailabilityCount = (fixture: any) => {
@@ -151,8 +163,8 @@ export default function FixtureList() {
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
-                        <Badge className={getFixtureTypeColor(fixture.type)} data-testid={`fixture-type-${fixture.id}`}>
-                          {fixture.type.charAt(0).toUpperCase() + fixture.type.slice(1)}
+                        <Badge className={getFixtureTypeColor(fixture.type, fixture.friendly)} data-testid={`fixture-type-${fixture.id}`}>
+                          {getFixtureDisplayType(fixture)}
                         </Badge>
                         <h4 className="font-medium" data-testid={`fixture-name-${fixture.id}`}>
                           {fixture.name}
