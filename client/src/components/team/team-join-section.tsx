@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { teamAssociationSchema, type TeamAssociation } from "@shared/schema";
+import { addPlayerSchema, type AddPlayer } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,54 +16,61 @@ import { UserPlus, Info } from "lucide-react";
 export default function TeamJoinSection() {
   const { user, hasRole } = useAuth();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
   const canJoinTeam = hasRole("parent");
 
-  const form = useForm<TeamAssociation>({
-    resolver: zodResolver(teamAssociationSchema),
+  const joinTeamMutation = useMutation({
+    mutationFn: async (data: { teamCode: string; playerName: string; dateOfBirth: string; parentId: string }) => {
+      const response = await fetch('/api/teams/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/teams/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/players/parent'] });
+      toast({
+        title: "Successfully Joined Team!",
+        description: data.message,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to Join Team",
+        description: error.message,
+      });
+    },
+  });
+
+  const form = useForm<AddPlayer>({
+    resolver: zodResolver(addPlayerSchema),
     defaultValues: {
+      name: "",
+      dateOfBirth: new Date(),
       teamCode: "",
     },
   });
 
-  const onSubmit = async (data: TeamAssociation) => {
+  const onSubmit = async (data: AddPlayer) => {
     if (!user) return;
 
-    setIsLoading(true);
-
     try {
-      if (!data.teamCode.startsWith("1")) {
-        toast({
-          variant: "destructive",
-          title: "Invalid Team Code",
-          description: "No team found with that code",
-        });
-        return;
-      }
-
-      // TODO: Replace with API call to validate team code
-      // For now, show success message
-      toast({
-        title: "Team Join Request Submitted",
-        description: "Your request to join the team has been submitted.",
-      });
-
-      // In a real app, this would create a player association request
-      toast({
-        title: "Team Association Request Sent",
-        description: `Your request to join ${team.name} has been sent to the team manager.`,
+      await joinTeamMutation.mutateAsync({
+        teamCode: data.teamCode,
+        playerName: data.name,
+        dateOfBirth: data.dateOfBirth.toISOString(),
+        parentId: user.id,
       });
 
       form.reset();
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-      });
-    } finally {
-      setIsLoading(false);
+      // Error handling is done in the mutation's onError callback
     }
   };
 
@@ -78,6 +87,43 @@ export default function TeamJoinSection() {
           <>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" data-testid="form-join-team">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Player Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter your child's name"
+                          data-testid="input-player-name"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="dateOfBirth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          data-testid="input-date-of-birth"
+                          value={field.value ? field.value.toISOString().split('T')[0] : ''}
+                          onChange={(e) => field.onChange(new Date(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="teamCode"
@@ -99,10 +145,10 @@ export default function TeamJoinSection() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isLoading}
+                  disabled={joinTeamMutation.isPending}
                   data-testid="button-join-team"
                 >
-                  {isLoading ? "Joining..." : "Join Team"}
+                  {joinTeamMutation.isPending ? "Joining..." : "Join Team"}
                 </Button>
               </form>
             </Form>

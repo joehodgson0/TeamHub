@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle } from "lucide-react";
 import CreateTeamModal from "@/components/modals/create-team-modal";
 import EditTeamModal from "@/components/modals/edit-team-modal";
+import TeamJoinSection from "@/components/team/team-join-section";
 
 export default function TeamManagementSection() {
   const { user, hasRole, associateWithClub } = useAuth();
@@ -307,6 +308,11 @@ export default function TeamManagementSection() {
           team={editingTeam}
         />
       </Card>
+
+      {/* Team Join Section for Parents */}
+      {isParent && user?.clubId && (
+        <TeamJoinSection />
+      )}
     </div>
   );
 }

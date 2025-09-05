@@ -239,6 +239,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/teams/join", async (req, res) => {
+    try {
+      const { teamCode, playerName, dateOfBirth, parentId } = req.body;
+      
+      if (!teamCode || !playerName || !dateOfBirth || !parentId) {
+        return res.status(400).json({ success: false, error: "Missing required fields" });
+      }
+
+      // Find the team by code
+      const team = await storage.getTeamByCode(teamCode);
+      if (!team) {
+        return res.status(404).json({ success: false, error: "No team found with that code" });
+      }
+
+      // Generate unique player ID
+      const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create the player
+      const newPlayer = await storage.createPlayer({
+        id: playerId,
+        name: playerName,
+        dateOfBirth: new Date(dateOfBirth),
+        teamId: team.id,
+        parentId: parentId,
+        attendance: 0,
+        totalEvents: 0
+      });
+
+      res.json({ 
+        success: true, 
+        player: newPlayer, 
+        team: team,
+        message: `Successfully joined ${team.name}!`
+      });
+    } catch (error) {
+      console.error("Join team error:", error);
+      res.status(500).json({ success: false, error: "Failed to join team" });
+    }
+  });
+
   app.post("/api/players", async (req, res) => {
     try {
       const { name, dateOfBirth, teamCode, parentId } = req.body;
