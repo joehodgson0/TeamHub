@@ -1,0 +1,181 @@
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, ExternalLink, Trophy, MapPin, Clock, Users } from "lucide-react";
+import { format } from "date-fns";
+
+export default function UpcomingFixturesWidget() {
+  const { user } = useAuth();
+
+  // Fetch upcoming events
+  const { data: eventsResponse } = useQuery<{ success: boolean; events: any[] }>({
+    queryKey: ['/api/events/upcoming'],
+    enabled: !!user,
+  });
+  
+  // Fetch user's teams for filtering
+  const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: ['/api/teams/club', user?.clubId],
+    enabled: !!user?.clubId && user?.roles.includes('coach'),
+  });
+  
+  // Fetch user's players for filtering
+  const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: ['/api/players/parent', user?.id],
+    enabled: !!user && user?.roles.includes('parent'),
+  });
+  
+  const getUpcomingFixtures = () => {
+    if (!user || !eventsResponse?.events) return [];
+
+    let events = eventsResponse.events.map(event => ({
+      ...event,
+      startTime: new Date(event.startTime),
+      endTime: new Date(event.endTime)
+    }));
+    
+    // Filter to only show fixtures (matches and tournaments, not general events)
+    events = events.filter(event => event.type !== "event" && event.type !== "training");
+    
+    // Filter events based on user's teams
+    if (user.roles.includes("coach") && teamsResponse?.teams) {
+      const teamIds = teamsResponse.teams.map(team => team.id);
+      events = events.filter(event => teamIds.includes(event.teamId));
+    } else if (user.roles.includes("parent") && playersResponse?.players) {
+      const teamIds = playersResponse.players.map(player => player.teamId);
+      events = events.filter(event => teamIds.includes(event.teamId));
+    }
+
+    return events.slice(0, 2); // Show only next 2 fixtures
+  };
+
+  const upcomingFixtures = getUpcomingFixtures();
+
+  const getAvailabilityCount = (fixture: any) => {
+    const availabilityEntries = Object.values(fixture.availability || {});
+    const confirmed = availabilityEntries.filter(status => status === "available").length;
+    const total = availabilityEntries.length;
+    return { confirmed, total };
+  };
+
+  const formatFixtureTime = (date: Date) => {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (date.toDateString() === now.toDateString()) {
+      return `Today, ${format(date, "h:mm a")}`;
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow, ${format(date, "h:mm a")}`;
+    } else {
+      return format(date, "MMM d, h:mm a");
+    }
+  };
+
+  const getFixtureTypeColor = (type: string, friendly: boolean = false) => {
+    if (type === "match") {
+      return friendly 
+        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" 
+        : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+    }
+    if (type === "tournament") {
+      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+    }
+    return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+  };
+
+  const getFixtureDisplayType = (fixture: any) => {
+    if (fixture.type === "match") {
+      return fixture.friendly ? "Friendly" : "Match";
+    }
+    return fixture.type.charAt(0).toUpperCase() + fixture.type.slice(1);
+  };
+
+  return (
+    <Card data-testid="widget-upcoming-fixtures">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center space-x-2">
+            <Trophy className="w-5 h-5 text-primary" />
+            <span>Upcoming Fixtures</span>
+          </CardTitle>
+          <Button variant="ghost" size="sm" data-testid="button-view-all-fixtures">
+            <ExternalLink className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {upcomingFixtures.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              <Trophy className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No upcoming fixtures</p>
+            </div>
+          ) : (
+            upcomingFixtures.map((fixture) => {
+              const availability = getAvailabilityCount(fixture);
+              
+              return (
+                <div
+                  key={fixture.id}
+                  className="border border-border rounded-lg p-4 space-y-3"
+                  data-testid={`fixture-${fixture.id}`}
+                >
+                  {/* Header with type and name */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Badge className={getFixtureTypeColor(fixture.type, fixture.friendly)} data-testid={`fixture-type-${fixture.id}`}>
+                        {getFixtureDisplayType(fixture)}
+                      </Badge>
+                      <h4 className="font-medium text-sm" data-testid={`fixture-name-${fixture.id}`}>
+                        {fixture.name}
+                      </h4>
+                    </div>
+                  </div>
+
+                  {/* Opponent */}
+                  {fixture.opponent && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <span className="text-muted-foreground">vs</span>
+                      <span className="font-medium" data-testid={`fixture-opponent-${fixture.id}`}>
+                        {fixture.opponent}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Date, Time and Location */}
+                  <div className="space-y-2 text-xs text-muted-foreground">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-3 h-3" />
+                      <span data-testid={`fixture-datetime-${fixture.id}`}>
+                        {formatFixtureTime(fixture.startTime)}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="w-3 h-3" />
+                      <span data-testid={`fixture-location-${fixture.id}`}>
+                        {fixture.location}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Player Availability */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                      <Users className="w-3 h-3" />
+                      <span data-testid={`fixture-availability-${fixture.id}`}>
+                        {availability.confirmed}/{availability.total} available
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
