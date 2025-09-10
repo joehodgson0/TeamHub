@@ -93,6 +93,9 @@ export default function PostsList() {
       });
     }
 
+    // Filter to only show announcements (exclude kit requests and player requests)
+    posts = posts.filter(post => post.type === "announcement");
+
     return posts;
   };
 
