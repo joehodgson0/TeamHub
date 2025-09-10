@@ -47,6 +47,35 @@ export default function FixtureList() {
     },
   });
 
+  const updateAvailabilityMutation = useMutation({
+    mutationFn: async ({ eventId, playerId, availability }: { eventId: string; playerId: string; availability: string }) => {
+      const response = await fetch(`/api/events/${eventId}/availability`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ playerId, availability }),
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
+      toast({
+        title: "Availability Updated",
+        description: "Player availability has been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update availability. Please try again.",
+      });
+    },
+  });
+
   const handleDeleteEvent = (eventId: string, eventName: string) => {
     if (window.confirm(`Are you sure you want to delete "${eventName}"? This action cannot be undone.`)) {
       setDeletingEventId(eventId);
@@ -96,6 +125,11 @@ export default function FixtureList() {
 
   const fixtures = getFixtures();
   const isCoach = hasRole("coach");
+  const isParent = hasRole("parent");
+
+  const handleAvailabilityUpdate = (eventId: string, playerId: string, availability: string) => {
+    updateAvailabilityMutation.mutate({ eventId, playerId, availability });
+  };
 
   const getFixtureTypeColor = (type: string, friendly: boolean = false) => {
     if (type === "match") {
@@ -228,7 +262,7 @@ export default function FixtureList() {
                     )}
 
                     <div className="pt-3 border-t border-border">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-3">
                         <span className="text-sm text-muted-foreground" data-testid={`fixture-availability-${fixture.id}`}>
                           Availability: {availability.confirmed}/{availability.total} confirmed
                         </span>
@@ -243,6 +277,46 @@ export default function FixtureList() {
                           </Button>
                         )}
                       </div>
+                      
+                      {/* Parent availability controls */}
+                      {isParent && playersResponse?.players && (
+                        <div className="space-y-2">
+                          {playersResponse.players
+                            .filter(player => player.teamId === fixture.teamId)
+                            .map(player => {
+                              const playerAvailability = fixture.availability?.[player.id] || "pending";
+                              return (
+                                <div key={player.id} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                                  <span className="text-sm font-medium" data-testid={`player-name-${player.id}`}>
+                                    {player.name}
+                                  </span>
+                                  <div className="flex items-center space-x-1">
+                                    <Button
+                                      variant={playerAvailability === "available" ? "default" : "outline"}
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => handleAvailabilityUpdate(fixture.id, player.id, "available")}
+                                      disabled={updateAvailabilityMutation.isPending}
+                                      data-testid={`button-available-${player.id}-${fixture.id}`}
+                                    >
+                                      Available
+                                    </Button>
+                                    <Button
+                                      variant={playerAvailability === "unavailable" ? "destructive" : "outline"}
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => handleAvailabilityUpdate(fixture.id, player.id, "unavailable")}
+                                      disabled={updateAvailabilityMutation.isPending}
+                                      data-testid={`button-unavailable-${player.id}-${fixture.id}`}
+                                    >
+                                      Unavailable
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
