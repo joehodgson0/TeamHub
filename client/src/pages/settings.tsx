@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,15 @@ export default function Settings() {
       roles: user?.roles || [],
     },
   });
+
+  // Reset form when user data changes
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        roles: user.roles || [],
+      });
+    }
+  }, [user]);
 
 
   const onUpdateProfile = async (data: ProfileSettings) => {
