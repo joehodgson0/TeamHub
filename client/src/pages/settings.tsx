@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 interface ProfileSettings {
-  name: string;
   roles: Array<"coach" | "parent">;
 }
 
@@ -21,7 +20,6 @@ export default function Settings() {
 
   const profileForm = useForm<ProfileSettings>({
     defaultValues: {
-      name: user?.name || "",
       roles: user?.roles || [],
     },
   });
@@ -74,24 +72,6 @@ export default function Settings() {
         <CardContent>
           <Form {...profileForm}>
             <form onSubmit={profileForm.handleSubmit(onUpdateProfile)} className="space-y-4" data-testid="form-profile">
-              <FormField
-                control={profileForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter your full name"
-                        data-testid="input-name"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <div className="space-y-3">
                 <FormLabel>Role</FormLabel>
                 <div className="space-y-2">
