@@ -10,7 +10,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 
 interface ProfileSettings {
   name: string;
-  email: string;
   roles: Array<"coach" | "parent">;
 }
 
@@ -23,7 +22,6 @@ export default function Settings() {
   const profileForm = useForm<ProfileSettings>({
     defaultValues: {
       name: user?.name || "",
-      email: user?.email || "",
       roles: user?.roles || [],
     },
   });
@@ -86,25 +84,6 @@ export default function Settings() {
                       <Input
                         placeholder="Enter your full name"
                         data-testid="input-name"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={profileForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="Enter your email"
-                        data-testid="input-email"
                         {...field}
                       />
                     </FormControl>
