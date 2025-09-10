@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import CreateFixtureModal from "@/components/modals/create-fixture-modal";
-import FixtureList from "@/components/events/fixture-list";
 import ClubCalendar from "@/components/events/club-calendar";
 import TeamCalendar from "@/components/events/team-calendar";
 
@@ -30,15 +29,9 @@ export default function Events() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <FixtureList />
-        </div>
-
-        <div className="space-y-4">
-          <ClubCalendar />
-          <TeamCalendar />
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ClubCalendar />
+        <TeamCalendar />
       </div>
 
       <CreateFixtureModal
