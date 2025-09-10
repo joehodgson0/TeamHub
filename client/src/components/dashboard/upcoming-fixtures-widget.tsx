@@ -36,8 +36,8 @@ export default function UpcomingFixturesWidget() {
       endTime: new Date(event.endTime)
     }));
     
-    // Filter to only show fixtures (matches and tournaments, not general events)
-    events = events.filter(event => event.type !== "event" && event.type !== "training");
+    // Filter to only show fixtures (matches and tournaments only)
+    events = events.filter(event => event.type === "match" || event.type === "tournament");
     
     // Filter events based on user's teams
     if (user.roles.includes("coach") && teamsResponse?.teams) {
