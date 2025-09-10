@@ -4,7 +4,6 @@ import TeamStatsWidget from "@/components/dashboard/team-stats-widget";
 import PlayerAttendanceWidget from "@/components/dashboard/player-attendance-widget";
 import MatchResultsWidget from "@/components/dashboard/match-results-widget";
 import TeamPostsWidget from "@/components/dashboard/team-posts-widget";
-import TeamAwardsWidget from "@/components/dashboard/team-awards-widget";
 
 export default function Dashboard() {
 
@@ -21,7 +20,6 @@ export default function Dashboard() {
         <PlayerAttendanceWidget />
         <MatchResultsWidget />
         <TeamPostsWidget />
-        <TeamAwardsWidget />
       </div>
     </div>
   );
