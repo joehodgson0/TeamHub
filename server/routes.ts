@@ -253,6 +253,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ success: false, error: "No team found with that code" });
       }
 
+      // Get the parent user to check club association
+      const parent = await storage.getUser(parentId);
+      if (!parent) {
+        return res.status(404).json({ success: false, error: "Parent not found" });
+      }
+
+      // Check club association rules
+      if (parent.clubId) {
+        // Parent already has a club - validate new team is from same club
+        if (parent.clubId !== team.clubId) {
+          return res.status(400).json({ 
+            success: false, 
+            error: "All dependents must join teams from the same club" 
+          });
+        }
+      } else {
+        // First team join - assign parent to team's club
+        await storage.updateUser(parentId, { clubId: team.clubId });
+      }
+
       // Generate unique player ID
       const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
@@ -291,6 +311,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const team = await storage.getTeamByCode(teamCode);
       if (!team) {
         return res.status(404).json({ success: false, error: "No team found with code " + teamCode });
+      }
+
+      // Get the parent user to check club association
+      const parent = await storage.getUser(parentId);
+      if (!parent) {
+        return res.status(404).json({ success: false, error: "Parent not found" });
+      }
+
+      // Check club association rules
+      if (parent.clubId) {
+        // Parent already has a club - validate new team is from same club
+        if (parent.clubId !== team.clubId) {
+          return res.status(400).json({ 
+            success: false, 
+            error: "All dependents must join teams from the same club" 
+          });
+        }
+      } else {
+        // First team join - assign parent to team's club
+        await storage.updateUser(parentId, { clubId: team.clubId });
       }
 
       // Generate unique player ID
