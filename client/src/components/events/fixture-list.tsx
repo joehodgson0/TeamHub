@@ -120,8 +120,8 @@ export default function FixtureList() {
       events = events.filter(event => teamIds.includes(event.teamId));
     }
 
-    // Filter to only show matches and tournaments (exclude general "event" type)
-    events = events.filter(event => event.type !== "event");
+    // Filter to only show matches and tournaments (exclude all other event types)
+    events = events.filter(event => event.type === "match" || event.type === "tournament");
 
     return events;
   };
