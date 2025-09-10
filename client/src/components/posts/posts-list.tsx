@@ -93,8 +93,12 @@ export default function PostsList() {
       });
     }
 
-    // Filter to only show announcements (exclude kit requests and player requests)
-    posts = posts.filter(post => post.type === "announcement");
+    // Filter by post type based on user role
+    if (user.roles.includes("parent") && !user.roles.includes("coach")) {
+      // Parents only see announcements
+      posts = posts.filter(post => post.type === "announcement");
+    }
+    // Coaches/managers see all post types (no additional filtering)
 
     return posts;
   };
