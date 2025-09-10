@@ -1,46 +1,29 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-
-interface ProfileSettings {
-  roles: Array<"coach" | "parent">;
-}
-
 
 export default function Settings() {
   const { user, updateUserRoles } = useAuth();
   const { toast } = useToast();
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [selectedRoles, setSelectedRoles] = useState<Array<"coach" | "parent">>([]);
 
-  const profileForm = useForm<ProfileSettings>({
-    defaultValues: {
-      roles: user?.roles || [],
-    },
-  });
-
-  // Reset form when user data changes
+  // Initialize selected roles when user data loads
   useEffect(() => {
-    if (user) {
-      profileForm.reset({
-        roles: user.roles || [],
-      });
+    if (user?.roles) {
+      setSelectedRoles(user.roles);
     }
-  }, [user]);
+  }, [user?.roles]);
 
-
-  const onUpdateProfile = async (data: ProfileSettings) => {
+  const onUpdateProfile = async () => {
     if (!user) return;
 
     setIsLoadingProfile(true);
     try {
-      // In a real app, this would update the user profile on the server
-      await updateUserRoles(user.id, data.roles);
+      await updateUserRoles(user.id, selectedRoles);
       
       toast({
         title: "Profile Updated",
@@ -57,17 +40,13 @@ export default function Settings() {
     }
   };
 
-
   const toggleRole = (role: "coach" | "parent") => {
-    const currentRoles = profileForm.getValues("roles");
-    const newRoles = currentRoles.includes(role)
-      ? currentRoles.filter(r => r !== role)
-      : [...currentRoles, role];
-    
-    profileForm.setValue("roles", newRoles);
+    setSelectedRoles(currentRoles => 
+      currentRoles.includes(role)
+        ? currentRoles.filter(r => r !== role)
+        : [...currentRoles, role]
+    );
   };
-
-  const selectedRoles = profileForm.watch("roles");
 
   return (
     <div className="space-y-6" data-testid="settings-page">
@@ -79,51 +58,51 @@ export default function Settings() {
           <CardTitle>Profile Settings</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form {...profileForm}>
-            <form onSubmit={profileForm.handleSubmit(onUpdateProfile)} className="space-y-4" data-testid="form-profile">
-              <div className="space-y-3">
-                <FormLabel>Role</FormLabel>
-                <div className="space-y-2">
-                  <div
-                    className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedRoles.includes("coach") 
-                        ? "border-primary bg-primary/5" 
-                        : "border-border hover:bg-muted"
-                    }`}
-                    onClick={() => toggleRole("coach")}
-                    data-testid="role-coach"
-                  >
-                    <Checkbox
-                      checked={selectedRoles.includes("coach")}
-                    />
-                    <span className="text-sm">Coach/Manager</span>
-                  </div>
-                  <div
-                    className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedRoles.includes("parent") 
-                        ? "border-primary bg-primary/5" 
-                        : "border-border hover:bg-muted"
-                    }`}
-                    onClick={() => toggleRole("parent")}
-                    data-testid="role-parent"
-                  >
-                    <Checkbox
-                      checked={selectedRoles.includes("parent")}
-                    />
-                    <span className="text-sm">Parent/Guardian</span>
-                  </div>
+          <div className="space-y-4" data-testid="form-profile">
+            <div className="space-y-3">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Role</label>
+              <div className="space-y-2">
+                <div
+                  className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors ${
+                    selectedRoles.includes("coach") 
+                      ? "border-primary bg-primary/5" 
+                      : "border-border hover:bg-muted"
+                  }`}
+                  onClick={() => toggleRole("coach")}
+                  data-testid="role-coach"
+                >
+                  <Checkbox
+                    checked={selectedRoles.includes("coach")}
+                    onCheckedChange={() => {}}
+                  />
+                  <span className="text-sm">Coach/Manager</span>
+                </div>
+                <div
+                  className={`flex items-center space-x-2 p-3 border rounded-lg cursor-pointer transition-colors ${
+                    selectedRoles.includes("parent") 
+                      ? "border-primary bg-primary/5" 
+                      : "border-border hover:bg-muted"
+                  }`}
+                  onClick={() => toggleRole("parent")}
+                  data-testid="role-parent"
+                >
+                  <Checkbox
+                    checked={selectedRoles.includes("parent")}
+                    onCheckedChange={() => {}}
+                  />
+                  <span className="text-sm">Parent/Guardian</span>
                 </div>
               </div>
+            </div>
 
-              <Button
-                type="submit"
-                disabled={isLoadingProfile}
-                data-testid="button-update-profile"
-              >
-                {isLoadingProfile ? "Updating..." : "Update Profile"}
-              </Button>
-            </form>
-          </Form>
+            <Button
+              onClick={onUpdateProfile}
+              disabled={isLoadingProfile}
+              data-testid="button-update-profile"
+            >
+              {isLoadingProfile ? "Updating..." : "Update Profile"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
