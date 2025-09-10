@@ -478,6 +478,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/events/:eventId/availability", async (req, res) => {
+    try {
+      const { eventId } = req.params;
+      const { playerId, availability } = req.body;
+
+      if (!playerId || !availability || !["available", "unavailable", "pending"].includes(availability)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Player ID and valid availability status required" 
+        });
+      }
+
+      // Get the event
+      const event = await storage.getEvent(eventId);
+      if (!event) {
+        return res.status(404).json({ success: false, error: "Event not found" });
+      }
+
+      // Update the availability
+      const updatedAvailability = {
+        ...event.availability,
+        [playerId]: availability
+      };
+
+      await storage.updateEvent(eventId, { availability: updatedAvailability });
+
+      res.json({ success: true, message: "Availability updated successfully" });
+    } catch (error) {
+      console.error("Update availability error:", error);
+      res.status(500).json({ success: false, error: "Failed to update availability" });
+    }
+  });
+
   app.delete("/api/events/:id", async (req, res) => {
     try {
       const { id } = req.params;
