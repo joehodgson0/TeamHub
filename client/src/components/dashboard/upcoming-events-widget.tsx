@@ -1,8 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Calendar, ExternalLink, Trophy, Clock } from "lucide-react";
+import { Calendar, Trophy, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 export default function UpcomingEventsWidget() {
@@ -78,15 +77,10 @@ export default function UpcomingEventsWidget() {
   return (
     <Card data-testid="widget-upcoming-events">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Calendar className="w-5 h-5 text-primary" />
-            <span>Upcoming Events</span>
-          </CardTitle>
-          <Button variant="ghost" size="sm" data-testid="button-view-all-events">
-            <ExternalLink className="w-4 h-4" />
-          </Button>
-        </div>
+        <CardTitle className="flex items-center space-x-2">
+          <Calendar className="w-5 h-5 text-primary" />
+          <span>Upcoming Events</span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">

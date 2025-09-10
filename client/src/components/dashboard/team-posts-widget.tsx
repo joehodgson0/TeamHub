@@ -1,7 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Megaphone } from "lucide-react";
 import { format } from "date-fns";
 
@@ -92,15 +91,10 @@ export default function TeamPostsWidget() {
   return (
     <Card data-testid="widget-team-posts">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Megaphone className="w-5 h-5 text-primary" />
-            <span>Team Posts</span>
-          </CardTitle>
-          <Button variant="ghost" size="sm" className="text-primary" data-testid="button-view-all-posts">
-            View All
-          </Button>
-        </div>
+        <CardTitle className="flex items-center space-x-2">
+          <Megaphone className="w-5 h-5 text-primary" />
+          <span>Team Posts</span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">

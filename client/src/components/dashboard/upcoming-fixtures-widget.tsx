@@ -1,9 +1,8 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, ExternalLink, Trophy, MapPin, Clock, Users } from "lucide-react";
+import { Calendar, Trophy, MapPin, Clock, Users } from "lucide-react";
 import { format } from "date-fns";
 
 export default function UpcomingFixturesWidget() {
@@ -96,15 +95,10 @@ export default function UpcomingFixturesWidget() {
   return (
     <Card data-testid="widget-upcoming-fixtures">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Trophy className="w-5 h-5 text-primary" />
-            <span>Upcoming Fixtures</span>
-          </CardTitle>
-          <Button variant="ghost" size="sm" data-testid="button-view-all-fixtures">
-            <ExternalLink className="w-4 h-4" />
-          </Button>
-        </div>
+        <CardTitle className="flex items-center space-x-2">
+          <Trophy className="w-5 h-5 text-primary" />
+          <span>Upcoming Fixtures</span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
