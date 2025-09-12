@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import EditFixtureModal from "@/components/modals/edit-fixture-modal";
+import MatchResultModal from "@/components/modals/match-result-modal";
 import type { Fixture } from "@shared/schema";
 
 export default function FixtureList() {
@@ -16,6 +17,7 @@ export default function FixtureList() {
   const { toast } = useToast();
   const [editingFixture, setEditingFixture] = useState<any | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [matchResultFixture, setMatchResultFixture] = useState<any | null>(null);
 
   const deleteEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
@@ -274,6 +276,7 @@ export default function FixtureList() {
                             variant="outline"
                             size="sm"
                             className="text-accent hover:bg-accent/10"
+                            onClick={() => setMatchResultFixture(fixture)}
                             data-testid={`button-update-result-${fixture.id}`}
                           >
                             Update Result
@@ -334,6 +337,14 @@ export default function FixtureList() {
           fixture={editingFixture}
           open={!!editingFixture}
           onOpenChange={(open: boolean) => !open && setEditingFixture(null)}
+        />
+      )}
+
+      {matchResultFixture && (
+        <MatchResultModal
+          fixture={matchResultFixture}
+          open={!!matchResultFixture}
+          onOpenChange={(open: boolean) => !open && setMatchResultFixture(null)}
         />
       )}
     </>
