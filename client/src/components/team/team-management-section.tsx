@@ -105,8 +105,8 @@ export default function TeamManagementSection() {
 
   const allTeams = allTeamsData?.teams || [];
 
-  // If user has no club AND has no roles (not coach or parent), show join club form
-  if (!user?.clubId && !isCoach && !isParent) {
+  // If user has no club AND (has no roles OR is a coach), show join club form
+  if (!user?.clubId && (!isCoach && !isParent || isCoach)) {
     return (
       <Card data-testid="card-join-club">
         <CardHeader>
