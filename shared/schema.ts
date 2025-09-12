@@ -233,6 +233,18 @@ export const awards = pgTable("awards", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const matchResults = pgTable("match_results", {
+  id: varchar("id").primaryKey(),
+  fixtureId: varchar("fixture_id").notNull(),
+  teamId: varchar("team_id").notNull(),
+  homeTeamGoals: integer("home_team_goals").notNull(),
+  awayTeamGoals: integer("away_team_goals").notNull(),
+  isHomeFixture: boolean("is_home_fixture").notNull(),
+  result: varchar("result").notNull(), // "win", "lose", "draw"
+  playerStats: json("player_stats").$type<Record<string, { goals: number; assists: number }>>().notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true });
 export const insertClubSchema = createInsertSchema(clubs).omit({ createdAt: true });
@@ -241,6 +253,7 @@ export const insertPlayerSchema = createInsertSchema(players).omit({ createdAt: 
 export const insertEventSchema = createInsertSchema(events).omit({ createdAt: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ createdAt: true });
 export const insertAwardSchema = createInsertSchema(awards).omit({ createdAt: true });
+export const insertMatchResultSchema = createInsertSchema(matchResults).omit({ createdAt: true });
 
 // Type exports
 export type User = z.infer<typeof userSchema>;
@@ -261,6 +274,7 @@ export type CreateFixture = CreateEvent;
 export type Post = z.infer<typeof postSchema>;
 export type CreatePost = z.infer<typeof createPostSchema>;
 export type Award = z.infer<typeof awardSchema>;
+export type MatchResult = typeof matchResults.$inferSelect;
 
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -272,3 +286,4 @@ export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type InsertFixture = InsertEvent;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type InsertAward = z.infer<typeof insertAwardSchema>;
+export type InsertMatchResult = z.infer<typeof insertMatchResultSchema>;
