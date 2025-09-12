@@ -1,4 +1,4 @@
-import { users, clubs, teams, players, events, posts, awards, type User, type Club, type Team, type Player, type Event, type Post, type Award, type InsertUser, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertAward } from "@shared/schema";
+import { users, clubs, teams, players, events, posts, awards, matchResults, type User, type Club, type Team, type Player, type Event, type Post, type Award, type MatchResult, type InsertUser, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertAward, type InsertMatchResult } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt } from "drizzle-orm";
 
@@ -61,6 +61,15 @@ export interface IStorage {
   getAwards(): Promise<Award[]>;
   getAwardsByTeamId(teamId: string): Promise<Award[]>;
   createAward(insertAward: InsertAward): Promise<Award>;
+
+  // Match result methods
+  getMatchResult(id: string): Promise<MatchResult | undefined>;
+  getMatchResults(): Promise<MatchResult[]>;
+  getMatchResultsByTeamId(teamId: string): Promise<MatchResult[]>;
+  getMatchResultByFixtureId(fixtureId: string): Promise<MatchResult | undefined>;
+  createMatchResult(insertMatchResult: InsertMatchResult): Promise<MatchResult>;
+  updateMatchResult(id: string, updates: Partial<MatchResult>): Promise<MatchResult | undefined>;
+  deleteMatchResult(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -324,6 +333,49 @@ export class DatabaseStorage implements IStorage {
       .values(insertAward)
       .returning();
     return award;
+  }
+
+  // Match result methods
+  async getMatchResult(id: string): Promise<MatchResult | undefined> {
+    const [matchResult] = await db.select().from(matchResults).where(eq(matchResults.id, id));
+    return matchResult || undefined;
+  }
+
+  async getMatchResults(): Promise<MatchResult[]> {
+    return await db.select().from(matchResults);
+  }
+
+  async getMatchResultsByTeamId(teamId: string): Promise<MatchResult[]> {
+    return await db.select().from(matchResults).where(eq(matchResults.teamId, teamId));
+  }
+
+  async getMatchResultByFixtureId(fixtureId: string): Promise<MatchResult | undefined> {
+    const [matchResult] = await db.select().from(matchResults).where(eq(matchResults.fixtureId, fixtureId));
+    return matchResult || undefined;
+  }
+
+  async createMatchResult(insertMatchResult: InsertMatchResult): Promise<MatchResult> {
+    const [matchResult] = await db
+      .insert(matchResults)
+      .values(insertMatchResult)
+      .returning();
+    return matchResult;
+  }
+
+  async updateMatchResult(id: string, updates: Partial<MatchResult>): Promise<MatchResult | undefined> {
+    const [matchResult] = await db
+      .update(matchResults)
+      .set(updates)
+      .where(eq(matchResults.id, id))
+      .returning();
+    return matchResult || undefined;
+  }
+
+  async deleteMatchResult(id: string): Promise<boolean> {
+    const deletedRows = await db
+      .delete(matchResults)
+      .where(eq(matchResults.id, id));
+    return deletedRows.rowCount > 0;
   }
 }
 
