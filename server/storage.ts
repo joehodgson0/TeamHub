@@ -341,8 +341,17 @@ export class DatabaseStorage implements IStorage {
     return matchResult || undefined;
   }
 
-  async getMatchResults(): Promise<MatchResult[]> {
-    return await db.select().from(matchResults);
+  async getMatchResults(): Promise<any[]> {
+    return await db
+      .select({
+        ...matchResults,
+        opponent: events.opponent,
+        startTime: events.startTime,
+        name: events.name
+      })
+      .from(matchResults)
+      .leftJoin(events, eq(matchResults.fixtureId, events.id))
+      .orderBy(events.startTime);
   }
 
   async getMatchResultsByTeamId(teamId: string): Promise<MatchResult[]> {

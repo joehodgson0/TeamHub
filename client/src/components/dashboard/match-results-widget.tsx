@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
 import { format } from "date-fns";
@@ -6,26 +7,34 @@ import { format } from "date-fns";
 export default function MatchResultsWidget() {
   const { user } = useAuth();
 
-  // TODO: Replace with API call to fetch recent match results
-  const getRecentResults = () => {
-    if (!user) return [];
-    
-    // Return empty array for now - will be replaced with API call
-    return [];
-  };
+  // Fetch recent match results from API
+  const { data: matchResultsResponse, isLoading } = useQuery<{ matchResults: any[] }>({
+    queryKey: ['/api/match-results'],
+    enabled: !!user
+  });
 
-  const recentResults = getRecentResults();
+  const recentResults = matchResultsResponse?.matchResults || [];
 
-  const getOutcomeColor = (outcome: string) => {
-    switch (outcome) {
-      case "W": return "bg-primary text-primary-foreground";
-      case "L": return "bg-destructive text-destructive-foreground";
-      case "D": return "bg-yellow-500 text-white";
+  const getOutcomeColor = (result: string) => {
+    switch (result) {
+      case "win": return "bg-primary text-primary-foreground";
+      case "lose": return "bg-destructive text-destructive-foreground";
+      case "draw": return "bg-yellow-500 text-white";
       default: return "bg-muted text-muted-foreground";
     }
   };
 
-  const formatMatchDate = (date: Date) => {
+  const getOutcomeDisplay = (result: string) => {
+    switch (result) {
+      case "win": return "W";
+      case "lose": return "L";
+      case "draw": return "D";
+      default: return "?";
+    }
+  };
+
+  const formatMatchDate = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     
@@ -52,7 +61,7 @@ export default function MatchResultsWidget() {
               <p className="text-sm">No recent results</p>
             </div>
           ) : (
-            recentResults.map((result) => (
+            recentResults.map((result: any) => (
               <div
                 key={result.id}
                 className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
@@ -63,18 +72,20 @@ export default function MatchResultsWidget() {
                     vs. {result.opponent || "Unknown"}
                   </p>
                   <p className="text-xs text-muted-foreground" data-testid={`result-date-${result.id}`}>
-                    {formatMatchDate(result.startTime)}
+                    {result.startTime ? formatMatchDate(result.startTime) : "Unknown date"}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <span 
-                    className={`px-2 py-1 rounded text-xs font-medium ${getOutcomeColor(result.result?.outcome || "")}`}
+                    className={`px-2 py-1 rounded text-xs font-medium ${getOutcomeColor(result.result || "")}`}
                     data-testid={`result-outcome-${result.id}`}
                   >
-                    {result.result?.outcome || "?"}
+                    {getOutcomeDisplay(result.result || "")}
                   </span>
                   <span className="font-bold text-sm" data-testid={`result-score-${result.id}`}>
-                    {result.result ? `${result.result.homeScore}-${result.result.awayScore}` : "-"}
+                    {result.homeTeamGoals !== undefined && result.awayTeamGoals !== undefined 
+                      ? `${result.homeTeamGoals}-${result.awayTeamGoals}` 
+                      : "-"}
                   </span>
                 </div>
               </div>
