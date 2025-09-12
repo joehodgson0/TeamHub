@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { registerUserSchema } from "@shared/schema";
+import { registerUserSchema, insertMatchResultSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -525,6 +525,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete event error:", error);
       res.status(500).json({ success: false, error: "Failed to delete event" });
+    }
+  });
+
+  // Match results routes
+  app.get("/api/match-results", async (req, res) => {
+    try {
+      const matchResults = await storage.getMatchResults();
+      res.json({ success: true, matchResults });
+    } catch (error) {
+      console.error("Get match results error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch match results" });
+    }
+  });
+
+  app.get("/api/match-results/team/:teamId", async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const matchResults = await storage.getMatchResultsByTeamId(teamId);
+      res.json({ success: true, matchResults });
+    } catch (error) {
+      console.error("Get match results by team error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch match results" });
+    }
+  });
+
+  app.get("/api/match-results/fixture/:fixtureId", async (req, res) => {
+    try {
+      const { fixtureId } = req.params;
+      const matchResult = await storage.getMatchResultByFixtureId(fixtureId);
+      
+      if (!matchResult) {
+        return res.status(404).json({ success: false, error: "Match result not found" });
+      }
+      
+      res.json({ success: true, matchResult });
+    } catch (error) {
+      console.error("Get match result by fixture error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch match result" });
+    }
+  });
+
+  app.post("/api/match-results", async (req, res) => {
+    try {
+      const matchResultData = insertMatchResultSchema.parse(req.body);
+      
+      // Generate unique match result ID
+      const matchResultId = `match_result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Check if match result already exists for this fixture
+      const existingResult = await storage.getMatchResultByFixtureId(matchResultData.fixtureId);
+      if (existingResult) {
+        return res.status(400).json({ success: false, error: "Match result already exists for this fixture" });
+      }
+      
+      const newMatchResult = await storage.createMatchResult({
+        ...matchResultData,
+        id: matchResultId
+      });
+
+      res.json({ success: true, matchResult: newMatchResult });
+    } catch (error) {
+      console.error("Create match result error:", error);
+      res.status(500).json({ success: false, error: "Failed to create match result" });
+    }
+  });
+
+  app.put("/api/match-results/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const updatedMatchResult = await storage.updateMatchResult(id, updates);
+      
+      if (!updatedMatchResult) {
+        return res.status(404).json({ success: false, error: "Match result not found" });
+      }
+
+      res.json({ success: true, matchResult: updatedMatchResult });
+    } catch (error) {
+      console.error("Update match result error:", error);
+      res.status(500).json({ success: false, error: "Failed to update match result" });
+    }
+  });
+
+  app.delete("/api/match-results/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const deleted = await storage.deleteMatchResult(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ success: false, error: "Match result not found" });
+      }
+
+      res.json({ success: true, message: "Match result deleted successfully" });
+    } catch (error) {
+      console.error("Delete match result error:", error);
+      res.status(500).json({ success: false, error: "Failed to delete match result" });
     }
   });
 
