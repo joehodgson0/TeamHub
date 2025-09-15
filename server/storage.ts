@@ -69,6 +69,7 @@ export interface IStorage {
   getMatchResultByFixtureId(fixtureId: string): Promise<MatchResult | undefined>;
   createMatchResult(insertMatchResult: InsertMatchResult): Promise<MatchResult>;
   updateMatchResult(id: string, updates: Partial<MatchResult>): Promise<MatchResult | undefined>;
+  upsertMatchResult(fixtureId: string, teamId: string, matchResultData: Omit<InsertMatchResult, 'id' | 'fixtureId' | 'teamId'>): Promise<MatchResult>;
   deleteMatchResult(id: string): Promise<boolean>;
 }
 
@@ -378,6 +379,36 @@ export class DatabaseStorage implements IStorage {
       .where(eq(matchResults.id, id))
       .returning();
     return matchResult || undefined;
+  }
+
+  async upsertMatchResult(fixtureId: string, teamId: string, matchResultData: Omit<InsertMatchResult, 'id' | 'fixtureId' | 'teamId'>): Promise<MatchResult> {
+    // Check if a match result already exists for this fixture and team
+    const existingResult = await db.select().from(matchResults).where(
+      and(eq(matchResults.fixtureId, fixtureId), eq(matchResults.teamId, teamId))
+    );
+
+    if (existingResult.length > 0) {
+      // Update existing result
+      const [updated] = await db
+        .update(matchResults)
+        .set(matchResultData)
+        .where(and(eq(matchResults.fixtureId, fixtureId), eq(matchResults.teamId, teamId)))
+        .returning();
+      return updated;
+    } else {
+      // Create new result
+      const matchResultId = `match_result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const [created] = await db
+        .insert(matchResults)
+        .values({
+          id: matchResultId,
+          fixtureId,
+          teamId,
+          ...matchResultData
+        })
+        .returning();
+      return created;
+    }
   }
 
   async deleteMatchResult(id: string): Promise<boolean> {
