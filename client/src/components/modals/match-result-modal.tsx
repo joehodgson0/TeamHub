@@ -95,8 +95,11 @@ export default function MatchResultModal({ fixture, open, onOpenChange }: MatchR
       return result;
     },
     onSuccess: () => {
+      // Invalidate specific cache keys as recommended by architect
+      queryClient.invalidateQueries({ queryKey: ['/api/match-results/fixture', fixture?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/match-results/team', fixture?.teamId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', fixture?.teamId] });
       queryClient.invalidateQueries({ queryKey: ['/api/match-results'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       toast({
         title: "Match Result Saved",
         description: "The match result has been saved successfully."
@@ -124,15 +127,6 @@ export default function MatchResultModal({ fixture, open, onOpenChange }: MatchR
     form.setValue('playerStats', newStats);
   };
 
-  const calculateResult = (homeGoals: number, awayGoals: number, isHome: boolean): string => {
-    if (homeGoals > awayGoals) {
-      return isHome ? "win" : "lose";
-    } else if (homeGoals < awayGoals) {
-      return isHome ? "lose" : "win";
-    } else {
-      return "draw";
-    }
-  };
 
   const validatePlayerGoals = (homeGoals: number, awayGoals: number): boolean => {
     if (!fixture) return false;
@@ -157,21 +151,18 @@ export default function MatchResultModal({ fixture, open, onOpenChange }: MatchR
       return;
     }
 
-    const isHome = fixture.homeAway === "home";
-    const result = calculateResult(data.homeTeamGoals, data.awayTeamGoals, isHome);
-
     // Filter out players with no stats
     const filteredPlayerStats = Object.fromEntries(
       Object.entries(data.playerStats).filter(([_, stats]) => stats.goals > 0 || stats.assists > 0)
     );
 
+    // Submit only the fields that the server expects
+    // Server will compute isHomeFixture and result based on fixture data
     createMatchResultMutation.mutate({
       fixtureId: fixture.id,
       teamId: fixture.teamId,
       homeTeamGoals: data.homeTeamGoals,
       awayTeamGoals: data.awayTeamGoals,
-      isHomeFixture: isHome,
-      result,
       playerStats: filteredPlayerStats
     });
   };

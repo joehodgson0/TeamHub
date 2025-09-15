@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { z } from "zod";
 import { storage } from "./storage";
 import { registerUserSchema, insertMatchResultSchema } from "@shared/schema";
 
@@ -584,26 +585,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/match-results", async (req, res) => {
     try {
-      const matchResultData = insertMatchResultSchema.parse(req.body);
-      
-      // Generate unique match result ID
-      const matchResultId = `match_result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Check if match result already exists for this fixture
-      const existingResult = await storage.getMatchResultByFixtureId(matchResultData.fixtureId);
-      if (existingResult) {
-        return res.status(400).json({ success: false, error: "Match result already exists for this fixture" });
-      }
-      
-      const newMatchResult = await storage.createMatchResult({
-        ...matchResultData,
-        id: matchResultId
+      // Define request schema for validation
+      const matchResultRequestSchema = z.object({
+        fixtureId: z.string().min(1, "Fixture ID is required"),
+        teamId: z.string().min(1, "Team ID is required"),
+        homeTeamGoals: z.number().min(0, "Home team goals must be 0 or more").max(50, "Home team goals must be 50 or less"),
+        awayTeamGoals: z.number().min(0, "Away team goals must be 0 or more").max(50, "Away team goals must be 50 or less"),
+        playerStats: z.record(z.object({
+          goals: z.number().min(0, "Goals must be 0 or more").max(50, "Goals must be 50 or less"),
+          assists: z.number().min(0, "Assists must be 0 or more").max(50, "Assists must be 50 or less")
+        }))
       });
 
-      res.json({ success: true, matchResult: newMatchResult });
+      const { fixtureId, teamId, homeTeamGoals, awayTeamGoals, playerStats } = matchResultRequestSchema.parse(req.body);
+
+      // Get the fixture to determine isHomeFixture and compute result
+      const fixture = await storage.getEvent(fixtureId);
+      if (!fixture) {
+        return res.status(404).json({ success: false, error: "Fixture not found" });
+      }
+
+      const isHomeFixture = fixture.homeAway === "home";
+      
+      // Compute result based on home/away status
+      let result: string;
+      if (isHomeFixture) {
+        if (homeTeamGoals > awayTeamGoals) result = "win";
+        else if (homeTeamGoals < awayTeamGoals) result = "lose";
+        else result = "draw";
+      } else {
+        if (awayTeamGoals > homeTeamGoals) result = "win";
+        else if (awayTeamGoals < homeTeamGoals) result = "lose";
+        else result = "draw";
+      }
+
+      // Filter playerStats to only include players with goals > 0 or assists > 0
+      const filteredPlayerStats: Record<string, { goals: number; assists: number }> = {};
+      for (const [playerId, stats] of Object.entries(playerStats as Record<string, { goals: number; assists: number }>)) {
+        if (stats.goals > 0 || stats.assists > 0) {
+          filteredPlayerStats[playerId] = { goals: stats.goals, assists: stats.assists };
+        }
+      }
+
+      // Validate that sum of player goals doesn't exceed team goals
+      const teamGoals = isHomeFixture ? homeTeamGoals : awayTeamGoals;
+      const totalPlayerGoals = Object.values(filteredPlayerStats).reduce((sum, stats) => sum + stats.goals, 0);
+      
+      if (totalPlayerGoals > teamGoals) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Player goals exceed team total goals" 
+        });
+      }
+
+      // Upsert the match result
+      const matchResult = await storage.upsertMatchResult(fixtureId, teamId, {
+        homeTeamGoals,
+        awayTeamGoals,
+        isHomeFixture,
+        result,
+        playerStats: filteredPlayerStats
+      });
+
+      res.json({ success: true, matchResult });
     } catch (error) {
-      console.error("Create match result error:", error);
-      res.status(500).json({ success: false, error: "Failed to create match result" });
+      console.error("Create/update match result error:", error);
+      res.status(500).json({ success: false, error: "Failed to save match result" });
     }
   });
 
