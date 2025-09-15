@@ -1,7 +1,6 @@
 import UpcomingEventsWidget from "@/components/dashboard/upcoming-events-widget";
 import UpcomingFixturesWidget from "@/components/dashboard/upcoming-fixtures-widget";
 import TeamStatsWidget from "@/components/dashboard/team-stats-widget";
-import PlayerAttendanceWidget from "@/components/dashboard/player-attendance-widget";
 import MatchResultsWidget from "@/components/dashboard/match-results-widget";
 import TeamPostsWidget from "@/components/dashboard/team-posts-widget";
 
@@ -17,7 +16,6 @@ export default function Dashboard() {
         <UpcomingEventsWidget />
         <UpcomingFixturesWidget />
         <TeamStatsWidget />
-        <PlayerAttendanceWidget />
         <MatchResultsWidget />
         <TeamPostsWidget />
       </div>
