@@ -22,7 +22,7 @@ export function useAuth() {
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     refetchInterval: false,
-    refetchOnMount: false,
+    refetchOnMount: true, // Enable refetch on mount for session auth
   });
 
   // Prefer Google user if both exist, otherwise use session user
