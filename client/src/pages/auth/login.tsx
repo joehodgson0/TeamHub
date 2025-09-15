@@ -52,7 +52,7 @@ export default function Login() {
         if (!user.roles || user.roles.length === 0) {
           navigate("/role-selection");
         } else if (!user.clubId) {
-          navigate("/club-association");
+          navigate("/team");
         } else {
           navigate("/dashboard");
         }
