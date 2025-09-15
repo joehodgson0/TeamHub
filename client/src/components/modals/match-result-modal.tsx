@@ -95,11 +95,11 @@ export default function MatchResultModal({ fixture, open, onOpenChange }: MatchR
       return result;
     },
     onSuccess: () => {
-      // Invalidate specific cache keys as recommended by architect
+      // Invalidate session-based cache keys for components
       queryClient.invalidateQueries({ queryKey: ['/api/match-results/fixture', fixture?.id] });
-      queryClient.invalidateQueries({ queryKey: ['/api/match-results/team', fixture?.teamId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events', fixture?.teamId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/match-results'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/match-results-session'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/teams/club'] });
       toast({
         title: "Match Result Saved",
         description: "The match result has been saved successfully."
