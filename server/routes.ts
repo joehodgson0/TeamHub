@@ -558,11 +558,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ success: true, events: [] });
       }
       
-      // Get events for user's teams only
       let allEvents: any[] = [];
-      for (const teamId of user.teamIds) {
-        const teamEvents = await storage.getUpcomingEvents(teamId);
-        allEvents.push(...teamEvents);
+      
+      // If user is a coach and has club association, get all events for club's teams
+      if (user.roles.includes("coach") && user.clubId) {
+        const clubTeams = await storage.getTeamsByClubId(user.clubId);
+        for (const team of clubTeams) {
+          const teamEvents = await storage.getUpcomingEvents(team.id);
+          allEvents.push(...teamEvents);
+        }
+      } else {
+        // Get events for user's specific teams only
+        for (const teamId of user.teamIds) {
+          const teamEvents = await storage.getUpcomingEvents(teamId);
+          allEvents.push(...teamEvents);
+        }
       }
       
       // Remove duplicates and sort by date
@@ -965,10 +975,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allPosts.push(...clubPosts);
       }
       
-      // Get team posts for user's teams
-      for (const teamId of user.teamIds) {
-        const teamPosts = await storage.getPostsByTeamId(teamId);
-        allPosts.push(...teamPosts);
+      // If user is a coach and has club association, get posts from all club's teams
+      if (user.roles.includes("coach") && user.clubId) {
+        const clubTeams = await storage.getTeamsByClubId(user.clubId);
+        for (const team of clubTeams) {
+          const teamPosts = await storage.getPostsByTeamId(team.id);
+          allPosts.push(...teamPosts);
+        }
+      } else {
+        // Get team posts for user's specific teams only
+        for (const teamId of user.teamIds) {
+          const teamPosts = await storage.getPostsByTeamId(teamId);
+          allPosts.push(...teamPosts);
+        }
       }
       
       // Remove duplicates and sort by creation date
