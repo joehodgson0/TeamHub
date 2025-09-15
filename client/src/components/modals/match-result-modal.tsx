@@ -278,7 +278,13 @@ export default function MatchResultModal({ fixture, open, onOpenChange }: MatchR
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {playersResponse?.players?.map((player: Player) => (
+                  {playersResponse?.players?.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <span className="text-sm">No players found on this team.</span>
+                      <p className="text-xs mt-1">Add players to the team to track individual statistics.</p>
+                    </div>
+                  ) : (
+                    playersResponse?.players?.map((player: Player) => (
                     <div key={player.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <span className="font-medium" data-testid={`player-${player.id}-name`}>
                         {player.name}
@@ -312,7 +318,8 @@ export default function MatchResultModal({ fixture, open, onOpenChange }: MatchR
                         </div>
                       </div>
                     </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               </CardContent>
             </Card>
