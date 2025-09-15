@@ -9,7 +9,7 @@ export default function UpcomingEventsWidget() {
 
   // Fetch upcoming events
   const { data: eventsResponse } = useQuery<{ success: boolean; events: any[] }>({
-    queryKey: ['/api/events/upcoming'],
+    queryKey: ['/api/events/upcoming-session'],
     enabled: !!user,
   });
   

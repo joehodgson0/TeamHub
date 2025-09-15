@@ -9,7 +9,7 @@ export default function TeamPostsWidget() {
 
   // Fetch posts
   const { data: postsResponse } = useQuery<{ success: boolean; posts: any[] }>({
-    queryKey: ['/api/posts'],
+    queryKey: ['/api/posts-session'],
     enabled: !!user,
   });
   

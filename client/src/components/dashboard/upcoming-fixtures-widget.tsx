@@ -10,7 +10,7 @@ export default function UpcomingFixturesWidget() {
 
   // Fetch upcoming events
   const { data: eventsResponse } = useQuery<{ success: boolean; events: any[] }>({
-    queryKey: ['/api/events/upcoming'],
+    queryKey: ['/api/events/upcoming-session'],
     enabled: !!user,
   });
   
@@ -28,7 +28,7 @@ export default function UpcomingFixturesWidget() {
 
   // Fetch match results to exclude fixtures with results
   const { data: matchResultsResponse } = useQuery<{ success: boolean; matchResults: any[] }>({
-    queryKey: ['/api/match-results'],
+    queryKey: ['/api/match-results-session'],
     enabled: !!user,
   });
   

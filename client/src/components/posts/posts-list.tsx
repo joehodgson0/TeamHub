@@ -23,7 +23,7 @@ export default function PostsList() {
 
   // Fetch posts
   const { data: postsResponse } = useQuery<{ success: boolean; posts: any[] }>({
-    queryKey: ['/api/posts'],
+    queryKey: ['/api/posts-session'],
     enabled: !!user,
   });
   
@@ -50,7 +50,7 @@ export default function PostsList() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts/team'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts/club'] });
       toast({

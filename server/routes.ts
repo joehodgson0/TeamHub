@@ -543,6 +543,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Session-based upcoming events for username/password users
+  app.get("/api/events/upcoming-session", async (req: any, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.clubId && user.teamIds.length === 0)) {
+        // User has no club or team associations - return empty
+        return res.json({ success: true, events: [] });
+      }
+      
+      // Get events for user's teams only
+      let allEvents: any[] = [];
+      for (const teamId of user.teamIds) {
+        const teamEvents = await storage.getUpcomingEvents(teamId);
+        allEvents.push(...teamEvents);
+      }
+      
+      // Remove duplicates and sort by date
+      const uniqueEvents = allEvents.filter((event, index, self) => 
+        index === self.findIndex(e => e.id === event.id)
+      );
+      
+      res.json({ success: true, events: uniqueEvents });
+    } catch (error) {
+      console.error("Get upcoming events error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch upcoming events" });
+    }
+  });
+
+  // Original Google auth route (keep for when Google auth is re-enabled)
   app.get("/api/events/upcoming", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -705,6 +740,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Match results routes
+  // Session-based match results for username/password users
+  app.get("/api/match-results-session", async (req: any, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.clubId && user.teamIds.length === 0)) {
+        // User has no club or team associations - return empty
+        return res.json({ success: true, matchResults: [] });
+      }
+      
+      // Get match results for user's teams only
+      let allResults: any[] = [];
+      for (const teamId of user.teamIds) {
+        const teamResults = await storage.getMatchResultsByTeamId(teamId);
+        allResults.push(...teamResults);
+      }
+      
+      // Remove duplicates
+      const uniqueResults = allResults.filter((result, index, self) => 
+        index === self.findIndex(r => r.id === result.id)
+      );
+      
+      res.json({ success: true, matchResults: uniqueResults });
+    } catch (error) {
+      console.error("Get match results error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch match results" });
+    }
+  });
+
+  // Original Google auth route (keep for when Google auth is re-enabled)
   app.get("/api/match-results", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -872,6 +942,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Post routes
+  // Session-based posts for username/password users
+  app.get("/api/posts-session", async (req: any, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      
+      if (!user || (!user.clubId && user.teamIds.length === 0)) {
+        // User has no club or team associations - return empty
+        return res.json({ success: true, posts: [] });
+      }
+      
+      let allPosts: any[] = [];
+      
+      // Get club posts if user has club association
+      if (user.clubId) {
+        const clubPosts = await storage.getPostsByClubId(user.clubId);
+        allPosts.push(...clubPosts);
+      }
+      
+      // Get team posts for user's teams
+      for (const teamId of user.teamIds) {
+        const teamPosts = await storage.getPostsByTeamId(teamId);
+        allPosts.push(...teamPosts);
+      }
+      
+      // Remove duplicates and sort by creation date
+      const uniquePosts = allPosts.filter((post, index, self) => 
+        index === self.findIndex(p => p.id === post.id)
+      );
+      
+      res.json({ success: true, posts: uniquePosts });
+    } catch (error) {
+      console.error("Get posts error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch posts" });
+    }
+  });
+
+  // Original Google auth route (keep for when Google auth is re-enabled)
   app.get("/api/posts", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

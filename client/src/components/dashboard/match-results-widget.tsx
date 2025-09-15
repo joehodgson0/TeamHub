@@ -9,7 +9,7 @@ export default function MatchResultsWidget() {
 
   // Fetch recent match results from API
   const { data: matchResultsResponse, isLoading } = useQuery<{ matchResults: any[] }>({
-    queryKey: ['/api/match-results'],
+    queryKey: ['/api/match-results-session'],
     enabled: !!user
   });
 
