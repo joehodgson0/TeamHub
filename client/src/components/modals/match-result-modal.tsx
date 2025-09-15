@@ -127,6 +127,15 @@ export default function MatchResultModal({ fixture, open, onOpenChange }: MatchR
     form.setValue('playerStats', newStats);
   };
 
+  const calculateResult = (homeGoals: number, awayGoals: number, isHome: boolean): string => {
+    if (homeGoals > awayGoals) {
+      return isHome ? "win" : "lose";
+    } else if (homeGoals < awayGoals) {
+      return isHome ? "lose" : "win";
+    } else {
+      return "draw";
+    }
+  };
 
   const validatePlayerGoals = (homeGoals: number, awayGoals: number): boolean => {
     if (!fixture) return false;
