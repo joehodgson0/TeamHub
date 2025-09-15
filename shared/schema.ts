@@ -143,17 +143,6 @@ export const createPostSchema = postSchema.pick({
   content: true,
 });
 
-// Award schema
-export const awardSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  recipient: z.string(),
-  recipientId: z.string(),
-  teamId: z.string(),
-  month: z.string(),
-  year: z.number(),
-  createdAt: z.date().default(() => new Date()),
-});
 
 // Drizzle table definitions
 export const users = pgTable("users", {
@@ -234,16 +223,6 @@ export const posts = pgTable("posts", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const awards = pgTable("awards", {
-  id: varchar("id").primaryKey(),
-  title: varchar("title").notNull(),
-  recipient: varchar("recipient").notNull(),
-  recipientId: varchar("recipient_id").notNull(),
-  teamId: varchar("team_id").notNull(),
-  month: varchar("month").notNull(),
-  year: integer("year").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
 
 export const matchResults = pgTable("match_results", {
   id: varchar("id").primaryKey(),
@@ -264,7 +243,6 @@ export const insertTeamSchema = createInsertSchema(teams).omit({ createdAt: true
 export const insertPlayerSchema = createInsertSchema(players).omit({ createdAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ createdAt: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ createdAt: true });
-export const insertAwardSchema = createInsertSchema(awards).omit({ createdAt: true });
 export const insertMatchResultSchema = createInsertSchema(matchResults).omit({ createdAt: true });
 
 // Type exports for Replit Auth
@@ -285,7 +263,6 @@ export type Fixture = Event;
 export type CreateFixture = CreateEvent;
 export type Post = z.infer<typeof postSchema>;
 export type CreatePost = z.infer<typeof createPostSchema>;
-export type Award = z.infer<typeof awardSchema>;
 export type MatchResult = typeof matchResults.$inferSelect;
 
 // Insert types
@@ -297,5 +274,4 @@ export type InsertEvent = z.infer<typeof insertEventSchema>;
 // Legacy type for backward compatibility
 export type InsertFixture = InsertEvent;
 export type InsertPost = z.infer<typeof insertPostSchema>;
-export type InsertAward = z.infer<typeof insertAwardSchema>;
 export type InsertMatchResult = z.infer<typeof insertMatchResultSchema>;

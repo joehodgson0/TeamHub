@@ -39,7 +39,6 @@ The application uses Zod schemas for type validation and data modeling:
 - **Team Management**: Teams with age groups, player rosters, and win/loss tracking
 - **Event System**: Fixtures with types (match, training, tournament), attendance tracking
 - **Communication**: Posts with categories (kit requests, announcements, events)
-- **Awards System**: Team and player recognition system
 
 ### Authentication & Authorization
 

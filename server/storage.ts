@@ -1,4 +1,4 @@
-import { users, clubs, teams, players, events, posts, awards, matchResults, type User, type UpsertUser, type Club, type Team, type Player, type Event, type Post, type Award, type MatchResult, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertAward, type InsertMatchResult } from "@shared/schema";
+import { users, clubs, teams, players, events, posts, matchResults, type User, type UpsertUser, type Club, type Team, type Player, type Event, type Post, type MatchResult, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertMatchResult } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt } from "drizzle-orm";
 
@@ -58,10 +58,6 @@ export interface IStorage {
   updatePost(id: string, updates: Partial<Post>): Promise<Post | undefined>;
   deletePost(id: string): Promise<boolean>;
 
-  // Award methods
-  getAwards(): Promise<Award[]>;
-  getAwardsByTeamId(teamId: string): Promise<Award[]>;
-  createAward(insertAward: InsertAward): Promise<Award>;
 
   // Match result methods
   getMatchResult(id: string): Promise<MatchResult | undefined>;
@@ -409,22 +405,6 @@ export class DatabaseStorage implements IStorage {
     return result.count > 0;
   }
 
-  // Award methods
-  async getAwards(): Promise<Award[]> {
-    return await db.select().from(awards);
-  }
-
-  async getAwardsByTeamId(teamId: string): Promise<Award[]> {
-    return await db.select().from(awards).where(eq(awards.teamId, teamId));
-  }
-
-  async createAward(insertAward: InsertAward): Promise<Award> {
-    const [award] = await db
-      .insert(awards)
-      .values(insertAward)
-      .returning();
-    return award;
-  }
 
   // Match result methods
   async getMatchResult(id: string): Promise<MatchResult | undefined> {
