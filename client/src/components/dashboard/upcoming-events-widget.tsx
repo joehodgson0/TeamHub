@@ -34,6 +34,11 @@ export default function UpcomingEventsWidget() {
       endTime: new Date(event.endTime)
     }));
     
+    // Filter out fixtures (matches and friendlies) - only show events
+    events = events.filter(event => 
+      event.type !== "match" && event.type !== "friendly"
+    );
+    
     // Filter events based on user's teams
     if (user.roles.includes("coach") && teamsResponse?.teams) {
       const teamIds = teamsResponse.teams.map(team => team.id);
