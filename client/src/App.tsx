@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryClient } from "./lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 
-import Register from "@/pages/auth/register";
+import Landing from "@/pages/landing";
 import RoleSelection from "@/pages/auth/role-selection";
 import AppLayout from "@/components/layout/app-layout";
 import Dashboard from "@/pages/dashboard";
@@ -34,15 +34,13 @@ function Router() {
   if (!isAuthenticated) {
     return (
       <Switch>
-        <Route path="/role-selection" component={RoleSelection} />
-        <Route path="/sign-up" component={Register} />
-        <Route path="/" component={Register} />
-        <Route component={Register} />
+        <Route path="/" component={Landing} />
+        <Route component={Landing} />
       </Switch>
     );
   }
 
-  if (user && user.roles.length === 0) {
+  if (user && user.roles?.length === 0) {
     return <RoleSelection />;
   }
 

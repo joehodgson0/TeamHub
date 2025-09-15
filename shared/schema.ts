@@ -1,22 +1,31 @@
 import { z } from "zod";
-import { pgTable, varchar, text, timestamp, integer, json, serial, boolean } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, timestamp, integer, json, serial, boolean, index, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { sql } from 'drizzle-orm';
 
-// User schema
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User schema - updated for Replit Auth
 export const userSchema = z.object({
   id: z.string(),
-  email: z.string().email(),
-  password: z.string().min(1),
-  name: z.string().optional(),
-  roles: z.array(z.enum(["coach", "parent"])),
+  email: z.string().email().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  profileImageUrl: z.string().optional(),
+  roles: z.array(z.enum(["coach", "parent"])).default([]),
   clubId: z.string().optional(),
   teamIds: z.array(z.string()).default([]),
   createdAt: z.date().default(() => new Date()),
-});
-
-export const registerUserSchema = userSchema.pick({
-  email: true,
-  password: true,
+  updatedAt: z.date().default(() => new Date()),
 });
 
 export const roleSelectionSchema = z.object({
@@ -148,14 +157,16 @@ export const awardSchema = z.object({
 
 // Drizzle table definitions
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey(),
-  email: varchar("email").notNull().unique(),
-  password: varchar("password").notNull(),
-  name: varchar("name"),
+  id: varchar("id").primaryKey(), // Keep existing ID type for compatibility
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
   roles: json("roles").$type<("coach" | "parent")[]>().notNull().default([]),
   clubId: varchar("club_id"),
   teamIds: json("team_ids").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const clubs = pgTable("clubs", {
@@ -255,9 +266,9 @@ export const insertPostSchema = createInsertSchema(posts).omit({ createdAt: true
 export const insertAwardSchema = createInsertSchema(awards).omit({ createdAt: true });
 export const insertMatchResultSchema = createInsertSchema(matchResults).omit({ createdAt: true });
 
-// Type exports
-export type User = z.infer<typeof userSchema>;
-export type RegisterUser = z.infer<typeof registerUserSchema>;
+// Type exports for Replit Auth
+export type User = typeof users.$inferSelect;
+export type UpsertUser = typeof users.$inferInsert;
 export type RoleSelection = z.infer<typeof roleSelectionSchema>;
 export type Club = z.infer<typeof clubSchema>;
 export type ClubAssociation = z.infer<typeof clubAssociationSchema>;

@@ -1,13 +1,14 @@
-import { users, clubs, teams, players, events, posts, awards, matchResults, type User, type Club, type Team, type Player, type Event, type Post, type Award, type MatchResult, type InsertUser, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertAward, type InsertMatchResult } from "@shared/schema";
+import { users, clubs, teams, players, events, posts, awards, matchResults, type User, type UpsertUser, type Club, type Team, type Player, type Event, type Post, type Award, type MatchResult, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertAward, type InsertMatchResult } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gt } from "drizzle-orm";
 
 export interface IStorage {
-  // User methods
+  // User methods for Replit Auth - MANDATORY
   getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  // Legacy user methods (keep for backward compatibility during migration)
   getUserByEmail(email: string): Promise<User | undefined>;
   getUsers(): Promise<User[]>;
-  createUser(insertUser: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
 
   // Club methods
@@ -90,10 +91,20 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users);
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          profileImageUrl: userData.profileImageUrl,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
     return user;
   }
@@ -110,7 +121,10 @@ export class DatabaseStorage implements IStorage {
   // Club methods
   async getClub(id: string): Promise<Club | undefined> {
     const [club] = await db.select().from(clubs).where(eq(clubs.id, id));
-    return club || undefined;
+    return club ? {
+      ...club,
+      established: club.established || undefined
+    } : undefined;
   }
 
   async getClubByCode(code: string): Promise<Club | undefined> {
