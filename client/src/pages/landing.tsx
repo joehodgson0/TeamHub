@@ -67,17 +67,55 @@ export default function Landing() {
             </Card>
           </div>
 
-          <div className="space-y-4">
-            <Button 
-              size="lg" 
-              onClick={() => window.location.href = '/api/login'}
-              data-testid="button-login"
-            >
-              Sign In with Google
-            </Button>
-            <p className="text-sm text-muted-foreground">
-              Connect with your Google account to get started
-            </p>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <h2 className="text-xl font-semibold">Get Started</h2>
+              <p className="text-sm text-muted-foreground">
+                Choose how you'd like to sign in to TeamHub
+              </p>
+            </div>
+            
+            <div className="flex flex-col gap-3 max-w-sm mx-auto">
+              <Button 
+                size="lg" 
+                onClick={() => window.location.href = '/api/login'}
+                data-testid="button-google-login"
+                className="w-full"
+              >
+                Sign In with Google
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or
+                  </span>
+                </div>
+              </div>
+              
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => window.location.href = '/login'}
+                data-testid="button-username-login"
+                className="w-full"
+              >
+                Sign In with Email
+              </Button>
+              
+              <Button 
+                size="lg" 
+                variant="ghost"
+                onClick={() => window.location.href = '/register'}
+                data-testid="button-register"
+                className="w-full"
+              >
+                Create Account
+              </Button>
+            </div>
           </div>
         </div>
       </div>

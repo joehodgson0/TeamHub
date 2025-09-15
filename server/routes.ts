@@ -4,12 +4,115 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { insertMatchResultSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import bcrypt from "bcryptjs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth - referenced from javascript_log_in_with_replit blueprint
   await setupAuth(app);
 
-  // Auth routes
+  // Traditional username/password auth routes
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ success: false, error: 'Email and password required' });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ success: false, error: 'User already exists with this email' });
+      }
+      
+      // Hash password
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      
+      // Generate user ID
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create user
+      const userData = {
+        id: userId,
+        email,
+        password: hashedPassword,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        profileImageUrl: undefined
+      };
+      
+      const user = await storage.upsertUser(userData);
+      
+      // Create session by setting req.user for traditional auth
+      req.session.userId = user.id;
+      
+      res.json({ success: true, user: { ...user, password: undefined } });
+    } catch (error) {
+      console.error('Register error:', error);
+      res.status(500).json({ success: false, error: 'Failed to register user' });
+    }
+  });
+  
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ success: false, error: 'Email and password required' });
+      }
+      
+      // Find user
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.password) {
+        return res.status(401).json({ success: false, error: 'Invalid email or password' });
+      }
+      
+      // Check password
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        return res.status(401).json({ success: false, error: 'Invalid email or password' });
+      }
+      
+      // Create session
+      req.session.userId = user.id;
+      
+      res.json({ success: true, user: { ...user, password: undefined } });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ success: false, error: 'Failed to login' });
+    }
+  });
+  
+  app.post('/api/auth/logout-traditional', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ success: false, error: 'Failed to logout' });
+      }
+      res.json({ success: true });
+    });
+  });
+  
+  // Alternative user route for traditional auth (checks session)
+  app.get('/api/auth/user-session', async (req: any, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      
+      res.json({ ...user, password: undefined });
+    } catch (error) {
+      console.error('Get user session error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch user' });
+    }
+  });
+
+  // Replit Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
