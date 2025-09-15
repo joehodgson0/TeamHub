@@ -375,6 +375,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/players/team/:teamId", async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      
+      if (!teamId) {
+        return res.status(400).json({ success: false, error: "Team ID required" });
+      }
+
+      const players = await storage.getPlayersByTeamId(teamId);
+      res.json({ success: true, players });
+    } catch (error) {
+      console.error("Get players by team error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch players" });
+    }
+  });
+
   // Event routes
   app.get("/api/events", async (req, res) => {
     try {
