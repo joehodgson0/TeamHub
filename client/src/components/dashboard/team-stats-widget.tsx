@@ -9,16 +9,19 @@ export default function TeamStatsWidget() {
   const { user } = useAuth();
   const [selectedSeason, setSelectedSeason] = useState("current");
 
+  // Fetch user's players for filtering (for parents)
+  const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: [`/api/players/parent/${user?.id}`],
+    enabled: !!user?.id && user?.roles.includes('parent'),
+  });
+
   // Fetch user's teams for filtering
   const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
     queryKey: [`/api/teams/club/${user?.clubId}`],
-    enabled: !!user?.clubId && user?.roles.includes('coach'),
-  });
-  
-  // Fetch user's players for filtering (for parents)
-  const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
-    queryKey: ['/api/players/parent', user?.id],
-    enabled: !!user && user?.roles.includes('parent'),
+    enabled: !!user?.clubId && (
+      user?.roles.includes('coach') || 
+      (user?.roles.includes('parent') && !!playersResponse?.players)
+    ),
   });
 
   const getTeamStats = () => {
