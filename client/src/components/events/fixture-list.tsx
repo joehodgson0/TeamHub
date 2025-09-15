@@ -31,7 +31,7 @@ export default function FixtureList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events/team'] });
       toast({
         title: "Event Deleted",
@@ -62,7 +62,7 @@ export default function FixtureList() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       toast({
         title: "Availability Updated",
@@ -87,7 +87,7 @@ export default function FixtureList() {
 
   // Fetch upcoming events
   const { data: eventsResponse } = useQuery<{ success: boolean; events: any[] }>({
-    queryKey: ['/api/events/upcoming'],
+    queryKey: ['/api/events/upcoming-session'],
     enabled: !!user,
   });
   
@@ -105,7 +105,7 @@ export default function FixtureList() {
 
   // Fetch match results to exclude fixtures with results
   const { data: matchResultsResponse } = useQuery<{ success: boolean; matchResults: any[] }>({
-    queryKey: ['/api/match-results'],
+    queryKey: ['/api/match-results-session'],
     enabled: !!user,
   });
 
