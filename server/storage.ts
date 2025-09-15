@@ -77,18 +77,53 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User methods
+  private normalizeUser(user: any): User {
+    return {
+      ...user,
+      email: user.email || undefined,
+      firstName: user.firstName || undefined,
+      lastName: user.lastName || undefined,
+      profileImageUrl: user.profileImageUrl || undefined
+    };
+  }
+
+  private normalizeClub(club: any): Club {
+    return {
+      ...club,
+      established: club.established || undefined
+    };
+  }
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return user ? {
+      ...user,
+      email: user.email || undefined,
+      firstName: user.firstName || undefined,
+      lastName: user.lastName || undefined,
+      profileImageUrl: user.profileImageUrl || undefined
+    } : undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || undefined;
+    return user ? {
+      ...user,
+      email: user.email || undefined,
+      firstName: user.firstName || undefined,
+      lastName: user.lastName || undefined,
+      profileImageUrl: user.profileImageUrl || undefined
+    } : undefined;
   }
 
   async getUsers(): Promise<User[]> {
-    return await db.select().from(users);
+    const users_data = await db.select().from(users);
+    return users_data.map(user => ({
+      ...user,
+      email: user.email || undefined,
+      firstName: user.firstName || undefined,
+      lastName: user.lastName || undefined,
+      profileImageUrl: user.profileImageUrl || undefined
+    }));
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -106,7 +141,7 @@ export class DatabaseStorage implements IStorage {
         },
       })
       .returning();
-    return user;
+    return this.normalizeUser(user);
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
@@ -115,7 +150,13 @@ export class DatabaseStorage implements IStorage {
       .set(updates)
       .where(eq(users.id, id))
       .returning();
-    return user || undefined;
+    return user ? {
+      ...user,
+      email: user.email || undefined,
+      firstName: user.firstName || undefined,
+      lastName: user.lastName || undefined,
+      profileImageUrl: user.profileImageUrl || undefined
+    } : undefined;
   }
 
   // Club methods
@@ -129,11 +170,18 @@ export class DatabaseStorage implements IStorage {
 
   async getClubByCode(code: string): Promise<Club | undefined> {
     const [club] = await db.select().from(clubs).where(eq(clubs.code, code));
-    return club || undefined;
+    return club ? {
+      ...club,
+      established: club.established || undefined
+    } : undefined;
   }
 
   async getClubs(): Promise<Club[]> {
-    return await db.select().from(clubs);
+    const clubs_data = await db.select().from(clubs);
+    return clubs_data.map(club => ({
+      ...club,
+      established: club.established || undefined
+    }));
   }
 
   async createClub(insertClub: InsertClub): Promise<Club> {
@@ -141,7 +189,7 @@ export class DatabaseStorage implements IStorage {
       .insert(clubs)
       .values(insertClub)
       .returning();
-    return club;
+    return this.normalizeClub(club);
   }
 
   // Team methods
@@ -212,33 +260,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Event methods
+  private normalizeEvent(event: any): Event {
+    return {
+      ...event,
+      name: event.name || undefined,
+      opponent: event.opponent || undefined,
+      additionalInfo: event.additionalInfo || undefined,
+      homeAway: event.homeAway || undefined,
+      result: event.result || undefined
+    };
+  }
+
   async getEvent(id: string): Promise<Event | undefined> {
     const [event] = await db.select().from(events).where(eq(events.id, id));
-    return event || undefined;
+    return event ? this.normalizeEvent(event) : undefined;
   }
 
   async getEvents(): Promise<Event[]> {
-    return await db.select().from(events);
+    const events_data = await db.select().from(events);
+    return events_data.map(event => this.normalizeEvent(event));
   }
 
   async getEventsByTeamId(teamId: string): Promise<Event[]> {
-    return await db.select().from(events).where(eq(events.teamId, teamId));
+    const events_data = await db.select().from(events).where(eq(events.teamId, teamId));
+    return events_data.map(event => this.normalizeEvent(event));
   }
 
   async getUpcomingEvents(teamId?: string): Promise<Event[]> {
     const now = new Date();
+    let events_data;
     if (teamId) {
-      return await db
+      events_data = await db
         .select()
         .from(events)
         .where(and(eq(events.teamId, teamId), gt(events.startTime, now)))
         .orderBy(events.startTime);
+    } else {
+      events_data = await db
+        .select()
+        .from(events)
+        .where(gt(events.startTime, now))
+        .orderBy(events.startTime);
     }
-    return await db
-      .select()
-      .from(events)
-      .where(gt(events.startTime, now))
-      .orderBy(events.startTime);
+    return events_data.map(event => this.normalizeEvent(event));
   }
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
@@ -246,7 +310,7 @@ export class DatabaseStorage implements IStorage {
       .insert(events)
       .values(insertEvent)
       .returning();
-    return event;
+    return this.normalizeEvent(event);
   }
 
   async updateEvent(id: string, updates: Partial<Event>): Promise<Event | undefined> {
@@ -255,7 +319,7 @@ export class DatabaseStorage implements IStorage {
       .set(updates)
       .where(eq(events.id, id))
       .returning();
-    return event || undefined;
+    return event ? this.normalizeEvent(event) : undefined;
   }
 
   async deleteEvent(id: string): Promise<boolean> {
@@ -295,21 +359,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Post methods
+  private normalizePost(post: any): Post {
+    return {
+      ...post,
+      teamId: post.teamId || undefined,
+      clubId: post.clubId || undefined
+    };
+  }
+
   async getPost(id: string): Promise<Post | undefined> {
     const [post] = await db.select().from(posts).where(eq(posts.id, id));
-    return post || undefined;
+    return post ? this.normalizePost(post) : undefined;
   }
 
   async getPosts(): Promise<Post[]> {
-    return await db.select().from(posts);
+    const posts_data = await db.select().from(posts);
+    return posts_data.map(post => this.normalizePost(post));
   }
 
   async getPostsByTeamId(teamId: string): Promise<Post[]> {
-    return await db.select().from(posts).where(eq(posts.teamId, teamId));
+    const posts_data = await db.select().from(posts).where(eq(posts.teamId, teamId));
+    return posts_data.map(post => this.normalizePost(post));
   }
 
   async getPostsByClubId(clubId: string): Promise<Post[]> {
-    return await db.select().from(posts).where(eq(posts.clubId, clubId));
+    const posts_data = await db.select().from(posts).where(eq(posts.clubId, clubId));
+    return posts_data.map(post => this.normalizePost(post));
   }
 
   async createPost(insertPost: InsertPost): Promise<Post> {
@@ -317,7 +392,7 @@ export class DatabaseStorage implements IStorage {
       .insert(posts)
       .values(insertPost)
       .returning();
-    return post;
+    return this.normalizePost(post);
   }
 
   async updatePost(id: string, updates: Partial<Post>): Promise<Post | undefined> {
@@ -326,7 +401,7 @@ export class DatabaseStorage implements IStorage {
       .set(updates)
       .where(eq(posts.id, id))
       .returning();
-    return post || undefined;
+    return post ? this.normalizePost(post) : undefined;
   }
 
   async deletePost(id: string): Promise<boolean> {
