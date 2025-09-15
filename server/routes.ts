@@ -567,6 +567,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const teamEvents = await storage.getUpcomingEvents(team.id);
           allEvents.push(...teamEvents);
         }
+      } else if (user.roles.includes("parent")) {
+        // For parents, get events for teams where their players are members
+        const players = await storage.getPlayersByParentId(user.id);
+        const playerTeamIds = players.map(player => player.teamId);
+        for (const teamId of playerTeamIds) {
+          const teamEvents = await storage.getUpcomingEvents(teamId);
+          allEvents.push(...teamEvents);
+        }
       } else {
         // Get events for user's specific teams only
         for (const teamId of user.teamIds) {
