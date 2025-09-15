@@ -158,10 +158,10 @@ export const awardSchema = z.object({
 // Drizzle table definitions
 export const users = pgTable("users", {
   id: varchar("id").primaryKey(), // Keep existing ID type for compatibility
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
+  email: varchar("email").notNull().unique(), // Match existing NOT NULL constraint
+  firstName: varchar("first_name"), // New column for Replit Auth
+  lastName: varchar("last_name"), // New column for Replit Auth  
+  profileImageUrl: varchar("profile_image_url"), // New column for Replit Auth
   roles: json("roles").$type<("coach" | "parent")[]>().notNull().default([]),
   clubId: varchar("club_id"),
   teamIds: json("team_ids").$type<string[]>().notNull().default([]),
