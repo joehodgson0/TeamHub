@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -46,6 +47,13 @@ export default function Login() {
           title: "Success",
           description: "Logged in successfully!"
         });
+        
+        // Force refetch of session user data before navigating
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user-session"] });
+        await queryClient.refetchQueries({ queryKey: ["/api/auth/user-session"] });
+        
+        // Small delay to ensure auth state updates
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Check if user needs to select roles or associate with a club
         const user = result.user;
