@@ -4,15 +4,25 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
 export function useAuth() {
-  // Always call both queries to avoid hooks order violations
+  // Disable Google auth query to prevent infinite loop - hooks must be called consistently
   const { data: googleUser, isLoading: isGoogleLoading } = useQuery<User>({
     queryKey: ["/api/auth/user"],
+    enabled: false, // Disabled to prevent infinite loop
     retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    refetchOnMount: false,
   });
 
+  // Use session auth for email/password login
   const { data: sessionUser, isLoading: isSessionLoading } = useQuery<User>({
     queryKey: ["/api/auth/user-session"],
-    retry: false,
+    retry: false, 
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    refetchOnMount: false,
   });
 
   // Prefer Google user if both exist, otherwise use session user
