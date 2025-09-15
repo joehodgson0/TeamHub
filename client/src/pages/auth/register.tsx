@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -70,6 +71,25 @@ export default function Register() {
           title: "Success",
           description: "Account created successfully! Please select your roles."
         });
+        
+        // Force refetch of session user data to authenticate the new user
+        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user-session"] });
+        
+        // Wait for the auth state to actually update
+        let attempts = 0;
+        const maxAttempts = 20; // 2 seconds max wait
+        
+        while (attempts < maxAttempts) {
+          const authQueryData = queryClient.getQueryData(["/api/auth/user-session"]);
+          if (authQueryData) {
+            // Auth state has been updated, safe to navigate
+            break;
+          }
+          // Wait 100ms and try again
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+        
         navigate("/role-selection");
       } else {
         throw new Error(result.error || 'Registration failed');
