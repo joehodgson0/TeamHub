@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/use-auth";
 
 import Landing from "@/pages/landing";
 import RoleSelection from "@/pages/auth/role-selection";
+import Register from "@/pages/auth/register";
+import Login from "@/pages/auth/login";
 import AppLayout from "@/components/layout/app-layout";
 import Dashboard from "@/pages/dashboard";
 import Club from "@/pages/club";
@@ -35,6 +37,8 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/register" component={Register} />
+        <Route path="/login" component={Login} />
         <Route component={Landing} />
       </Switch>
     );
