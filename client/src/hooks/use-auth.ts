@@ -43,6 +43,20 @@ export function useAuth() {
     }
   };
 
+  const associateWithClub = async (userId: string, clubCode: string) => {
+    try {
+      // Use session-based route for username/password users
+      await apiRequest("POST", "/api/auth/associate-club-session", { clubCode });
+      
+      // Invalidate and refetch user data for session users
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user-session"] });
+      
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.response?.data?.message || "No club found with that code" };
+    }
+  };
+
   const logout = async () => {
     // Clear local cache
     queryClient.clear();
@@ -68,6 +82,7 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!user,
     updateUserRoles,
+    associateWithClub,
     logout,
     // Helper method to check if user has a specific role
     hasRole: (role: "coach" | "parent") => user?.roles?.includes(role) || false,

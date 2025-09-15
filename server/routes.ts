@@ -176,6 +176,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Session-based club association for username/password users
+  app.post("/api/auth/associate-club-session", async (req: any, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+      
+      const userId = req.session.userId;
+      const { clubCode } = req.body;
+      
+      if (!userId || !clubCode) {
+        return res.status(400).json({ success: false, error: "Invalid request data" });
+      }
+
+      const club = await storage.getClubByCode(clubCode);
+      if (!club) {
+        return res.status(404).json({ success: false, error: "No club found with that code" });
+      }
+
+      const updatedUser = await storage.updateUser(userId, { clubId: club.id });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ success: false, error: "User not found" });
+      }
+
+      res.json({ success: true, user: updatedUser, clubName: club.name });
+    } catch (error) {
+      console.error("Associate club error:", error);
+      res.status(500).json({ success: false, error: "Failed to associate with club" });
+    }
+  });
+
+  // Original Google auth route (keep for when Google auth is re-enabled)
   app.post("/api/auth/associate-club", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub; // Get from authenticated user instead of body

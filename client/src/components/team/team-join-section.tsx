@@ -153,16 +153,6 @@ export default function TeamJoinSection() {
               </form>
             </Form>
 
-            <Alert data-testid="demo-info">
-              <Info className="w-4 h-4" />
-              <AlertDescription>
-                <div className="space-y-1">
-                  <p className="font-medium text-xs">Demo Information</p>
-                  <p className="text-xs">Team codes starting with '1' are valid for demo purposes</p>
-                  <p className="text-xs">Example: "1DEF6789" for U12 Eagles</p>
-                </div>
-              </AlertDescription>
-            </Alert>
           </>
         ) : (
           <div className="text-center py-6 text-muted-foreground">
