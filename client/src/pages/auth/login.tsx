@@ -50,10 +50,21 @@ export default function Login() {
         
         // Force refetch of session user data before navigating
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/user-session"] });
-        await queryClient.refetchQueries({ queryKey: ["/api/auth/user-session"] });
         
-        // Small delay to ensure auth state updates
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait for the auth state to actually update instead of using fixed delay
+        let attempts = 0;
+        const maxAttempts = 20; // 2 seconds max wait
+        
+        while (attempts < maxAttempts) {
+          const authQueryData = queryClient.getQueryData(["/api/auth/user-session"]);
+          if (authQueryData) {
+            // Auth state has been updated, safe to navigate
+            break;
+          }
+          // Wait 100ms and try again
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
         
         // Check if user needs to select roles or associate with a club
         const user = result.user;
