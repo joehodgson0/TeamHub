@@ -25,6 +25,12 @@ export default function UpcomingFixturesWidget() {
     queryKey: ['/api/players/parent', user?.id],
     enabled: !!user && user?.roles.includes('parent'),
   });
+
+  // Fetch match results to exclude fixtures with results
+  const { data: matchResultsResponse } = useQuery<{ success: boolean; matchResults: any[] }>({
+    queryKey: ['/api/match-results'],
+    enabled: !!user,
+  });
   
   const getUpcomingFixtures = () => {
     if (!user || !eventsResponse?.events) return [];
@@ -37,6 +43,14 @@ export default function UpcomingFixturesWidget() {
     
     // Filter to only show fixtures (matches and tournaments only)
     events = events.filter(event => event.type === "match" || event.type === "tournament");
+    
+    // Filter out fixtures that already have match results
+    if (matchResultsResponse?.matchResults) {
+      const fixturesWithResults = new Set(
+        matchResultsResponse.matchResults.map((result: any) => result.fixtureId)
+      );
+      events = events.filter(event => !fixturesWithResults.has(event.id));
+    }
     
     // Filter events based on user's teams
     if (user.roles.includes("coach") && teamsResponse?.teams) {

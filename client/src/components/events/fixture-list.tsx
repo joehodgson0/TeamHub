@@ -103,6 +103,12 @@ export default function FixtureList() {
     enabled: !!user && hasRole('parent'),
   });
 
+  // Fetch match results to exclude fixtures with results
+  const { data: matchResultsResponse } = useQuery<{ success: boolean; matchResults: any[] }>({
+    queryKey: ['/api/match-results'],
+    enabled: !!user,
+  });
+
   const getFixtures = () => {
     if (!user || !eventsResponse?.events) return [];
 
@@ -124,6 +130,14 @@ export default function FixtureList() {
 
     // Filter to only show matches and tournaments (exclude all other event types)
     events = events.filter(event => event.type === "match" || event.type === "tournament");
+
+    // Filter out fixtures that already have match results
+    if (matchResultsResponse?.matchResults) {
+      const fixturesWithResults = new Set(
+        matchResultsResponse.matchResults.map((result: any) => result.fixtureId)
+      );
+      events = events.filter(event => !fixturesWithResults.has(event.id));
+    }
 
     return events;
   };
