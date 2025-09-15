@@ -11,10 +11,7 @@ export function useAuth() {
 
   const updateUserRoles = async (userId: string, roles: ("coach" | "parent")[]) => {
     try {
-      await apiRequest("/api/auth/update-roles", {
-        method: "POST",
-        data: { roles },
-      });
+      await apiRequest("POST", "/api/auth/update-roles", { roles });
       
       // Invalidate and refetch user data
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
