@@ -70,6 +70,7 @@ export interface IStorage {
   createMatchResult(insertMatchResult: InsertMatchResult): Promise<MatchResult>;
   updateMatchResult(id: string, updates: Partial<MatchResult>): Promise<MatchResult | undefined>;
   upsertMatchResult(fixtureId: string, teamId: string, matchResultData: Omit<InsertMatchResult, 'id' | 'fixtureId' | 'teamId'>): Promise<MatchResult>;
+  updateTeamStatsFromResults(teamId: string): Promise<void>;
   deleteMatchResult(id: string): Promise<boolean>;
 }
 
@@ -409,6 +410,37 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  async updateTeamStatsFromResults(teamId: string): Promise<void> {
+    // Get all match results for this team
+    const results = await db.select().from(matchResults).where(eq(matchResults.teamId, teamId));
+    
+    // Calculate stats from all results
+    const stats = results.reduce((acc, result) => {
+      switch (result.result) {
+        case "win":
+          acc.wins++;
+          break;
+        case "draw":
+          acc.draws++;
+          break;
+        case "loss":
+          acc.losses++;
+          break;
+      }
+      return acc;
+    }, { wins: 0, draws: 0, losses: 0 });
+
+    // Update the team with the calculated stats
+    await db
+      .update(teams)
+      .set({
+        wins: stats.wins,
+        draws: stats.draws,
+        losses: stats.losses
+      })
+      .where(eq(teams.id, teamId));
   }
 
   async deleteMatchResult(id: string): Promise<boolean> {

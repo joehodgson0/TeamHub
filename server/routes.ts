@@ -647,6 +647,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         playerStats: filteredPlayerStats
       });
 
+      // Update team statistics from all match results for this team
+      await storage.updateTeamStatsFromResults(teamId);
+
       res.json({ success: true, matchResult });
     } catch (error) {
       console.error("Create/update match result error:", error);
@@ -688,6 +691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ success: false, error: "Failed to delete match result" });
     }
   });
+
 
   // Post routes
   app.get("/api/posts", async (req, res) => {

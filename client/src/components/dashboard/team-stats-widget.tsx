@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,16 +9,46 @@ export default function TeamStatsWidget() {
   const { user } = useAuth();
   const [selectedSeason, setSelectedSeason] = useState("current");
 
-  // TODO: Replace with API call to fetch team statistics
+  // Fetch user's teams for filtering
+  const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
+    queryKey: [`/api/teams/club/${user?.clubId}`],
+    enabled: !!user?.clubId && user?.roles.includes('coach'),
+  });
+  
+  // Fetch user's players for filtering (for parents)
+  const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: ['/api/players/parent', user?.id],
+    enabled: !!user && user?.roles.includes('parent'),
+  });
+
   const getTeamStats = () => {
     if (!user) return null;
     
-    // Return placeholder stats for now
+    // Get teams based on user role
+    let teams: any[] = [];
+    if (user.roles.includes("coach") && teamsResponse?.teams) {
+      teams = teamsResponse.teams;
+    } else if (user.roles.includes("parent") && playersResponse?.players) {
+      // Get unique teams from player's team IDs
+      const teamIds = Array.from(new Set(playersResponse.players.map((player: any) => player.teamId)));
+      teams = teamsResponse?.teams?.filter((team: any) => teamIds.includes(team.id)) || [];
+    }
+
+    if (teams.length === 0) return null;
+
+    // Aggregate stats from all teams
+    const totalStats = teams.reduce((acc, team) => ({
+      wins: acc.wins + (team.wins || 0),
+      draws: acc.draws + (team.draws || 0),
+      losses: acc.losses + (team.losses || 0)
+    }), { wins: 0, draws: 0, losses: 0 });
+
+    const totalGames = totalStats.wins + totalStats.draws + totalStats.losses;
+    const winRate = totalGames > 0 ? ((totalStats.wins / totalGames) * 100).toFixed(1) : "0.0";
+
     return {
-      wins: 0,
-      draws: 0,
-      losses: 0,
-      winRate: "0.0",
+      ...totalStats,
+      winRate
     };
   };
 
