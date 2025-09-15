@@ -415,7 +415,15 @@ export class DatabaseStorage implements IStorage {
   async getMatchResults(): Promise<any[]> {
     return await db
       .select({
-        ...matchResults,
+        id: matchResults.id,
+        fixtureId: matchResults.fixtureId,
+        teamId: matchResults.teamId,
+        homeTeamGoals: matchResults.homeTeamGoals,
+        awayTeamGoals: matchResults.awayTeamGoals,
+        isHomeFixture: matchResults.isHomeFixture,
+        result: matchResults.result,
+        playerStats: matchResults.playerStats,
+        createdAt: matchResults.createdAt,
         opponent: events.opponent,
         startTime: events.startTime,
         name: events.name
@@ -425,8 +433,26 @@ export class DatabaseStorage implements IStorage {
       .orderBy(events.startTime);
   }
 
-  async getMatchResultsByTeamId(teamId: string): Promise<MatchResult[]> {
-    return await db.select().from(matchResults).where(eq(matchResults.teamId, teamId));
+  async getMatchResultsByTeamId(teamId: string): Promise<any[]> {
+    return await db
+      .select({
+        id: matchResults.id,
+        fixtureId: matchResults.fixtureId,
+        teamId: matchResults.teamId,
+        homeTeamGoals: matchResults.homeTeamGoals,
+        awayTeamGoals: matchResults.awayTeamGoals,
+        isHomeFixture: matchResults.isHomeFixture,
+        result: matchResults.result,
+        playerStats: matchResults.playerStats,
+        createdAt: matchResults.createdAt,
+        opponent: events.opponent,
+        startTime: events.startTime,
+        name: events.name
+      })
+      .from(matchResults)
+      .leftJoin(events, eq(matchResults.fixtureId, events.id))
+      .where(eq(matchResults.teamId, teamId))
+      .orderBy(events.startTime);
   }
 
   async getMatchResultByFixtureId(fixtureId: string): Promise<MatchResult | undefined> {
