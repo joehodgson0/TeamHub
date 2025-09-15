@@ -22,11 +22,20 @@ export function useAuth() {
     }
   };
 
+  const logout = () => {
+    // Clear local cache
+    queryClient.clear();
+    
+    // Redirect to server logout endpoint which handles Replit Auth logout
+    window.location.href = "/api/logout";
+  };
+
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
     updateUserRoles,
+    logout,
     // Helper method to check if user has a specific role
     hasRole: (role: "coach" | "parent") => user?.roles?.includes(role) || false,
   };
