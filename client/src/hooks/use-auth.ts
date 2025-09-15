@@ -1,13 +1,23 @@
-// Replit Auth hook - referenced from javascript_log_in_with_replit blueprint
+// Dual authentication hook - supports both Replit Auth and traditional auth
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
 export function useAuth() {
-  const { data: user, isLoading } = useQuery<User>({
+  // Always call both queries to avoid hooks order violations
+  const { data: googleUser, isLoading: isGoogleLoading } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     retry: false,
   });
+
+  const { data: sessionUser, isLoading: isSessionLoading } = useQuery<User>({
+    queryKey: ["/api/auth/user-session"],
+    retry: false,
+  });
+
+  // Prefer Google user if both exist, otherwise use session user
+  const user = googleUser || sessionUser;
+  const isLoading = isGoogleLoading || isSessionLoading;
 
   const updateUserRoles = async (userId: string, roles: ("coach" | "parent")[]) => {
     try {
@@ -22,12 +32,24 @@ export function useAuth() {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     // Clear local cache
     queryClient.clear();
     
-    // Redirect to server logout endpoint which handles Replit Auth logout
-    window.location.href = "/api/logout";
+    try {
+      // Try traditional logout first if we have a session user
+      if (sessionUser && !googleUser) {
+        await fetch('/api/auth/logout-traditional', { method: 'POST', credentials: 'include' });
+        window.location.href = "/";
+      } else {
+        // Use Replit Auth logout for Google users
+        window.location.href = "/api/logout";
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback to home page
+      window.location.href = "/";
+    }
   };
 
   return {
