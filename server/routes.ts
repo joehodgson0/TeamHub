@@ -773,11 +773,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ success: true, matchResults: [] });
       }
       
-      // Get match results for user's teams only
+      // Get match results based on user role and associations
       let allResults: any[] = [];
-      for (const teamId of user.teamIds) {
-        const teamResults = await storage.getMatchResultsByTeamId(teamId);
-        allResults.push(...teamResults);
+      
+      if (user.roles.includes("coach") && user.clubId) {
+        // For coaches with club association, get results for all club teams
+        const clubTeams = await storage.getTeamsByClubId(user.clubId);
+        for (const team of clubTeams) {
+          const teamResults = await storage.getMatchResultsByTeamId(team.id);
+          allResults.push(...teamResults);
+        }
+      } else if (user.roles.includes("parent")) {
+        // For parents, get results for teams where their players are members
+        const players = await storage.getPlayersByParentId(user.id);
+        const playerTeamIds = players.map(player => player.teamId);
+        for (const teamId of playerTeamIds) {
+          const teamResults = await storage.getMatchResultsByTeamId(teamId);
+          allResults.push(...teamResults);
+        }
+      } else {
+        // Get results for user's specific teams only
+        for (const teamId of user.teamIds) {
+          const teamResults = await storage.getMatchResultsByTeamId(teamId);
+          allResults.push(...teamResults);
+        }
       }
       
       // Remove duplicates
