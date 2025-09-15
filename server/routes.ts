@@ -126,6 +126,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication is now handled by Replit Auth (/api/login, /api/logout, /api/callback)
 
+  // Session-based role update for username/password users
+  app.post("/api/auth/update-roles-session", async (req: any, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+      
+      const userId = req.session.userId;
+      const { roles } = req.body;
+      
+      if (!userId || !Array.isArray(roles)) {
+        return res.status(400).json({ success: false, error: "Invalid request data" });
+      }
+
+      const updatedUser = await storage.updateUser(userId, { roles });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ success: false, error: "User not found" });
+      }
+
+      res.json({ success: true, user: updatedUser });
+    } catch (error) {
+      console.error("Update roles error:", error);
+      res.status(500).json({ success: false, error: "Failed to update roles" });
+    }
+  });
+
+  // Original Google auth route (keep for when Google auth is re-enabled)
   app.post("/api/auth/update-roles", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub; // Get from authenticated user instead of body

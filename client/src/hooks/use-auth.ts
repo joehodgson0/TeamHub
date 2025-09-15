@@ -31,10 +31,11 @@ export function useAuth() {
 
   const updateUserRoles = async (userId: string, roles: ("coach" | "parent")[]) => {
     try {
-      await apiRequest("POST", "/api/auth/update-roles", { roles });
+      // Use session-based route for username/password users
+      await apiRequest("POST", "/api/auth/update-roles-session", { roles });
       
-      // Invalidate and refetch user data
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      // Invalidate and refetch user data for session users
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user-session"] });
       
       return { success: true };
     } catch (error: any) {
