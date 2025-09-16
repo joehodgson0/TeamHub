@@ -83,7 +83,11 @@ export default function TeamManagementSection() {
     enabled: Boolean(user && isCoach && user.clubId),
   });
 
-  const teams = teamsData?.teams || [];
+  // For Team Management, only show teams the coach manages (not teams where they have dependents)
+  const allTeams = teamsData?.teams || [];
+  const teams = isCoach && user?.teamIds 
+    ? allTeams.filter(team => user.teamIds.includes(team.id))
+    : allTeams;
   const canCreateTeam = isCoach && user?.clubId && teams.length === 0;
 
   // Helper component for individual team with players
