@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, CheckCircle } from "lucide-react";
+import { Plus, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import AddPlayerModal from "@/components/modals/add-player-modal";
 import type { Player, Team } from "@shared/schema";
@@ -107,47 +107,30 @@ export default function Dependents() {
                 {players.map((player: Player) => {
                   const team = getPlayerTeam(player.teamId);
                   const age = getPlayerAge(player.dateOfBirth);
-                  const attendanceRate = player.totalEvents > 0 
-                    ? Math.round((player.attendance / player.totalEvents) * 100)
-                    : 0;
 
                   return (
                     <div
                       key={player.id}
-                      className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
+                      className="flex items-center space-x-3 p-4 bg-muted/50 rounded-lg"
                       data-testid={`player-card-${player.id}`}
                     >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                          <span className="text-primary font-semibold">
-                            {player.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                        <span className="text-primary font-semibold">
+                          {player.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="font-medium" data-testid={`player-name-${player.id}`}>
+                          {player.name}
+                        </h4>
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <span data-testid={`player-team-${player.id}`}>
+                            {team?.name || "Unknown Team"}
                           </span>
-                        </div>
-                        <div>
-                          <h4 className="font-medium" data-testid={`player-name-${player.id}`}>
-                            {player.name}
-                          </h4>
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                            <span data-testid={`player-team-${player.id}`}>
-                              {team?.name || "Unknown Team"}
-                            </span>
-                            <span>•</span>
-                            <span data-testid={`player-age-${player.id}`}>Age {age}</span>
-                          </div>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              {attendanceRate}% Attendance
-                            </Badge>
-                          </div>
+                          <span>•</span>
+                          <span data-testid={`player-age-${player.id}`}>Age {age}</span>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        data-testid={`button-view-player-${player.id}`}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
                     </div>
                   );
                 })}
