@@ -760,10 +760,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/events/:id", async (req, res) => {
+  app.put("/api/events/:id", async (req: any, res) => {
     try {
       const { id } = req.params;
       const updates = req.body;
+      
+      // Get authenticated user ID from session (secure)
+      let userId = null;
+      if (req.session?.userId) {
+        userId = req.session.userId;
+      } else if (req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Only coaches can update events" });
+      }
+      
+      // Get the event to check ownership
+      const existingEvent = await storage.getEvent(id);
+      if (!existingEvent) {
+        return res.status(404).json({ success: false, error: "Event not found" });
+      }
+      
+      // Check if coach owns this team
+      if (!user.teamIds?.includes(existingEvent.teamId)) {
+        return res.status(403).json({ success: false, error: "You can only update events for your own team" });
+      }
       
       if (updates.startTime) updates.startTime = new Date(updates.startTime);
       if (updates.endTime) updates.endTime = new Date(updates.endTime);
@@ -814,9 +842,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/events/:id", async (req, res) => {
+  app.delete("/api/events/:id", async (req: any, res) => {
     try {
       const { id } = req.params;
+      
+      // Get authenticated user ID from session (secure)
+      let userId = null;
+      if (req.session?.userId) {
+        userId = req.session.userId;
+      } else if (req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Only coaches can delete events" });
+      }
+      
+      // Get the event to check ownership before deleting
+      const existingEvent = await storage.getEvent(id);
+      if (!existingEvent) {
+        return res.status(404).json({ success: false, error: "Event not found" });
+      }
+      
+      // Check if coach owns this team
+      if (!user.teamIds?.includes(existingEvent.teamId)) {
+        return res.status(403).json({ success: false, error: "You can only delete events for your own team" });
+      }
       
       const deleted = await storage.deleteEvent(id);
       
@@ -942,8 +998,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/match-results", async (req, res) => {
+  app.post("/api/match-results", async (req: any, res) => {
     try {
+      // Get authenticated user ID from session (secure)
+      let userId = null;
+      if (req.session?.userId) {
+        userId = req.session.userId;
+      } else if (req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Only coaches can update match results" });
+      }
+      
       // Define request schema for validation
       const matchResultRequestSchema = z.object({
         fixtureId: z.string().min(1, "Fixture ID is required"),
@@ -962,6 +1035,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fixture = await storage.getEvent(fixtureId);
       if (!fixture) {
         return res.status(404).json({ success: false, error: "Fixture not found" });
+      }
+      
+      // Check if coach owns this team
+      if (!user.teamIds?.includes(fixture.teamId)) {
+        return res.status(403).json({ success: false, error: "You can only update match results for your own team" });
+      }
+      
+      // Verify teamId matches fixture teamId
+      if (teamId !== fixture.teamId) {
+        return res.status(400).json({ success: false, error: "Team ID must match the fixture's team" });
       }
 
       const isHomeFixture = fixture.homeAway === "home";

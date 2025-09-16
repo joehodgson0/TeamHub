@@ -119,10 +119,9 @@ export default function FixtureList() {
       createdAt: new Date(event.createdAt)
     }));
 
-    // Filter by user's teams
-    if (hasRole("coach") && teamsResponse?.teams) {
-      const teamIds = teamsResponse.teams.map(team => team.id);
-      events = events.filter(event => teamIds.includes(event.teamId));
+    // Filter by user's teams - coaches only see their own teams
+    if (hasRole("coach") && user?.teamIds) {
+      events = events.filter(event => user.teamIds.includes(event.teamId));
     } else if (hasRole("parent") && playersResponse?.players) {
       const teamIds = playersResponse.players.map(player => player.teamId);
       events = events.filter(event => teamIds.includes(event.teamId));
@@ -145,6 +144,11 @@ export default function FixtureList() {
   const fixtures = getFixtures();
   const isCoach = hasRole("coach");
   const isParent = hasRole("parent");
+
+  // Check if coach can manage this specific fixture
+  const canManageFixture = (fixture: any) => {
+    return isCoach && user?.teamIds?.includes(fixture.teamId);
+  };
 
   const handleAvailabilityUpdate = (eventId: string, playerId: string, availability: string) => {
     updateAvailabilityMutation.mutate({ eventId, playerId, availability });
@@ -233,7 +237,7 @@ export default function FixtureList() {
                           </span>
                         )}
                       </div>
-                      {isCoach && (
+                      {canManageFixture(fixture) && (
                         <div className="flex items-center space-x-2">
                           <Button
                             variant="ghost"
@@ -295,7 +299,7 @@ export default function FixtureList() {
                         <span className="text-sm text-muted-foreground" data-testid={`fixture-availability-${fixture.id}`}>
                           Availability: {availability.confirmed}/{availability.total} confirmed
                         </span>
-                        {isCoach && fixture.type === "match" && (
+                        {canManageFixture(fixture) && fixture.type === "match" && (
                           <Button
                             variant="outline"
                             size="sm"
