@@ -55,6 +55,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events/team'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
     },
   });
   
