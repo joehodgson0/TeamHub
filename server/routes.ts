@@ -1175,22 +1175,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { type, title, content, scope } = req.body;
       
-      // Debug logging to see what's actually being sent
-      console.log("Post creation request body:", JSON.stringify(req.body, null, 2));
-      console.log("Extracted fields:", { type, title, content, scope });
-      
       if (!type || !title || !content || !scope) {
-        return res.status(400).json({ 
-          success: false, 
-          error: "Missing required fields",
-          received: { type, title, content, scope },
-          missing: {
-            type: !type,
-            title: !title,
-            content: !content,
-            scope: !scope
-          }
-        });
+        return res.status(400).json({ success: false, error: "Missing required fields" });
       }
 
       // Get authenticated user ID from session (secure)

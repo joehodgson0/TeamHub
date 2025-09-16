@@ -143,6 +143,9 @@ export const createPostSchema = postSchema.pick({
   content: true,
 }).extend({
   scope: z.enum(["team", "club"])
+}).refine((data) => data.content.trim().length > 0, {
+  message: "Post content cannot be empty",
+  path: ["content"]
 });
 
 
