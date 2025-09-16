@@ -141,6 +141,8 @@ export const createPostSchema = postSchema.pick({
   type: true,
   title: true,
   content: true,
+}).extend({
+  scope: z.enum(["team", "club"])
 });
 
 
