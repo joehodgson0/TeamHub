@@ -1076,19 +1076,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allPosts.push(...clubPosts);
       }
       
-      // If user is a coach and has club association, get posts from all club's teams
-      if (user.roles.includes("coach") && user.clubId) {
-        const clubTeams = await storage.getTeamsByClubId(user.clubId);
-        for (const team of clubTeams) {
-          const teamPosts = await storage.getPostsByTeamId(team.id);
-          allPosts.push(...teamPosts);
-        }
-      } else {
-        // Get team posts for user's specific teams only
-        for (const teamId of user.teamIds) {
-          const teamPosts = await storage.getPostsByTeamId(teamId);
-          allPosts.push(...teamPosts);
-        }
+      // Role-based team post filtering
+      let relevantTeamIds = [];
+
+      if (user.roles.includes("coach")) {
+        // Coaches: only see posts from teams they manage (in their teamIds)
+        relevantTeamIds.push(...(user.teamIds || []));
+      }
+
+      if (user.roles.includes("parent")) {
+        // Parents: see posts from teams their dependents play on
+        const players = await storage.getPlayersByParentId(userId);
+        const parentTeamIds = players.map(player => player.teamId).filter(Boolean);
+        relevantTeamIds.push(...parentTeamIds);
+      }
+
+      // Remove duplicates
+      relevantTeamIds = Array.from(new Set(relevantTeamIds));
+
+      // Get posts from relevant teams only
+      for (const teamId of relevantTeamIds) {
+        const teamPosts = await storage.getPostsByTeamId(teamId);
+        allPosts.push(...teamPosts);
       }
       
       // Remove duplicates and sort by creation date
