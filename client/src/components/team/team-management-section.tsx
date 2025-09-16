@@ -14,7 +14,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle } from "lucide-react";
 import CreateTeamModal from "@/components/modals/create-team-modal";
 import EditTeamModal from "@/components/modals/edit-team-modal";
-import TeamJoinSection from "@/components/team/team-join-section";
 
 export default function TeamManagementSection() {
   const { user, hasRole, associateWithClub } = useAuth();
@@ -54,14 +53,15 @@ export default function TeamManagementSection() {
       const result = await associateWithClub(user.id, data.clubCode);
       
       if (result.success) {
+        const clubName = (result as any).clubName || 'the club';
         setFeedback({
           type: "success",
-          message: `Successfully joined ${result.clubName}!`
+          message: `Successfully joined ${clubName}!`
         });
         clubForm.reset();
         toast({
           title: "Club Association Successful",
-          description: `You have joined ${result.clubName}`,
+          description: `You have joined ${clubName}`,
         });
       } else {
         setFeedback({
@@ -315,10 +315,6 @@ export default function TeamManagementSection() {
       )}
 
 
-      {/* Team Join Section for Parents */}
-      {isParent && user?.clubId && (
-        <TeamJoinSection />
-      )}
 
       {/* Modals */}
       <CreateTeamModal 
