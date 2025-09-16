@@ -87,6 +87,18 @@ export default function TeamManagementSection() {
 
   const teams = teamsData?.teams || [];
 
+  // For coaches: fetch all players for the club and group by team
+  const { data: allPlayersData } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: ['/api/players/club', user?.clubId],
+    enabled: Boolean(isCoach && user?.clubId && teams.length > 0),
+  });
+
+  // Helper function to get players for a specific team
+  const getTeamPlayers = (teamId: string) => {
+    if (!allPlayersData?.players) return [];
+    return allPlayersData.players.filter((player: any) => player.teamId === teamId);
+  };
+
 
   // If user has no club AND (has no roles OR is a coach), show join club form
   if (!user?.clubId && (!isCoach && !isParent || isCoach)) {
@@ -245,56 +257,93 @@ export default function TeamManagementSection() {
               teams.map((team: Team) => {
                 if (!team) return null;
                 
-                const playerCount = team.playerIds?.length || 0;
+                const teamPlayers = getTeamPlayers(team.id);
+                const playerCount = teamPlayers.length;
                 const totalGames = (team.wins || 0) + (team.draws || 0) + (team.losses || 0);
+                const isLoadingPlayers = allPlayersData === undefined;
 
                 return (
                   <div
                     key={team.id}
-                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
+                    className="p-4 bg-muted/50 rounded-lg space-y-3"
                     data-testid={`team-card-${team.id}`}
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h4 className="font-medium" data-testid={`team-name-${team.id}`}>
-                          {team.name || 'Unknown Team'}
-                        </h4>
-                        <Badge variant="outline" className="text-xs">
-                          {team.ageGroup || 'Unknown'}
-                        </Badge>
+                    {/* Team Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="font-medium" data-testid={`team-name-${team.id}`}>
+                            {team.name || 'Unknown Team'}
+                          </h4>
+                          <Badge variant="outline" className="text-xs">
+                            {team.ageGroup || 'Unknown'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span data-testid={`team-players-${team.id}`}>
+                            {playerCount} players
+                          </span>
+                          {totalGames > 0 && (
+                            <>
+                              <span>•</span>
+                              <span data-testid={`team-record-${team.id}`}>
+                                {team.wins || 0}W {team.draws || 0}D {team.losses || 0}L
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1" data-testid={`team-code-${team.id}`}>
+                          Code: {team.code || 'Unknown'}
+                        </p>
                       </div>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                        <span data-testid={`team-players-${team.id}`}>
-                          {playerCount} players
-                        </span>
-                        {totalGames > 0 && (
-                          <>
-                            <span>•</span>
-                            <span data-testid={`team-record-${team.id}`}>
-                              {team.wins || 0}W {team.draws || 0}D {team.losses || 0}L
-                            </span>
-                          </>
+                      <div className="flex items-center space-x-2">
+                        {isCoach && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingTeam(team);
+                              setShowEditModal(true);
+                            }}
+                            data-testid={`button-edit-team-${team.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1" data-testid={`team-code-${team.id}`}>
-                        Code: {team.code || 'Unknown'}
-                      </p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {isCoach && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingTeam(team);
-                            setShowEditModal(true);
-                          }}
-                          data-testid={`button-edit-team-${team.id}`}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
+
+                    {/* Players List */}
+                    {isLoadingPlayers ? (
+                      <div className="text-center py-2 text-muted-foreground">
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-1"></div>
+                        <p className="text-xs">Loading players...</p>
+                      </div>
+                    ) : teamPlayers.length === 0 ? (
+                      <div className="text-center py-2 text-muted-foreground">
+                        <p className="text-xs">No players in this team yet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1" data-testid={`players-list-${team.id}`}>
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Players:</p>
+                        <div className="grid grid-cols-1 gap-1">
+                          {teamPlayers.map((player: any, playerIndex: number) => (
+                            <div
+                              key={player.id}
+                              className="flex items-center justify-between text-xs p-2 bg-background/50 rounded"
+                              data-testid={`player-item-${team.id}-${player.id}`}
+                            >
+                              <span className="font-medium">{player.name}</span>
+                              <div className="flex items-center space-x-2 text-muted-foreground">
+                                {player.position && (
+                                  <span>{player.position}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               }).filter(Boolean)
