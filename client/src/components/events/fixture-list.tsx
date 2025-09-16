@@ -119,12 +119,24 @@ export default function FixtureList() {
       createdAt: new Date(event.createdAt)
     }));
 
-    // Filter by user's teams - coaches only see their own teams
+    // Filter by user's teams - show fixtures for both coached teams and dependent teams
+    let allowedTeamIds: string[] = [];
+    
     if (hasRole("coach") && user?.teamIds) {
-      events = events.filter(event => user.teamIds.includes(event.teamId));
-    } else if (hasRole("parent") && playersResponse?.players) {
-      const teamIds = playersResponse.players.map(player => player.teamId);
-      events = events.filter(event => teamIds.includes(event.teamId));
+      // Add teams the user coaches
+      allowedTeamIds.push(...user.teamIds);
+    }
+    
+    if (hasRole("parent") && playersResponse?.players) {
+      // Add teams where user has dependents
+      const parentTeamIds = playersResponse.players.map(player => player.teamId);
+      allowedTeamIds.push(...parentTeamIds);
+    }
+    
+    // Remove duplicates and filter events
+    allowedTeamIds = [...new Set(allowedTeamIds)];
+    if (allowedTeamIds.length > 0) {
+      events = events.filter(event => allowedTeamIds.includes(event.teamId));
     }
 
     // Filter to only show matches and tournaments (exclude all other event types)

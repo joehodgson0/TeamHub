@@ -52,12 +52,25 @@ export default function UpcomingFixturesWidget() {
       events = events.filter(event => !fixturesWithResults.has(event.id));
     }
     
-    // NOTE: The backend /api/events/upcoming-session already filters events appropriately
-    // for coaches (all club teams) and parents (player teams), so we don't need to
-    // filter again on the frontend. Only filter if user has neither coach nor parent roles.
-    if (!user.roles.includes("coach") && !user.roles.includes("parent")) {
-      // For other users, filter to their direct team associations
-      events = events.filter(event => user.teamIds?.includes(event.teamId));
+    // The backend filters appropriately, but we need to ensure proper team visibility
+    // Show fixtures for both coached teams and teams where user has dependents
+    let allowedTeamIds: string[] = [];
+    
+    if (user.roles.includes("coach") && user.teamIds) {
+      // Add teams the user coaches
+      allowedTeamIds.push(...user.teamIds);
+    }
+    
+    if (user.roles.includes("parent") && playersResponse?.players) {
+      // Add teams where user has dependents
+      const parentTeamIds = playersResponse.players.map(player => player.teamId);
+      allowedTeamIds.push(...parentTeamIds);
+    }
+    
+    // Remove duplicates and filter events
+    allowedTeamIds = [...new Set(allowedTeamIds)];
+    if (allowedTeamIds.length > 0) {
+      events = events.filter(event => allowedTeamIds.includes(event.teamId));
     }
 
     return events.slice(0, 2); // Show only next 2 fixtures
