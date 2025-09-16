@@ -56,6 +56,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events/team'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
     },
   });
 
