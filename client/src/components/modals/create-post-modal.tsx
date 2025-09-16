@@ -91,11 +91,7 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
         type: data.type,
         title: data.title,
         content: data.content,
-        authorId: user.id,
-        authorName: user.name || user.email.split('@')[0],
-        authorRole: user.roles.includes("coach") ? "Team Manager" : "Club Administrator",
-        teamId: data.scope === "team" && managerTeam ? managerTeam.id : undefined,
-        clubId: data.scope === "club" && user.clubId ? user.clubId : undefined,
+        scope: data.scope,
       };
 
       await createPostMutation.mutateAsync(postData);

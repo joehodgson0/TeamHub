@@ -1171,16 +1171,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/posts", async (req, res) => {
+  app.post("/api/posts", async (req: any, res) => {
     try {
-      const postData = req.body;
+      const { type, title, content, scope } = req.body;
       
+      if (!type || !title || !content || !scope) {
+        return res.status(400).json({ success: false, error: "Missing required fields" });
+      }
+
+      // Get authenticated user ID from session (secure)
+      let userId = null;
+      if (req.session?.userId) {
+        userId = req.session.userId;
+      } else if (req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      // Get user and verify permissions
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ success: false, error: "User not found" });
+      }
+
+      if (!user.clubId) {
+        return res.status(403).json({ success: false, error: "You must be associated with a club to create posts" });
+      }
+
       // Generate unique post ID
       const postId = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
+      // Determine post assignment based on scope and user permissions
+      let teamId = undefined;
+      let clubId = undefined;
+
+      if (scope === "team") {
+        // For team posts, user must be a coach and have teams
+        if (!user.roles?.includes("coach")) {
+          return res.status(403).json({ success: false, error: "Only coaches can create team posts" });
+        }
+        
+        if (!user.teamIds || user.teamIds.length === 0) {
+          return res.status(403).json({ success: false, error: "You must manage a team to create team posts" });
+        }
+        
+        // Assign to user's first team (coaches typically manage one team)
+        teamId = user.teamIds[0];
+      } else if (scope === "club") {
+        // For club posts, assign to user's club
+        clubId = user.clubId;
+      } else {
+        return res.status(400).json({ success: false, error: "Invalid post scope" });
+      }
+
       const newPost = await storage.createPost({
-        ...postData,
         id: postId,
+        type,
+        title,
+        content,
+        authorId: userId,
+        authorName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email?.split('@')[0] || 'Unknown',
+        authorRole: user.roles?.includes("coach") ? "Team Manager" : "Club Administrator",
+        teamId,
+        clubId,
         createdAt: new Date()
       });
 
