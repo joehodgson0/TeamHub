@@ -26,8 +26,6 @@ export default function TeamManagementSection() {
   const [isJoining, setIsJoining] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   
-  const canCreateTeam = isCoach && user?.clubId;
-
   // Fetch club data from database
   const { data: clubData, isLoading: clubLoading } = useQuery<{ club: any }>({
     queryKey: ["/api/clubs", user?.clubId],
@@ -86,6 +84,7 @@ export default function TeamManagementSection() {
   });
 
   const teams = teamsData?.teams || [];
+  const canCreateTeam = isCoach && user?.clubId && teams.length === 0;
 
   // Helper component for individual team with players
   const TeamWithPlayers = ({ team, isCoach, setEditingTeam, setShowEditModal }: { 
