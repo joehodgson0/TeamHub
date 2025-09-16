@@ -65,10 +65,12 @@ export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalPro
         form.reset();
         onOpenChange(false);
         
-        // Invalidate related queries
-        queryClient.invalidateQueries({ queryKey: ['/api/players/parent'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/teams/club'] });
+        // Invalidate related queries to refresh cached data
+        await queryClient.invalidateQueries({ queryKey: ['/api/players/parent'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/teams/club'] });
+        // Force refetch by clearing all related cache
+        await queryClient.refetchQueries({ queryKey: ['/api/teams/club'] });
       } else {
         toast({
           variant: "destructive",
