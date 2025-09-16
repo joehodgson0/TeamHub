@@ -68,6 +68,7 @@ export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalPro
         // Invalidate related queries
         queryClient.invalidateQueries({ queryKey: ['/api/players/parent'] });
         queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/teams/club'] });
       } else {
         toast({
           variant: "destructive",
