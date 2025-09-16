@@ -1,13 +1,10 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart } from "lucide-react";
 
 export default function TeamStatsWidget() {
   const { user } = useAuth();
-  const [selectedSeason, setSelectedSeason] = useState("current");
 
   // Fetch user's players for filtering (for parents)
   const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
@@ -79,21 +76,10 @@ export default function TeamStatsWidget() {
   return (
     <Card data-testid="widget-team-stats">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <BarChart className="w-5 h-5 text-primary" />
-            <span>Team Stats</span>
-          </CardTitle>
-          <Select value={selectedSeason} onValueChange={setSelectedSeason} data-testid="select-season">
-            <SelectTrigger className="w-32 h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="current">Current Season</SelectItem>
-              <SelectItem value="previous">Previous Season</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <CardTitle className="flex items-center space-x-2">
+          <BarChart className="w-5 h-5 text-primary" />
+          <span>Team Stats</span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 gap-4">
