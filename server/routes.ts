@@ -1236,8 +1236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         authorName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.email?.split('@')[0] || 'Unknown',
         authorRole: user.roles?.includes("coach") ? "Team Manager" : "Club Administrator",
         teamId,
-        clubId,
-        createdAt: new Date()
+        clubId
       });
 
       res.json({ success: true, post: newPost });
