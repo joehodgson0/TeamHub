@@ -14,10 +14,10 @@ export default function UpcomingFixturesWidget() {
     enabled: !!user,
   });
   
-  // Fetch user's teams for filtering
+  // Fetch user's teams for filtering and team name resolution
   const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
     queryKey: ['/api/teams/club', user?.clubId],
-    enabled: !!user?.clubId && user?.roles.includes('coach'),
+    enabled: !!user?.clubId,
   });
   
   // Fetch user's players for filtering
@@ -70,6 +70,12 @@ export default function UpcomingFixturesWidget() {
     const confirmed = availabilityEntries.filter(status => status === "available").length;
     const total = availabilityEntries.length;
     return { confirmed, total };
+  };
+
+  const getTeamName = (teamId: string) => {
+    if (!teamsResponse?.teams) return "Unknown Team";
+    const team = teamsResponse.teams.find((team: any) => team.id === teamId);
+    return team ? team.name : "Unknown Team";
   };
 
   const formatFixtureTime = (date: Date) => {
@@ -141,6 +147,16 @@ export default function UpcomingFixturesWidget() {
                       </h4>
                     </div>
                   </div>
+
+                  {/* Team */}
+                  {fixture.teamId && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <span className="text-muted-foreground">Team:</span>
+                      <span className="font-medium text-primary" data-testid={`fixture-team-${fixture.id}`}>
+                        {getTeamName(fixture.teamId)}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Opponent */}
                   {fixture.opponent && (
