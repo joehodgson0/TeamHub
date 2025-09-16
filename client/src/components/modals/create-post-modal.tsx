@@ -56,6 +56,7 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
       return result.post;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts/team'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts/club'] });
