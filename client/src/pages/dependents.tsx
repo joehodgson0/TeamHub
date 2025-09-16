@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, CheckCircle, Trophy } from "lucide-react";
+import { Plus, Eye, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import AddPlayerModal from "@/components/modals/add-player-modal";
 import type { Player, Team } from "@shared/schema";
@@ -155,22 +155,6 @@ export default function Dependents() {
             </CardContent>
           </Card>
 
-          {/* Recent Activity for First Player */}
-          {players.length > 0 && (
-            <Card data-testid="card-recent-activity">
-              <CardHeader>
-                <CardTitle>{players[0].name}'s Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-center py-6 text-muted-foreground">
-                    <Trophy className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No recent activity</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
 
