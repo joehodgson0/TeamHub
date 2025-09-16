@@ -261,12 +261,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/teams", async (req, res) => {
+  app.post("/api/teams", async (req: any, res) => {
     try {
-      const { name, ageGroup, clubId } = req.body;
+      const { name, ageGroup } = req.body;
       
-      if (!name || !ageGroup || !clubId) {
+      if (!name || !ageGroup) {
         return res.status(400).json({ success: false, error: "Missing required fields" });
+      }
+
+      // Get authenticated user ID from session (secure)
+      let userId = null;
+      if (req.session?.userId) {
+        userId = req.session.userId;
+      } else if (req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      // Get user and verify they have coach role and club membership
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ success: false, error: "User not found" });
+      }
+
+      if (!user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Only coaches can create teams" });
+      }
+
+      if (!user.clubId) {
+        return res.status(403).json({ success: false, error: "You must be associated with a club to create teams" });
       }
 
       // Generate unique team ID and code
@@ -278,12 +304,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name,
         ageGroup,
         code: teamCode,
-        clubId,
+        clubId: user.clubId, // Use authenticated user's clubId (secure)
         playerIds: [],
         wins: 0,
         draws: 0,
         losses: 0
       });
+
+      // Associate the creating coach with the team
+      const updatedTeamIds = [...(user.teamIds || []), teamId];
+      await storage.updateUser(userId, { teamIds: updatedTeamIds });
 
       res.json({ success: true, team: newTeam, teamCode });
     } catch (error) {
@@ -292,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/teams/club/:clubId", async (req, res) => {
+  app.get("/api/teams/club/:clubId", async (req: any, res) => {
     try {
       const { clubId } = req.params;
       
@@ -300,7 +330,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, error: "Club ID required" });
       }
 
-      const teams = await storage.getTeamsByClubId(clubId);
+      // Get current user from session
+      let userId = null;
+      if (req.session?.userId) {
+        userId = req.session.userId;
+      } else if (req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || user.clubId !== clubId) {
+        return res.status(403).json({ success: false, error: "Access denied to this club" });
+      }
+
+      let teams = [];
+
+      // Role-based team filtering
+      if (user.roles?.includes("coach")) {
+        // Coaches: only see teams they manage (in their teamIds)
+        if (user.teamIds?.length > 0) {
+          for (const teamId of user.teamIds) {
+            const team = await storage.getTeamById(teamId);
+            if (team && team.clubId === clubId) {
+              teams.push(team);
+            }
+          }
+        }
+      }
+
+      if (user.roles?.includes("parent")) {
+        // Parents: see teams their dependents play on
+        const players = await storage.getPlayersByParentId(userId);
+        const teamIds = Array.from(new Set(players.map(player => player.teamId).filter(Boolean)));
+        
+        for (const teamId of teamIds) {
+          const team = await storage.getTeamById(teamId);
+          if (team && team.clubId === clubId && !teams.find(t => t.id === team.id)) {
+            teams.push(team);
+          }
+        }
+      }
+
       res.json({ success: true, teams });
     } catch (error) {
       console.error("Get teams by club error:", error);

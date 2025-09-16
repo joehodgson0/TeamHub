@@ -52,7 +52,6 @@ export default function CreateTeamModal({ open, onOpenChange }: CreateTeamModalP
         body: JSON.stringify({
           name: data.name,
           ageGroup: data.ageGroup,
-          clubId: user.clubId,
         }),
         credentials: "include",
       });
