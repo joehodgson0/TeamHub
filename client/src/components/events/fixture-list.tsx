@@ -91,10 +91,10 @@ export default function FixtureList() {
     enabled: !!user,
   });
   
-  // Fetch user's teams for filtering
+  // Fetch user's teams for filtering and team name resolution
   const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
     queryKey: ['/api/teams/club', user?.clubId],
-    enabled: !!user?.clubId && hasRole('coach'),
+    enabled: !!user?.clubId,
   });
   
   // Fetch user's players for filtering
@@ -187,6 +187,12 @@ export default function FixtureList() {
     return `${format(startTime, "MMM d, h:mm a")} - ${format(endTime, "MMM d, h:mm a")}`;
   };
 
+  const getTeamName = (teamId: string) => {
+    if (!teamsResponse?.teams) return "Unknown Team";
+    const team = teamsResponse.teams.find((team: any) => team.id === teamId);
+    return team ? team.name : "Unknown Team";
+  };
+
   return (
     <>
       <Card data-testid="card-fixtures">
@@ -205,7 +211,6 @@ export default function FixtureList() {
               </div>
             ) : (
               fixtures.map((fixture) => {
-                // Team info would be fetched if needed
                 const availability = getAvailabilityCount(fixture);
 
                 return (
@@ -222,6 +227,11 @@ export default function FixtureList() {
                         <h4 className="font-medium" data-testid={`fixture-name-${fixture.id}`}>
                           {fixture.name}
                         </h4>
+                        {fixture.teamId && (
+                          <span className="text-sm text-primary font-medium" data-testid={`fixture-team-${fixture.id}`}>
+                            ({getTeamName(fixture.teamId)})
+                          </span>
+                        )}
                       </div>
                       {isCoach && (
                         <div className="flex items-center space-x-2">
