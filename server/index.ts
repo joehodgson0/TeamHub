@@ -60,7 +60,7 @@ function setupProductionBuild() {
   
   // Define paths
   const buildOutputPath = path.resolve(import.meta.dirname, '..', 'dist', 'public');
-  const serverPublicPath = path.resolve(import.meta.dirname, 'public');
+  const serverPublicPath = path.resolve(import.meta.dirname, '..', 'server', 'public');
   
   console.log(`[startup] Build output path: ${buildOutputPath}`);
   console.log(`[startup] Server public path: ${serverPublicPath}`);

@@ -1,0 +1,78 @@
+
+[startup] ❌ Build validation failed:
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] Missing directory: /home/runner/workspace/dist/public
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] This usually means the frontend build process has not been run.
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] Run the appropriate build command to generate production assets.
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] ❌ Fatal error during server initialization:
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] Build output path: /home/runner/workspace/dist/public
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] Server public path: /home/runner/workspace/dist/public
+2025-09-18 09:42:34.38
+dda39ca8
+User
+Error: Production build not found at /home/runner/workspace/dist/public. Please run the build process first to generate the production assets. Expected directory structure: dist/public with built client files.
+2025-09-18 09:42:34.38
+dda39ca8
+User
+at setupProductionBuild (file:///home/runner/workspace/dist/index.js:1976:19)
+2025-09-18 09:42:34.38
+dda39ca8
+User
+at file:///home/runner/workspace/dist/index.js:2042:7
+2025-09-18 09:42:34.38
+dda39ca8
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] Error name: Error
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] Error message: Production build not found at /home/runner/workspace/dist/public. Please run the build process first to generate the production assets. Expected directory structure: dist/public with built client files.
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] Stack trace:
+2025-09-18 09:42:34.38
+dda39ca8
+User
+Error: Production build not found at /home/runner/workspace/dist/public. Please run the build process first to generate the production assets. Expected directory structure: dist/public with built client files.
+2025-09-18 09:42:34.38
+dda39ca8
+User
+at setupProductionBuild (file:///home/runner/workspace/dist/index.js:1976:19)
+2025-09-18 09:42:34.38
+dda39ca8
+User
+at file:///home/runner/workspace/dist/index.js:2042:7
+2025-09-18 09:42:34.38
+dda39ca8
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-09-18 09:42:34.38
+dda39ca8
+User
+[startup] Server failed to start. Exiting...
+2025-09-18 09:42:34.52
+dda39ca8
+System
+command finished with error [npm run start]: exit status 1
