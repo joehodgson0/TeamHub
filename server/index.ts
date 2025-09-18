@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 app.use(express.json());
@@ -52,6 +54,84 @@ function validateEnvironment() {
   }
 }
 
+// Setup production build file serving
+function setupProductionBuild() {
+  console.log('[startup] Configuring production build file serving...');
+  
+  // Define paths
+  const buildOutputPath = path.resolve(import.meta.dirname, '..', 'dist', 'public');
+  const serverPublicPath = path.resolve(import.meta.dirname, 'public');
+  
+  console.log(`[startup] Build output path: ${buildOutputPath}`);
+  console.log(`[startup] Server public path: ${serverPublicPath}`);
+  
+  // Check if build output exists
+  if (!fs.existsSync(buildOutputPath)) {
+    const error = new Error(
+      `Production build not found at ${buildOutputPath}. ` +
+      'Please run the build process first to generate the production assets. ' +
+      'Expected directory structure: dist/public with built client files.'
+    );
+    console.error('[startup] ❌ Build validation failed:');
+    console.error(`[startup] Missing directory: ${buildOutputPath}`);
+    console.error('[startup] This usually means the frontend build process has not been run.');
+    console.error('[startup] Run the appropriate build command to generate production assets.');
+    throw error;
+  }
+  
+  console.log('[startup] ✅ Build output directory found');
+  
+  // Remove existing server/public if it exists
+  if (fs.existsSync(serverPublicPath)) {
+    console.log('[startup] Removing existing server/public directory...');
+    fs.rmSync(serverPublicPath, { recursive: true, force: true });
+  }
+  
+  // Ensure server directory exists
+  const serverDir = path.dirname(serverPublicPath);
+  if (!fs.existsSync(serverDir)) {
+    console.log(`[startup] Creating server directory: ${serverDir}`);
+    fs.mkdirSync(serverDir, { recursive: true });
+  }
+  
+  // Try to create symlink, fallback to copy
+  try {
+    console.log('[startup] Attempting to create symlink from build output to server/public...');
+    fs.symlinkSync(buildOutputPath, serverPublicPath, 'dir');
+    console.log('[startup] ✅ Symlink created successfully');
+    console.log(`[startup] Symlink: ${serverPublicPath} -> ${buildOutputPath}`);
+  } catch (symlinkError) {
+    console.warn('[startup] ⚠️  Symlink creation failed, falling back to copy operation');
+    console.warn(`[startup] Symlink error: ${symlinkError instanceof Error ? symlinkError.message : symlinkError}`);
+    
+    try {
+      console.log('[startup] Copying build output to server/public...');
+      fs.cpSync(buildOutputPath, serverPublicPath, { recursive: true });
+      console.log('[startup] ✅ Files copied successfully');
+      console.log(`[startup] Copied from: ${buildOutputPath}`);
+      console.log(`[startup] Copied to: ${serverPublicPath}`);
+    } catch (copyError) {
+      const error = new Error(
+        `Failed to setup production file serving. ` +
+        `Could not create symlink or copy from ${buildOutputPath} to ${serverPublicPath}. ` +
+        `Symlink error: ${symlinkError instanceof Error ? symlinkError.message : symlinkError}. ` +
+        `Copy error: ${copyError instanceof Error ? copyError.message : copyError}`
+      );
+      console.error('[startup] ❌ File serving setup failed:');
+      console.error(`[startup] Symlink failed: ${symlinkError}`);
+      console.error(`[startup] Copy failed: ${copyError}`);
+      throw error;
+    }
+  }
+  
+  // Verify the setup worked
+  if (!fs.existsSync(serverPublicPath)) {
+    throw new Error(`File serving setup verification failed: ${serverPublicPath} does not exist after setup`);
+  }
+  
+  console.log('[startup] ✅ Production build file serving configured successfully');
+}
+
 // Enhanced startup function with error handling
 (async () => {
   try {
@@ -78,6 +158,7 @@ function validateEnvironment() {
       console.log('[startup] Vite development server ready');
     } else {
       console.log('[startup] Setting up static file serving for production...');
+      setupProductionBuild();
       serveStatic(app);
       console.log('[startup] Static file serving configured');
     }
