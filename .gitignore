@@ -4,3 +4,10 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Mobile app
+mobile/node_modules
+mobile/.expo
+mobile/dist
+mobile/web-build
+mobile/.metro-health-check*
