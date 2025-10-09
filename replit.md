@@ -57,8 +57,17 @@ The application uses Zod schemas for type validation and data modeling:
 
 ### Authentication & Authorization
 
-Role-based access control system:
+**Environment-Based Authentication:**
+- **Development Mode**: Uses email/password authentication only
+  - Registration with email, first name, last name, and password
+  - Session-based login with bcrypt password hashing
+  - Traditional logout and session management
+- **Production Mode**: Uses Replit OAuth (Google authentication) only
+  - Google OAuth login via Replit's authentication service
+  - Automatic user provisioning from OAuth claims
+  - Token-based session management with refresh
 
+**Role-Based Access Control:**
 - **Coach Role**: Can create teams, schedule fixtures, manage team posts, view all team data
 - **Parent Role**: Can add dependents (players), join teams via codes, view relevant team information
 - **Multi-role Support**: Users can have both coach and parent roles simultaneously
@@ -86,6 +95,14 @@ Role-based access control system:
 
 ## Recent Changes
 
+### October 2025 - Environment-Based Authentication
+- Modified authentication to use different methods based on environment:
+  - **Development**: Email/password authentication only (for local development and testing)
+  - **Production**: Replit OAuth (Google) authentication only (for deployed app)
+- Updated landing page to conditionally display auth options based on environment
+- Backend automatically configures auth strategy based on NODE_ENV
+- Mobile app configured to use backend's email/password endpoints
+
 ### January 2025 - Mobile App Phase 1 Implementation
 - Created `mobile/` directory with React Native Expo application
 - Implemented Expo Router file-based navigation with authentication flow
@@ -96,3 +113,4 @@ Role-based access control system:
 - Implemented useAuth hook for mobile authentication state
 - Added TypeScript path aliases for @/ and @shared imports
 - Configured environment variables for API base URL (development/production)
+- Successfully running on Expo Go with tunnel mode for device testing

@@ -9,7 +9,9 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.REPLIT_DOMAINS) {
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (isProduction && !process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
 
@@ -73,6 +75,14 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Only setup Replit OAuth in production
+  if (!isProduction) {
+    console.log('Development mode: Using email/password authentication only');
+    return;
+  }
+
+  console.log('Production mode: Using Replit OAuth authentication');
+  
   const config = await getOidcConfig();
 
   const verify: VerifyFunction = async (
