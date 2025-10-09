@@ -1,8 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import fs from "fs";
-import path from "path";
+import * as fs from "fs";
+import * as path from "path";
 
 const app = express();
 app.use(express.json());
@@ -152,7 +152,7 @@ function setupProductionBuild() {
     // importantly only setup vite in development and after
     // setting up all the other routes so the catch-all route
     // doesn't interfere with the other routes
-    if (process.env.NODE_ENV === "development") {
+    if ((process.env.NODE_ENV || '').trim() === 'development') {
       console.log('[startup] Setting up Vite development server...');
       await setupVite(app, server);
       console.log('[startup] Vite development server ready');
@@ -172,12 +172,11 @@ function setupProductionBuild() {
     
     server.listen({
       port,
-      host: "0.0.0.0",
-      reusePort: true,
+      host: "127.0.0.1"
     }, () => {
       log(`serving on port ${port}`);
       console.log(`[startup] ✅ Server successfully started in ${process.env.NODE_ENV} mode`);
-      console.log(`[startup] 🚀 Application ready at http://0.0.0.0:${port}`);
+      console.log(`[startup] 🚀 Application ready at http://127.0.0.1:${port}`);
     });
     
   } catch (error) {
