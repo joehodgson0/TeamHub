@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-    "devwin": "SET NODE_ENV=development & SET DATABASE_URL='postgresql://neondb_owner:npg_6HGpAyB4Lwze@ep-noisy-snow-a84ix8ap-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require' & SET REPLIT_DOMAINS='' & SET SESSION_SECRET=you_super_secret_key & tsx server/index.ts",
+    "devwin": "SET NODE_ENV=development & SET DATABASE_URL=postgresql://neondb_owner:npg_6HGpAyB4Lwze@ep-noisy-snow-a84ix8ap-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require & SET SESSION_SECRET=you_super_secret_key & tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
