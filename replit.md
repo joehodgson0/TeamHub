@@ -57,15 +57,16 @@ The application uses Zod schemas for type validation and data modeling:
 
 ### Authentication & Authorization
 
-**Environment-Based Authentication:**
-- **Development Mode**: Uses email/password authentication only
+**Dual Authentication System:**
+- **Email/Password Authentication**: Always available
   - Registration with email, first name, last name, and password
   - Session-based login with bcrypt password hashing
   - Traditional logout and session management
-- **Production Mode**: Uses Replit OAuth (Google authentication) only
+- **Replit OAuth (Google)**: Available when REPLIT_DOMAINS is configured
   - Google OAuth login via Replit's authentication service
   - Automatic user provisioning from OAuth claims
   - Token-based session management with refresh
+- Users can choose either authentication method on the landing page
 
 **Role-Based Access Control:**
 - **Coach Role**: Can create teams, schedule fixtures, manage team posts, view all team data
@@ -95,13 +96,12 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
-### October 2025 - Environment-Based Authentication
-- Modified authentication to use different methods based on environment:
-  - **Development**: Email/password authentication only (for local development and testing)
-  - **Production**: Replit OAuth (Google) authentication only (for deployed app)
-- Updated landing page to conditionally display auth options based on environment
-- Backend automatically configures auth strategy based on NODE_ENV
-- Mobile app configured to use backend's email/password endpoints
+### October 2025 - Dual Authentication System
+- Implemented dual authentication supporting both email/password and Replit OAuth
+- Email/password authentication always available for flexibility
+- Replit OAuth (Google) available when REPLIT_DOMAINS environment variable is configured
+- Landing page displays both authentication options for user choice
+- Mobile app uses email/password authentication endpoints
 
 ### January 2025 - Mobile App Phase 1 Implementation
 - Created `mobile/` directory with React Native Expo application
