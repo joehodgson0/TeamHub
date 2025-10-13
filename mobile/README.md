@@ -1,50 +1,107 @@
-# Welcome to your Expo app 👋
+# TeamHub Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+React Native mobile application for TeamHub using Expo SDK 54.
 
-## Get started
+## Features
 
-1. Install dependencies
+### ✅ Authentication
+- Landing page with app overview
+- Email/password login and registration
+- Role selection (Coach/Parent)
+- Session-based authentication
 
+### ✅ Main App Screens
+- **Dashboard**: Overview with upcoming events and team stats
+- **Teams**: View and manage teams
+- **Events**: View fixtures and upcoming events
+- **Posts**: Team announcements and updates
+- **Settings**: User profile and logout
+
+## Setup
+
+1. **Install dependencies:**
    ```bash
+   cd mobile
    npm install
    ```
 
-2. Start the app
-
+2. **Start Expo:**
    ```bash
-   npx expo start
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+3. **Test on Device:**
+   - Open **Expo Go** app on your iPhone or Android device
+   - Scan the QR code shown in the terminal
+   - The app will load on your device
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Tech Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **Expo SDK 54** (React Native 0.81, React 19.1)
+- **Expo Router** - File-based navigation with authentication flow
+- **React Query** - Server state management
+- **TypeScript** - Type safety
+- **Same Backend** - Connects to the TeamHub web backend
 
-## Get a fresh project
+## Project Structure
 
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+mobile/
+├── app/
+│   ├── (auth)/              # Authentication screens
+│   │   ├── landing.tsx
+│   │   ├── login.tsx
+│   │   ├── register.tsx
+│   │   └── role-selection.tsx
+│   ├── (tabs)/              # Main app tabs
+│   │   ├── index.tsx        # Dashboard
+│   │   ├── teams.tsx
+│   │   ├── events.tsx
+│   │   ├── posts.tsx
+│   │   └── settings.tsx
+│   ├── _layout.tsx          # Root layout with auth guard
+│   └── index.tsx            # Entry point
+├── src/
+│   ├── components/ui/       # Reusable UI components
+│   ├── hooks/               # Custom hooks (useAuth)
+│   └── lib/                 # Config & utilities
+├── app.json                 # Expo configuration
+└── package.json
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Backend Connection
 
-## Learn more
+The app connects to: `https://workspace.joehodgson0.repl.co`
 
-To learn more about developing your project with Expo, look at the following resources:
+All API requests use the same endpoints as the web application.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Navigation Flow
 
-## Join the community
+1. **Unauthenticated**: Landing → Login/Register → Role Selection
+2. **Authenticated**: Tab Navigation (Dashboard, Teams, Events, Posts, Settings)
 
-Join our community of developers creating universal apps.
+## Building for App Store
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+When ready to publish:
+
+1. **Initialize EAS:**
+   ```bash
+   npx eas init
+   ```
+
+2. **Build for iOS:**
+   ```bash
+   npx eas build --platform ios
+   ```
+
+3. **Submit to App Store:**
+   ```bash
+   npx eas submit --platform ios
+   ```
+
+## Important Notes
+
+- **New Architecture**: Disabled for Expo Go compatibility
+- **Tunnel Mode**: Enabled by default for testing on Replit
+- Uses email/password authentication (same as web)
+- All data is synced with the web application
