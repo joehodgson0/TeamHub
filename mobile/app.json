@@ -33,6 +33,6 @@
       "expo-router"
     ],
     "scheme": "teamhub",
-    "newArchEnabled": true
+    "newArchEnabled": false
   }
 }
