@@ -28,6 +28,9 @@ export default function Login() {
 
       const result = await response.json();
 
+      console.log('Login response:', result);
+      console.log('Response status:', response.status);
+
       if (result.success) {
         await queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
         
@@ -40,7 +43,8 @@ export default function Login() {
         Alert.alert('Error', result.error || 'Failed to login');
       }
     } catch (error) {
-      Alert.alert('Error', 'An error occurred. Please try again.');
+      console.error('Login error:', error);
+      Alert.alert('Error', `An error occurred: ${error instanceof Error ? error.message : 'Please try again'}`);
     } finally {
       setIsLoading(false);
     }
