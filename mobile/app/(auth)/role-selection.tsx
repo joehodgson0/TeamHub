@@ -36,7 +36,9 @@ export default function RoleSelection() {
       const result = await response.json();
 
       if (result.success) {
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
+        // Update user with new roles in the cache
+        const updatedUser = { ...user, roles: selectedRoles };
+        queryClient.setQueryData(['/api/auth/user-session'], updatedUser);
         router.replace('/(tabs)');
       } else {
         Alert.alert('Error', result.error || 'Failed to update roles');

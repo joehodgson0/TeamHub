@@ -32,7 +32,8 @@ export default function Login() {
       console.log('Response status:', response.status);
 
       if (result.success) {
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
+        // Manually set the user in the cache since React Native doesn't handle cookies
+        queryClient.setQueryData(['/api/auth/user-session'], result.user);
         
         if (!result.user.roles || result.user.roles.length === 0) {
           router.replace('/(auth)/role-selection');

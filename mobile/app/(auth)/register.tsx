@@ -49,7 +49,8 @@ export default function Register() {
       const result = await response.json();
 
       if (result.success) {
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
+        // Manually set the user in the cache since React Native doesn't handle cookies
+        queryClient.setQueryData(['/api/auth/user-session'], result.user);
         router.replace('/(auth)/role-selection');
       } else {
         Alert.alert('Error', result.error || 'Failed to register');
