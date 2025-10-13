@@ -11,17 +11,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="teams"
-        options={{
-          title: 'Teams',
-          tabBarLabel: 'Teams',
-        }}
-      />
-      <Tabs.Screen
         name="events"
         options={{
           title: 'Events',
           tabBarLabel: 'Events',
+        }}
+      />
+      <Tabs.Screen
+        name="dependents"
+        options={{
+          title: 'Dependents',
+          tabBarLabel: 'Dependents',
         }}
       />
       <Tabs.Screen
