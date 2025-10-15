@@ -25,7 +25,7 @@ export function useAuth() {
       }
       
       const data = await response.json();
-      return data.user as User | null;
+      return (data.user as User | null) ?? null;
     },
     retry: false,
   });
