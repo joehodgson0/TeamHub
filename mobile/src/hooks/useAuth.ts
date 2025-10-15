@@ -38,11 +38,22 @@ export function useAuth() {
     },
   });
 
+  const updateUserRoles = async (userId: string, roles: ('coach' | 'parent')[]) => {
+    const result = await apiRequest('/api/auth/update-roles-session', {
+      method: 'POST',
+      body: JSON.stringify({ userId, roles }),
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
+    return result;
+  };
+
   return {
     user: user || null,
     isAuthenticated: !!user,
     isLoading,
     hasRole: (role: 'coach' | 'parent') => user?.roles?.includes(role) ?? false,
     logout: () => logoutMutation.mutateAsync(),
+    updateUserRoles,
   };
 }
