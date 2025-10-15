@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { API_BASE_URL, queryClient, apiRequest } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { API_BASE_URL } from '@/lib/config';
 
 export interface User {
   id: string;

@@ -15,9 +15,13 @@ export default function Settings() {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => {
-            logout();
-            router.replace('/(auth)/landing');
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace('/(auth)/landing');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
           },
         },
       ]
