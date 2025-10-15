@@ -96,6 +96,15 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
+### October 2025 - Mobile Role-Based Tab Navigation
+- Implemented dynamic tab navigation based on user roles in mobile app
+- **Coach-only users** see: Dashboard, Team, Events, Posts, Settings
+- **Parent-only users** see: Dashboard, Events, Dependents, Posts, Settings
+- **Users with both roles** see: Dashboard, Team, Dependents, Events, Posts, Settings
+- Created Teams page (`mobile/app/(tabs)/teams.tsx`) for team management on mobile
+- Teams page displays team information, player rosters, and match records for coaches
+- Tab visibility controlled using Expo Router's `href` option based on user roles
+
 ### October 2025 - Dual Authentication System
 - Implemented dual authentication supporting both email/password and Replit OAuth
 - Email/password authentication always available for flexibility
