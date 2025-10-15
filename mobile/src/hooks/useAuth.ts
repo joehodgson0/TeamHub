@@ -9,6 +9,7 @@ export interface User {
   lastName: string;
   roles?: ('coach' | 'parent')[];
   clubId?: string;
+  teamIds?: string[];
 }
 
 export function useAuth() {

@@ -57,7 +57,11 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
     enabled: !!user?.clubId && visible,
   });
 
-  const teams = teamsResponse?.teams || [];
+  // Filter to only show teams the user manages (teams in user.teamIds)
+  const allTeams = teamsResponse?.teams || [];
+  const teams = allTeams.filter((team: any) => 
+    user?.teamIds?.includes(team.id)
+  );
 
   // Set default team when teams load
   useEffect(() => {
