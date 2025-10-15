@@ -36,14 +36,14 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
   const [name, setName] = useState('');
   const [opponent, setOpponent] = useState('');
   const [location, setLocation] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [startDateTime, setStartDateTime] = useState<Date>(new Date());
+  const [endDateTime, setEndDateTime] = useState<Date>(new Date(Date.now() + 2 * 60 * 60 * 1000)); // 2 hours from now
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [homeAway, setHomeAway] = useState<string>('home');
   const [friendly, setFriendly] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   // Fetch user's teams
   const { data: teamsResponse } = useQuery({
@@ -93,14 +93,35 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
     setName('');
     setOpponent('');
     setLocation('');
-    setStartDate('');
-    setStartTime('');
-    setEndDate('');
-    setEndTime('');
+    setStartDateTime(new Date());
+    setEndDateTime(new Date(Date.now() + 2 * 60 * 60 * 1000));
     setAdditionalInfo('');
     setHomeAway('home');
     setFriendly(false);
     setSelectedTeamId(teams[0]?.id || '');
+    setShowStartDatePicker(false);
+    setShowEndDatePicker(false);
+  };
+
+  const formatDateTime = (date: Date) => {
+    return date.toISOString();
+  };
+
+  const formatDisplayDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatDisplayTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
   };
 
   const handleSubmit = () => {
@@ -113,12 +134,8 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
       Alert.alert('Error', 'Please enter a location');
       return;
     }
-    if (!startDate || !startTime) {
-      Alert.alert('Error', 'Please enter start date and time');
-      return;
-    }
-    if (!endDate || !endTime) {
-      Alert.alert('Error', 'Please enter end date and time');
+    if (endDateTime <= startDateTime) {
+      Alert.alert('Error', 'End time must be after start time');
       return;
     }
     if (eventType === 'match' && !opponent.trim()) {
@@ -130,16 +147,12 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
       return;
     }
 
-    // Construct datetime strings
-    const startDateTime = `${startDate}T${startTime}:00`;
-    const endDateTime = `${endDate}T${endTime}:00`;
-
     const eventData: any = {
       type: eventType,
       teamId: selectedTeamId,
       location: location.trim(),
-      startTime: startDateTime,
-      endTime: endDateTime,
+      startTime: formatDateTime(startDateTime),
+      endTime: formatDateTime(endDateTime),
       additionalInfo: additionalInfo.trim() || undefined,
     };
 
@@ -270,39 +283,31 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
           {/* Start Date and Time */}
           <View style={styles.section}>
             <Text style={styles.label}>Start Date & Time</Text>
-            <View style={styles.dateTimeRow}>
-              <TextInput
-                style={[styles.input, styles.dateInput]}
-                value={startDate}
-                onChangeText={setStartDate}
-                placeholder="YYYY-MM-DD"
-              />
-              <TextInput
-                style={[styles.input, styles.timeInput]}
-                value={startTime}
-                onChangeText={setStartTime}
-                placeholder="HH:MM"
-              />
-            </View>
+            <TouchableOpacity
+              style={styles.dateTimeButton}
+              onPress={() => setShowStartDatePicker(true)}
+            >
+              <View style={styles.dateTimeDisplay}>
+                <Text style={styles.dateText}>📅 {formatDisplayDate(startDateTime)}</Text>
+                <Text style={styles.timeText}>🕐 {formatDisplayTime(startDateTime)}</Text>
+              </View>
+              <Text style={styles.changeText}>Change</Text>
+            </TouchableOpacity>
           </View>
 
           {/* End Date and Time */}
           <View style={styles.section}>
             <Text style={styles.label}>End Date & Time</Text>
-            <View style={styles.dateTimeRow}>
-              <TextInput
-                style={[styles.input, styles.dateInput]}
-                value={endDate}
-                onChangeText={setEndDate}
-                placeholder="YYYY-MM-DD"
-              />
-              <TextInput
-                style={[styles.input, styles.timeInput]}
-                value={endTime}
-                onChangeText={setEndTime}
-                placeholder="HH:MM"
-              />
-            </View>
+            <TouchableOpacity
+              style={styles.dateTimeButton}
+              onPress={() => setShowEndDatePicker(true)}
+            >
+              <View style={styles.dateTimeDisplay}>
+                <Text style={styles.dateText}>📅 {formatDisplayDate(endDateTime)}</Text>
+                <Text style={styles.timeText}>🕐 {formatDisplayTime(endDateTime)}</Text>
+              </View>
+              <Text style={styles.changeText}>Change</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Home/Away (for match) */}
@@ -373,6 +378,112 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
           </View>
         </ScrollView>
       </View>
+
+      {/* Start DateTime Picker Modal */}
+      <Modal
+        visible={showStartDatePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStartDatePicker(false)}
+      >
+        <View style={styles.pickerOverlay}>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerTitle}>Select Start Date & Time</Text>
+            
+            <View style={styles.pickerInputs}>
+              <TextInput
+                style={styles.pickerInput}
+                value={startDateTime.toISOString().split('T')[0]}
+                onChangeText={(text) => {
+                  const [year, month, day] = text.split('-').map(Number);
+                  if (year && month && day) {
+                    const newDate = new Date(startDateTime);
+                    newDate.setFullYear(year, month - 1, day);
+                    setStartDateTime(newDate);
+                  }
+                }}
+                placeholder="YYYY-MM-DD"
+              />
+              <TextInput
+                style={styles.pickerInput}
+                value={startDateTime.toTimeString().slice(0, 5)}
+                onChangeText={(text) => {
+                  const [hours, minutes] = text.split(':').map(Number);
+                  if (hours !== undefined && minutes !== undefined) {
+                    const newDate = new Date(startDateTime);
+                    newDate.setHours(hours, minutes);
+                    setStartDateTime(newDate);
+                    // Auto-update end time to be 2 hours later
+                    setEndDateTime(new Date(newDate.getTime() + 2 * 60 * 60 * 1000));
+                  }
+                }}
+                placeholder="HH:MM"
+              />
+            </View>
+
+            <View style={styles.pickerButtons}>
+              <TouchableOpacity
+                style={styles.pickerButton}
+                onPress={() => setShowStartDatePicker(false)}
+              >
+                <Text style={styles.pickerButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* End DateTime Picker Modal */}
+      <Modal
+        visible={showEndDatePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEndDatePicker(false)}
+      >
+        <View style={styles.pickerOverlay}>
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerTitle}>Select End Date & Time</Text>
+            
+            <View style={styles.pickerInputs}>
+              <TextInput
+                style={styles.pickerInput}
+                value={endDateTime.toISOString().split('T')[0]}
+                onChangeText={(text) => {
+                  const [year, month, day] = text.split('-').map(Number);
+                  if (year && month && day) {
+                    const newDate = new Date(endDateTime);
+                    newDate.setFullYear(year, month - 1, day);
+                    setEndDateTime(newDate);
+                  }
+                }}
+                placeholder="YYYY-MM-DD"
+              />
+              <TextInput
+                style={styles.pickerInput}
+                value={endDateTime.toTimeString().slice(0, 5)}
+                onChangeText={(text) => {
+                  const [hours, minutes] = text.split(':').map(Number);
+                  if (hours !== undefined && minutes !== undefined) {
+                    const newDate = new Date(endDateTime);
+                    newDate.setHours(hours, minutes);
+                    setEndDateTime(newDate);
+                  }
+                }}
+                placeholder="HH:MM"
+              />
+            </View>
+
+            <View style={styles.pickerButtons}>
+              <TouchableOpacity
+                style={styles.pickerButton}
+                onPress={() => setShowEndDatePicker(false)}
+              >
+                <Text style={styles.pickerButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -522,5 +633,78 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 12,
     color: '#333',
+  },
+  dateTimeButton: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateTimeDisplay: {
+    flex: 1,
+  },
+  dateText: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 4,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  changeText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  pickerInputs: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  pickerInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  pickerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  pickerButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  pickerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
