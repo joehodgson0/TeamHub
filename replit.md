@@ -96,6 +96,22 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
+### October 2025 - Mobile Settings with Role Update
+- Added role update functionality to mobile Settings page matching web capabilities
+- Created Checkbox component (`mobile/src/components/ui/Checkbox.tsx`) for mobile UI
+- Users can now select/deselect Coach/Manager and Parent/Guardian roles on mobile
+- Integrated with `/api/auth/update-roles-session` endpoint for session-based auth
+- Added `updateUserRoles` function to mobile useAuth hook
+- Visual feedback with highlighted selected roles and loading states
+- Success/error alerts for user feedback
+
+### October 2025 - Mobile Posts & Events Fixes
+- Fixed Posts tab to use `/api/posts-session` endpoint (session-based auth)
+- Fixed Events tab to use `/api/events/upcoming-session` endpoint
+- Enhanced Posts UI with color-coded category badges and author information
+- Enhanced Events UI with event type badges and improved date formatting
+- Added null safety for category formatting to prevent runtime errors
+
 ### October 2025 - Mobile Role-Based Tab Navigation
 - Implemented dynamic tab navigation based on user roles in mobile app
 - **Coach-only users** see: Dashboard, Team, Events, Posts, Settings
