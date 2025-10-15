@@ -1,10 +1,13 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
+import { AddEventModal } from '@/components/modals/AddEventModal';
 
 export default function Events() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const { data: eventsResponse, isLoading } = useQuery({
     queryKey: ['/api/events/upcoming-session'],
@@ -49,10 +52,22 @@ export default function Events() {
     }
   };
 
+  const canCreateEvent = hasRole('coach');
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Events & Fixtures</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Events & Fixtures</Text>
+          {canCreateEvent && (
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setShowAddModal(true)}
+            >
+              <Text style={styles.addButtonText}>+ Add Event</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         {isLoading ? (
           <Text style={styles.loadingText}>Loading events...</Text>
         ) : events.length > 0 ? (
@@ -88,6 +103,11 @@ export default function Events() {
           </View>
         )}
       </View>
+
+      <AddEventModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
     </ScrollView>
   );
 }
@@ -100,10 +120,26 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+  },
+  addButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   loadingText: {
     textAlign: 'center',
