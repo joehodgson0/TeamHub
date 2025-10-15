@@ -46,6 +46,7 @@ export default function Posts() {
   };
 
   const formatCategoryName = (category: string) => {
+    if (!category) return 'General';
     return category.split('-').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
