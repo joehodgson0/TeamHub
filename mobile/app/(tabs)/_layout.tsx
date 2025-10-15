@@ -1,6 +1,13 @@
 import { Tabs } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function TabsLayout() {
+  const { user } = useAuth();
+  
+  const isCoach = user?.roles?.includes('coach');
+  const isParent = user?.roles?.includes('parent');
+  const isBoth = isCoach && isParent;
+
   return (
     <Tabs screenOptions={{ headerShown: true }}>
       <Tabs.Screen
@@ -11,10 +18,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="events"
+        name="teams"
         options={{
-          title: 'Events',
-          tabBarLabel: 'Events',
+          title: 'Team',
+          tabBarLabel: 'Team',
+          href: isCoach ? '/teams' : null,
         }}
       />
       <Tabs.Screen
@@ -22,6 +30,14 @@ export default function TabsLayout() {
         options={{
           title: 'Dependents',
           tabBarLabel: 'Dependents',
+          href: isParent ? '/dependents' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="events"
+        options={{
+          title: 'Events',
+          tabBarLabel: 'Events',
         }}
       />
       <Tabs.Screen
