@@ -96,12 +96,21 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
+### October 2025 - Smart DateTime Picker for Mobile Events
+- Enhanced event creation with smart datetime picker UI
+- Replaced text inputs with interactive button-based datetime selection
+- Added modal-based datetime pickers with emoji indicators (📅 for date, 🕐 for time)
+- Implemented automatic end time adjustment (2 hours after start time when changed)
+- Display friendly formatted dates (e.g., "Mon, Jan 15, 2025") and times (e.g., "3:00 PM")
+- Validation ensures end time is always after start time
+- Clean modal overlay UI for intuitive datetime editing
+- Improved UX without external dependencies or complex native picker integration
+
 ### October 2025 - Mobile Event Creation
 - Added event creation capability for coaches/managers on mobile
 - Created AddEventModal component (`mobile/src/components/modals/AddEventModal.tsx`) with full-featured event form
 - Event types supported: Match, Tournament, Training, Social Event
 - Conditional fields based on event type (opponent for matches, name for tournaments/social events)
-- Date/time inputs for start and end times with validation
 - Team selection from user's managed teams
 - Home/Away selection and friendly match checkbox for matches
 - Integration with `/api/events` endpoint
