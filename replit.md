@@ -96,6 +96,18 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
+### October 2025 - Mobile Event Creation
+- Added event creation capability for coaches/managers on mobile
+- Created AddEventModal component (`mobile/src/components/modals/AddEventModal.tsx`) with full-featured event form
+- Event types supported: Match, Tournament, Training, Social Event
+- Conditional fields based on event type (opponent for matches, name for tournaments/social events)
+- Date/time inputs for start and end times with validation
+- Team selection from user's managed teams
+- Home/Away selection and friendly match checkbox for matches
+- Integration with `/api/events` endpoint
+- Success/error handling with native alerts
+- Add Event button shown only to coaches in Events tab header
+
 ### October 2025 - Mobile Settings with Role Update
 - Added role update functionality to mobile Settings page matching web capabilities
 - Created Checkbox component (`mobile/src/components/ui/Checkbox.tsx`) for mobile UI
