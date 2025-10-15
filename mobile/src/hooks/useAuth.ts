@@ -30,7 +30,7 @@ export function useAuth() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/auth/logout', { method: 'POST' });
+      return apiRequest('/api/auth/logout-traditional', { method: 'POST' });
     },
     onSuccess: () => {
       queryClient.setQueryData(['/api/auth/user-session'], null);
@@ -42,6 +42,6 @@ export function useAuth() {
     isAuthenticated: !!user,
     isLoading,
     hasRole: (role: 'coach' | 'parent') => user?.roles?.includes(role) ?? false,
-    logout: () => logoutMutation.mutate(),
+    logout: () => logoutMutation.mutateAsync(),
   };
 }
