@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { queryClient } from '@/lib/queryClient';
@@ -135,6 +135,13 @@ export default function Register() {
           >
             Already have an account? Sign in
           </Text>
+
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.push('/(auth)/landing')}
+          >
+            <Text style={styles.backButtonText}>Back to Home</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -181,5 +188,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#007AFF',
     fontSize: 14,
+  },
+  backButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+  },
+  backButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
