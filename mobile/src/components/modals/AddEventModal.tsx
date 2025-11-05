@@ -28,6 +28,219 @@ const EVENT_TYPES = [
   { value: 'social', label: 'Social Event' },
 ];
 
+// Date Picker Component
+function DatePickerInputs({ date, onChange }: { date: Date; onChange: (date: Date) => void }) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear + i);
+  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  return (
+    <View style={styles.datePickerContent}>
+      <Text style={styles.pickerLabel}>Month</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthPicker}>
+        {months.map((month, index) => (
+          <TouchableOpacity
+            key={month}
+            style={[
+              styles.monthButton,
+              date.getMonth() === index && styles.monthButtonActive
+            ]}
+            onPress={() => {
+              const newDate = new Date(date);
+              newDate.setMonth(index);
+              onChange(newDate);
+            }}
+          >
+            <Text style={[
+              styles.monthButtonText,
+              date.getMonth() === index && styles.monthButtonTextActive
+            ]}>
+              {month}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <View style={styles.dayYearRow}>
+        <View style={styles.dayYearColumn}>
+          <Text style={styles.pickerLabel}>Day</Text>
+          <ScrollView style={styles.dayPicker} showsVerticalScrollIndicator={false}>
+            {days.map((day) => (
+              <TouchableOpacity
+                key={day}
+                style={[
+                  styles.dayButton,
+                  date.getDate() === day && styles.dayButtonActive
+                ]}
+                onPress={() => {
+                  const newDate = new Date(date);
+                  newDate.setDate(day);
+                  onChange(newDate);
+                }}
+              >
+                <Text style={[
+                  styles.dayButtonText,
+                  date.getDate() === day && styles.dayButtonTextActive
+                ]}>
+                  {day}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.dayYearColumn}>
+          <Text style={styles.pickerLabel}>Year</Text>
+          <ScrollView style={styles.yearPicker} showsVerticalScrollIndicator={false}>
+            {years.map((year) => (
+              <TouchableOpacity
+                key={year}
+                style={[
+                  styles.yearButton,
+                  date.getFullYear() === year && styles.yearButtonActive
+                ]}
+                onPress={() => {
+                  const newDate = new Date(date);
+                  newDate.setFullYear(year);
+                  onChange(newDate);
+                }}
+              >
+                <Text style={[
+                  styles.yearButtonText,
+                  date.getFullYear() === year && styles.yearButtonTextActive
+                ]}>
+                  {year}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// Time Picker Component
+function TimePickerInputs({ date, onChange }: { date: Date; onChange: (date: Date) => void }) {
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+  const minutes = Array.from({ length: 60 }, (_, i) => i);
+  const currentHour = date.getHours() % 12 || 12;
+  const currentMinute = date.getMinutes();
+  const isPM = date.getHours() >= 12;
+
+  return (
+    <View style={styles.timePickerContent}>
+      <View style={styles.timeRow}>
+        <View style={styles.timeColumn}>
+          <Text style={styles.pickerLabel}>Hour</Text>
+          <ScrollView style={styles.timePicker} showsVerticalScrollIndicator={false}>
+            {hours.map((hour) => (
+              <TouchableOpacity
+                key={hour}
+                style={[
+                  styles.timeButton,
+                  currentHour === hour && styles.timeButtonActive
+                ]}
+                onPress={() => {
+                  const newDate = new Date(date);
+                  let newHour = hour;
+                  if (isPM && hour !== 12) newHour += 12;
+                  if (!isPM && hour === 12) newHour = 0;
+                  newDate.setHours(newHour);
+                  onChange(newDate);
+                }}
+              >
+                <Text style={[
+                  styles.timeButtonText,
+                  currentHour === hour && styles.timeButtonTextActive
+                ]}>
+                  {hour}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.timeColumn}>
+          <Text style={styles.pickerLabel}>Minute</Text>
+          <ScrollView style={styles.timePicker} showsVerticalScrollIndicator={false}>
+            {minutes.map((minute) => (
+              <TouchableOpacity
+                key={minute}
+                style={[
+                  styles.timeButton,
+                  currentMinute === minute && styles.timeButtonActive
+                ]}
+                onPress={() => {
+                  const newDate = new Date(date);
+                  newDate.setMinutes(minute);
+                  onChange(newDate);
+                }}
+              >
+                <Text style={[
+                  styles.timeButtonText,
+                  currentMinute === minute && styles.timeButtonTextActive
+                ]}>
+                  {minute.toString().padStart(2, '0')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.amPmColumn}>
+          <Text style={styles.pickerLabel}>Period</Text>
+          <View style={styles.amPmButtons}>
+            <TouchableOpacity
+              style={[
+                styles.amPmButton,
+                !isPM && styles.amPmButtonActive
+              ]}
+              onPress={() => {
+                const newDate = new Date(date);
+                let newHour = currentHour;
+                if (isPM) {
+                  newHour = currentHour === 12 ? 0 : currentHour;
+                }
+                newDate.setHours(newHour);
+                onChange(newDate);
+              }}
+            >
+              <Text style={[
+                styles.amPmButtonText,
+                !isPM && styles.amPmButtonTextActive
+              ]}>
+                AM
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.amPmButton,
+                isPM && styles.amPmButtonActive
+              ]}
+              onPress={() => {
+                const newDate = new Date(date);
+                let newHour = currentHour === 12 ? 12 : currentHour + 12;
+                newDate.setHours(newHour);
+                onChange(newDate);
+              }}
+            >
+              <Text style={[
+                styles.amPmButtonText,
+                isPM && styles.amPmButtonTextActive
+              ]}>
+                PM
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export function AddEventModal({ visible, onClose }: AddEventModalProps) {
   const { user } = useAuth();
   
@@ -44,6 +257,7 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
 
   // Fetch user's teams
   const { data: teamsResponse } = useQuery({
@@ -388,43 +602,62 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
       >
         <View style={styles.pickerOverlay}>
           <View style={styles.pickerContainer}>
-            <Text style={styles.pickerTitle}>Select Start Date & Time</Text>
+            <Text style={styles.pickerTitle}>Set Start Date & Time</Text>
             
-            <View style={styles.pickerInputs}>
-              <TextInput
-                style={styles.pickerInput}
-                value={startDateTime.toISOString().split('T')[0]}
-                onChangeText={(text) => {
-                  const [year, month, day] = text.split('-').map(Number);
-                  if (year && month && day) {
-                    const newDate = new Date(startDateTime);
-                    newDate.setFullYear(year, month - 1, day);
-                    setStartDateTime(newDate);
-                  }
-                }}
-                placeholder="YYYY-MM-DD"
-              />
-              <TextInput
-                style={styles.pickerInput}
-                value={startDateTime.toTimeString().slice(0, 5)}
-                onChangeText={(text) => {
-                  const [hours, minutes] = text.split(':').map(Number);
-                  if (hours !== undefined && minutes !== undefined) {
-                    const newDate = new Date(startDateTime);
-                    newDate.setHours(hours, minutes);
-                    setStartDateTime(newDate);
-                    // Auto-update end time to be 2 hours later
-                    setEndDateTime(new Date(newDate.getTime() + 2 * 60 * 60 * 1000));
-                  }
-                }}
-                placeholder="HH:MM"
-              />
+            {/* Mode Toggle */}
+            <View style={styles.modeToggle}>
+              <TouchableOpacity
+                style={[styles.modeButton, pickerMode === 'date' && styles.modeButtonActive]}
+                onPress={() => setPickerMode('date')}
+              >
+                <Text style={[styles.modeButtonText, pickerMode === 'date' && styles.modeButtonTextActive]}>
+                  📅 Date
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modeButton, pickerMode === 'time' && styles.modeButtonActive]}
+                onPress={() => setPickerMode('time')}
+              >
+                <Text style={[styles.modeButtonText, pickerMode === 'time' && styles.modeButtonTextActive]}>
+                  🕐 Time
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            {pickerMode === 'date' ? (
+              <DatePickerInputs
+                date={startDateTime}
+                onChange={(newDate) => {
+                  setStartDateTime(newDate);
+                }}
+              />
+            ) : (
+              <TimePickerInputs
+                date={startDateTime}
+                onChange={(newDate) => {
+                  setStartDateTime(newDate);
+                  // Auto-update end time to be 2 hours later
+                  setEndDateTime(new Date(newDate.getTime() + 2 * 60 * 60 * 1000));
+                }}
+              />
+            )}
 
             <View style={styles.pickerButtons}>
               <TouchableOpacity
+                style={[styles.pickerButton, styles.cancelPickerButton]}
+                onPress={() => {
+                  setShowStartDatePicker(false);
+                  setPickerMode('date');
+                }}
+              >
+                <Text style={styles.cancelPickerButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.pickerButton}
-                onPress={() => setShowStartDatePicker(false)}
+                onPress={() => {
+                  setShowStartDatePicker(false);
+                  setPickerMode('date');
+                }}
               >
                 <Text style={styles.pickerButtonText}>Done</Text>
               </TouchableOpacity>
@@ -442,41 +675,56 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
       >
         <View style={styles.pickerOverlay}>
           <View style={styles.pickerContainer}>
-            <Text style={styles.pickerTitle}>Select End Date & Time</Text>
+            <Text style={styles.pickerTitle}>Set End Date & Time</Text>
             
-            <View style={styles.pickerInputs}>
-              <TextInput
-                style={styles.pickerInput}
-                value={endDateTime.toISOString().split('T')[0]}
-                onChangeText={(text) => {
-                  const [year, month, day] = text.split('-').map(Number);
-                  if (year && month && day) {
-                    const newDate = new Date(endDateTime);
-                    newDate.setFullYear(year, month - 1, day);
-                    setEndDateTime(newDate);
-                  }
-                }}
-                placeholder="YYYY-MM-DD"
-              />
-              <TextInput
-                style={styles.pickerInput}
-                value={endDateTime.toTimeString().slice(0, 5)}
-                onChangeText={(text) => {
-                  const [hours, minutes] = text.split(':').map(Number);
-                  if (hours !== undefined && minutes !== undefined) {
-                    const newDate = new Date(endDateTime);
-                    newDate.setHours(hours, minutes);
-                    setEndDateTime(newDate);
-                  }
-                }}
-                placeholder="HH:MM"
-              />
+            {/* Mode Toggle */}
+            <View style={styles.modeToggle}>
+              <TouchableOpacity
+                style={[styles.modeButton, pickerMode === 'date' && styles.modeButtonActive]}
+                onPress={() => setPickerMode('date')}
+              >
+                <Text style={[styles.modeButtonText, pickerMode === 'date' && styles.modeButtonTextActive]}>
+                  📅 Date
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modeButton, pickerMode === 'time' && styles.modeButtonActive]}
+                onPress={() => setPickerMode('time')}
+              >
+                <Text style={[styles.modeButtonText, pickerMode === 'time' && styles.modeButtonTextActive]}>
+                  🕐 Time
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            {pickerMode === 'date' ? (
+              <DatePickerInputs
+                date={endDateTime}
+                onChange={setEndDateTime}
+              />
+            ) : (
+              <TimePickerInputs
+                date={endDateTime}
+                onChange={setEndDateTime}
+              />
+            )}
 
             <View style={styles.pickerButtons}>
               <TouchableOpacity
+                style={[styles.pickerButton, styles.cancelPickerButton]}
+                onPress={() => {
+                  setShowEndDatePicker(false);
+                  setPickerMode('date');
+                }}
+              >
+                <Text style={styles.cancelPickerButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.pickerButton}
-                onPress={() => setShowEndDatePicker(false)}
+                onPress={() => {
+                  setShowEndDatePicker(false);
+                  setPickerMode('date');
+                }}
               >
                 <Text style={styles.pickerButtonText}>Done</Text>
               </TouchableOpacity>
@@ -705,6 +953,200 @@ const styles = StyleSheet.create({
   pickerButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelPickerButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  cancelPickerButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 20,
+  },
+  modeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  modeButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  modeButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  modeButtonTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  datePickerContent: {
+    marginBottom: 20,
+  },
+  pickerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  monthPicker: {
+    marginBottom: 16,
+  },
+  monthButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  monthButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  monthButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  monthButtonTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  dayYearRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dayYearColumn: {
+    flex: 1,
+  },
+  dayPicker: {
+    maxHeight: 200,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  yearPicker: {
+    maxHeight: 200,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  dayButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+  },
+  dayButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  dayButtonText: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
+  },
+  dayButtonTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  yearButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+  },
+  yearButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  yearButtonText: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
+  },
+  yearButtonTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  timePickerContent: {
+    marginBottom: 20,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  timeColumn: {
+    flex: 1,
+  },
+  amPmColumn: {
+    width: 80,
+  },
+  timePicker: {
+    maxHeight: 200,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  timeButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+  },
+  timeButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  timeButtonText: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
+  },
+  timeButtonTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  amPmButtons: {
+    gap: 8,
+  },
+  amPmButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  amPmButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  amPmButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  amPmButtonTextActive: {
+    color: '#fff',
     fontWeight: '600',
   },
 });
