@@ -69,11 +69,19 @@ export default function Dependents() {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Invalidate players query to show the new dependent
       queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id] });
+      
+      // Invalidate teams query to update the team's player list
+      queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
+      
+      // Invalidate user session in case clubId was updated (first dependent)
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
+      
       setShowAddModal(false);
       setFormData({ name: '', dateOfBirth: '', teamCode: '' });
-      Alert.alert('Success', 'Dependent added successfully!');
+      Alert.alert('Success', `${result.player?.name || 'Dependent'} added to ${result.team || 'team'}!`);
     },
     onError: (error: any) => {
       Alert.alert('Error', error.message || 'Failed to add dependent');
@@ -90,7 +98,7 @@ export default function Dependents() {
       name: formData.name,
       dateOfBirth: formData.dateOfBirth,
       teamCode: formData.teamCode,
-      parentUserId: user?.id,
+      parentId: user?.id,
     });
   };
 
