@@ -1,11 +1,14 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
+import CreateTeamModal from '@/components/modals/CreateTeamModal';
 
 export default function Teams() {
   const { user } = useAuth();
   const isCoach = user?.roles?.includes('coach');
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: teamsData, isLoading } = useQuery({
     queryKey: ['/api/teams/club', user?.clubId],
@@ -109,28 +112,43 @@ export default function Teams() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Your Teams</Text>
-        
-        {isLoading ? (
-          <Text style={styles.loadingText}>Loading teams...</Text>
-        ) : teams.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No teams created yet</Text>
-            <Text style={styles.emptySubtext}>
-              Create your first team to get started
-            </Text>
+    <>
+      <ScrollView style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Your Teams</Text>
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={() => setShowCreateModal(true)}
+            >
+              <Text style={styles.createButtonText}>+ Create Team</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <View style={styles.teamsContainer}>
-            {teams.map((team: any) => (
-              <TeamCard key={team.id} team={team} />
-            ))}
-          </View>
-        )}
-      </View>
-    </ScrollView>
+          
+          {isLoading ? (
+            <Text style={styles.loadingText}>Loading teams...</Text>
+          ) : teams.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No teams created yet</Text>
+              <Text style={styles.emptySubtext}>
+                Create your first team to get started
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.teamsContainer}>
+              {teams.map((team: any) => (
+                <TeamCard key={team.id} team={team} />
+              ))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      <CreateTeamModal
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+      />
+    </>
   );
 }
 
@@ -142,10 +160,26 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+  },
+  createButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   loadingText: {
     textAlign: 'center',

@@ -96,6 +96,15 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
+### November 2025 - Mobile Team Creation
+- Added Create Team functionality to mobile Teams page
+- Created CreateTeamModal component (`mobile/src/components/modals/CreateTeamModal.tsx`)
+- Modal includes team name input and age group selector (U7-U21)
+- "+ Create Team" button visible in Teams page header for coaches
+- Success alert displays generated team code after creation
+- Automatically refreshes team list after successful creation
+- Integration with `/api/teams` POST endpoint
+
 ### October 2025 - Smart DateTime Picker for Mobile Events
 - Enhanced event creation with smart datetime picker UI
 - Replaced text inputs with interactive button-based datetime selection
