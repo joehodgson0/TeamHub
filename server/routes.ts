@@ -1153,10 +1153,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let allPosts: any[] = [];
       
-      // Get club posts if user has club association
+      // Get club-wide posts (posts without specific team) if user has club association
       if (user.clubId) {
         const clubPosts = await storage.getPostsByClubId(user.clubId);
-        allPosts.push(...clubPosts);
+        // Only include club-wide posts (no specific teamId)
+        const clubWidePosts = clubPosts.filter(post => !post.teamId);
+        allPosts.push(...clubWidePosts);
       }
       
       // Role-based team post filtering
@@ -1208,10 +1210,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let allPosts: any[] = [];
       
-      // Get club posts if user has club association
+      // Get club-wide posts (posts without specific team) if user has club association
       if (user.clubId) {
         const clubPosts = await storage.getPostsByClubId(user.clubId);
-        allPosts.push(...clubPosts);
+        // Only include club-wide posts (no specific teamId)
+        const clubWidePosts = clubPosts.filter(post => !post.teamId);
+        allPosts.push(...clubWidePosts);
       }
       
       // Get team posts for user's teams
