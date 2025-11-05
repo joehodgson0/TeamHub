@@ -1190,6 +1190,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         index === self.findIndex(p => p.id === post.id)
       );
       
+      console.log(`[posts-session] User ${user.email} (roles: ${user.roles}, teams: ${user.teamIds?.length || 0}) - returning ${uniquePosts.length} posts`);
+      console.log(`[posts-session] Post details:`, uniquePosts.map(p => ({ id: p.id, title: p.title, teamId: p.teamId, clubId: p.clubId })));
+      
       res.json({ success: true, posts: uniquePosts });
     } catch (error) {
       console.error("Get posts error:", error);
