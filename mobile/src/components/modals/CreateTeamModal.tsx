@@ -45,10 +45,18 @@ export default function CreateTeamModal({ visible, onClose }: CreateTeamModalPro
 
       const result = await response.json();
 
-      if (result.success) {
-        // Invalidate both teams and user queries to refresh the team list and user.teamIds
+      if (result.success && result.team) {
+        // Manually update user data in cache to add the new team ID (avoid redirect)
+        const currentUser: any = queryClient.getQueryData(['/api/auth/user-session']);
+        if (currentUser) {
+          queryClient.setQueryData(['/api/auth/user-session'], {
+            ...currentUser,
+            teamIds: [...(currentUser.teamIds || []), result.team.id],
+          });
+        }
+        
+        // Refresh the teams list
         queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user.clubId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
         
         Alert.alert(
           'Team Created Successfully',
