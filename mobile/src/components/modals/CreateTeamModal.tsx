@@ -46,6 +46,10 @@ export default function CreateTeamModal({ visible, onClose }: CreateTeamModalPro
       const result = await response.json();
 
       if (result.success) {
+        // Invalidate both teams and user queries to refresh the team list and user.teamIds
+        queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user.clubId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
+        
         Alert.alert(
           'Team Created Successfully',
           `${teamName} has been created with code: ${result.teamCode}`,
@@ -53,7 +57,6 @@ export default function CreateTeamModal({ visible, onClose }: CreateTeamModalPro
             setTeamName('');
             setSelectedAgeGroup('U12');
             onClose();
-            queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user.clubId] });
           }}]
         );
       } else {
