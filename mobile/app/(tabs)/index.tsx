@@ -111,12 +111,22 @@ export default function Dashboard() {
     return results.slice(0, 3);
   };
 
-  // Filter posts for parent's teams
+  // Filter posts for user's teams
   const getTeamPosts = () => {
     if (!postsResponse?.posts) return [];
     
     let posts = postsResponse.posts;
 
+    // For coaches, filter by their managed teams
+    if (user?.roles?.includes('coach') && user?.teamIds?.length) {
+      posts = posts.filter((post: any) => {
+        // Show club-wide posts or posts for their specific teams
+        return (post.clubId === user?.clubId && !post.teamId) || 
+               (user.teamIds.includes(post.teamId));
+      });
+    }
+
+    // For parents, filter by teams their players are on
     if (user?.roles?.includes('parent') && playersResponse?.players) {
       const teamIds = playersResponse.players.map((p: any) => p.teamId);
       posts = posts.filter((post: any) => 
@@ -124,6 +134,11 @@ export default function Dashboard() {
       );
       // Parents only see announcements
       posts = posts.filter((post: any) => post.type === "announcement");
+    }
+
+    // If user has no team associations, return empty
+    if (!user?.teamIds?.length && !playersResponse?.players?.length) {
+      return [];
     }
 
     return posts.slice(0, 3);
