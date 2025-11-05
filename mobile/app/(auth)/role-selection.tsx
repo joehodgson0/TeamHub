@@ -26,10 +26,10 @@ export default function RoleSelection() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/${user?.id}/roles`, {
-        method: 'PATCH',
+      const response = await fetch(`${API_BASE_URL}/api/auth/update-roles-session`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roles: selectedRoles }),
+        body: JSON.stringify({ userId: user?.id, roles: selectedRoles }),
         credentials: 'include',
       });
 
@@ -37,8 +37,7 @@ export default function RoleSelection() {
 
       if (result.success) {
         // Update user with new roles in the cache
-        const updatedUser = { ...user, roles: selectedRoles };
-        queryClient.setQueryData(['/api/auth/user-session'], updatedUser);
+        queryClient.setQueryData(['/api/auth/user-session'], result.user);
         router.replace('/(tabs)');
       } else {
         Alert.alert('Error', result.error || 'Failed to update roles');
