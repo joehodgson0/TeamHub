@@ -4,10 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
 import { AddEventModal } from '@/components/modals/AddEventModal';
+import { MatchResultModal } from '@/components/modals/MatchResultModal';
 
 export default function Events() {
   const { user, hasRole } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedFixture, setSelectedFixture] = useState<any>(null);
 
   const { data: eventsResponse, isLoading } = useQuery({
     queryKey: ['/api/events/upcoming-session'],
@@ -53,6 +55,12 @@ export default function Events() {
   };
 
   const canCreateEvent = hasRole('coach');
+  
+  const canUpdateResult = (event: any) => {
+    return hasRole('coach') && 
+           event.type === 'match' && 
+           user?.teamIds?.includes(event.teamId);
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -91,6 +99,15 @@ export default function Events() {
                 {event.opponent && (
                   <Text style={styles.eventOpponent}>vs {event.opponent}</Text>
                 )}
+                
+                {canUpdateResult(event) && (
+                  <TouchableOpacity
+                    style={styles.updateResultButton}
+                    onPress={() => setSelectedFixture(event)}
+                  >
+                    <Text style={styles.updateResultButtonText}>Update Result</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
@@ -107,6 +124,12 @@ export default function Events() {
       <AddEventModal
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
+      />
+      
+      <MatchResultModal
+        visible={!!selectedFixture}
+        fixture={selectedFixture}
+        onClose={() => setSelectedFixture(null)}
       />
     </ScrollView>
   );
@@ -200,6 +223,19 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
     marginTop: 4,
+  },
+  updateResultButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#10B981',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  updateResultButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyContainer: {
     alignItems: 'center',
