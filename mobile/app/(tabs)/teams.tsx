@@ -48,9 +48,11 @@ export default function Teams() {
       const result = await response.json();
 
       if (result.success) {
+        // Refetch user data to get updated club information
+        await queryClient.refetchQueries({ queryKey: ['/api/auth/user-session'] });
+        
         Alert.alert('Success', `Successfully joined ${result.clubName || 'the club'}!`);
         setClubCode('');
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
       } else {
         Alert.alert('Error', result.error || 'No club found with that code');
       }
