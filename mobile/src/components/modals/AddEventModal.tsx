@@ -48,8 +48,10 @@ function DatePickerInputs({ date, onChange }: { date: Date; onChange: (date: Dat
               date.getMonth() === index && styles.monthButtonActive
             ]}
             onPress={() => {
-              const newDate = new Date(date);
-              newDate.setMonth(index);
+              const originalDay = date.getDate();
+              const maxDay = new Date(date.getFullYear(), index + 1, 0).getDate();
+              const clampedDay = Math.min(originalDay, maxDay);
+              const newDate = new Date(date.getFullYear(), index, clampedDay, date.getHours(), date.getMinutes());
               onChange(newDate);
             }}
           >
@@ -102,8 +104,10 @@ function DatePickerInputs({ date, onChange }: { date: Date; onChange: (date: Dat
                   date.getFullYear() === year && styles.yearButtonActive
                 ]}
                 onPress={() => {
-                  const newDate = new Date(date);
-                  newDate.setFullYear(year);
+                  const originalDay = date.getDate();
+                  const maxDay = new Date(year, date.getMonth() + 1, 0).getDate();
+                  const clampedDay = Math.min(originalDay, maxDay);
+                  const newDate = new Date(year, date.getMonth(), clampedDay, date.getHours(), date.getMinutes());
                   onChange(newDate);
                 }}
               >
@@ -629,6 +633,8 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
                 date={startDateTime}
                 onChange={(newDate) => {
                   setStartDateTime(newDate);
+                  // Auto-update end time to be 2 hours later
+                  setEndDateTime(new Date(newDate.getTime() + 2 * 60 * 60 * 1000));
                 }}
               />
             ) : (
