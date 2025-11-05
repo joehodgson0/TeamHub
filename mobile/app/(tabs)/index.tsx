@@ -86,9 +86,29 @@ export default function Dashboard() {
     return fixtures.slice(0, 3);
   };
 
-  // Get recent match results
+  // Get recent match results - filter based on user's team associations
   const getRecentResults = () => {
-    return matchResultsResponse?.matchResults?.slice(0, 3) || [];
+    if (!matchResultsResponse?.matchResults) return [];
+    
+    let results = matchResultsResponse.matchResults;
+    
+    // For coaches, filter by their managed teams
+    if (user?.roles?.includes('coach') && user?.teamIds?.length) {
+      results = results.filter((result: any) => user.teamIds.includes(result.teamId));
+    }
+    
+    // For parents, filter by teams their players are on
+    if (user?.roles?.includes('parent') && playersResponse?.players) {
+      const teamIds = playersResponse.players.map((p: any) => p.teamId);
+      results = results.filter((result: any) => teamIds.includes(result.teamId));
+    }
+    
+    // If user has no team associations, return empty
+    if (!user?.teamIds?.length && !playersResponse?.players?.length) {
+      return [];
+    }
+    
+    return results.slice(0, 3);
   };
 
   // Filter posts for parent's teams
