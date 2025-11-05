@@ -47,9 +47,9 @@ export default function Teams() {
 
       const result = await response.json();
 
-      if (result.success) {
-        // Refetch user data to get updated club information
-        await queryClient.refetchQueries({ queryKey: ['/api/auth/user-session'] });
+      if (result.success && result.user) {
+        // Manually update the user data in cache to avoid loading state and redirect
+        queryClient.setQueryData(['/api/auth/user-session'], result.user);
         
         Alert.alert('Success', `Successfully joined ${result.clubName || 'the club'}!`);
         setClubCode('');
