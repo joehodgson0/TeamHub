@@ -96,6 +96,15 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
+### November 2025 - Mobile Join Club Functionality
+- Added Join Club form to mobile Teams page for coaches without a club
+- Club code input with validation (8-character requirement)
+- Integration with `/api/auth/associate-club-session` endpoint
+- Success alerts display club name after successful join
+- Automatically refreshes user session data after joining
+- Demo information displayed showing valid club codes
+- Matching feature parity with web Team Management section
+
 ### November 2025 - Mobile Team Creation
 - Added Create Team functionality to mobile Teams page
 - Created CreateTeamModal component (`mobile/src/components/modals/CreateTeamModal.tsx`)

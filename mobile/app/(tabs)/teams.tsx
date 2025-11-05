@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
+import { queryClient } from '@/lib/queryClient';
 import CreateTeamModal from '@/components/modals/CreateTeamModal';
 
 export default function Teams() {
   const { user } = useAuth();
   const isCoach = user?.roles?.includes('coach');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [clubCode, setClubCode] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
 
   const { data: teamsData, isLoading } = useQuery({
     queryKey: ['/api/teams/club', user?.clubId],
@@ -25,6 +28,38 @@ export default function Teams() {
   const teams = isCoach && user?.teamIds 
     ? allTeams.filter((team: any) => user.teamIds.includes(team.id))
     : allTeams;
+
+  const handleJoinClub = async () => {
+    if (!clubCode.trim() || clubCode.trim().length !== 8) {
+      Alert.alert('Error', 'Please enter an 8-character club code');
+      return;
+    }
+
+    setIsJoining(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/associate-club-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clubCode: clubCode.toUpperCase() }),
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        Alert.alert('Success', `Successfully joined ${result.clubName || 'the club'}!`);
+        setClubCode('');
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/user-session'] });
+      } else {
+        Alert.alert('Error', result.error || 'No club found with that code');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred. Please try again.');
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   const TeamCard = ({ team }: { team: any }) => {
     const { data: playersData } = useQuery({
@@ -98,16 +133,46 @@ export default function Teams() {
 
   if (!user?.clubId) {
     return (
-      <View style={styles.container}>
+      <ScrollView style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Teams</Text>
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              You need to join a club before you can manage teams.
+          <Text style={styles.title}>Join Club to Manage Teams</Text>
+          
+          <View style={styles.joinClubCard}>
+            <Text style={styles.joinClubDescription}>
+              You need to join a club before you can create or manage teams.
             </Text>
+
+            <View style={styles.section}>
+              <Text style={styles.label}>Club Code</Text>
+              <TextInput
+                style={styles.input}
+                value={clubCode}
+                onChangeText={setClubCode}
+                placeholder="Enter 8-character club code"
+                autoCapitalize="characters"
+                maxLength={8}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.joinButton, (clubCode.trim().length !== 8 || isJoining) && styles.joinButtonDisabled]}
+              onPress={handleJoinClub}
+              disabled={clubCode.trim().length !== 8 || isJoining}
+            >
+              <Text style={styles.joinButtonText}>
+                {isJoining ? 'Joining...' : 'Join Club'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.demoInfo}>
+              <Text style={styles.demoTitle}>Demo Information</Text>
+              <Text style={styles.demoText}>• Club: Hilly Fielders FC</Text>
+              <Text style={styles.demoText}>• Valid codes start with "1" (e.g., "1ABC2345")</Text>
+              <Text style={styles.demoText}>• Invalid codes show error message</Text>
+            </View>
           </View>
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -200,6 +265,65 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     marginTop: 8,
+  },
+  joinClubCard: {
+    backgroundColor: '#f9f9f9',
+    padding: 20,
+    borderRadius: 12,
+    marginTop: 20,
+  },
+  joinClubDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+  },
+  section: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  joinButton: {
+    backgroundColor: '#007AFF',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  joinButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  joinButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  demoInfo: {
+    backgroundColor: '#E3F2FD',
+    padding: 16,
+    borderRadius: 8,
+  },
+  demoTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginBottom: 8,
+  },
+  demoText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
   },
   teamsContainer: {
     gap: 15,
