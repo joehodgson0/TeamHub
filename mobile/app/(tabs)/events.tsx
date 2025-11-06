@@ -6,7 +6,6 @@ import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
 import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
-import { AvailabilityModal } from '@/components/modals/AvailabilityModal';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function Events() {
@@ -14,7 +13,6 @@ export default function Events() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedFixture, setSelectedFixture] = useState<any>(null);
-  const [selectedAvailabilityEvent, setSelectedAvailabilityEvent] = useState<any>(null);
 
   const { data: eventsResponse, isLoading } = useQuery({
     queryKey: ['/api/events/upcoming-session'],
@@ -70,6 +68,27 @@ export default function Events() {
     },
   });
 
+  const updateAvailabilityMutation = useMutation({
+    mutationFn: async ({ eventId, playerId, availability }: { eventId: string; playerId: string; availability: string }) => {
+      const response = await fetch(`${API_BASE_URL}/api/events/${eventId}/availability`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ playerId, availability }),
+      });
+      if (!response.ok) throw new Error('Failed to update availability');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error?.message || 'Failed to update availability');
+    },
+  });
+
   const events = eventsResponse?.events || [];
   const teams = teamsResponse?.teams || [];
 
@@ -114,17 +133,25 @@ export default function Events() {
     return hasRole('coach') && user?.teamIds?.includes(event.teamId);
   };
 
-  const canMarkAvailability = (event: any) => {
-    if (!hasRole('parent')) return false;
+  const getParentPlayersForEvent = (event: any) => {
+    if (!hasRole('parent')) return [];
     
     const players = playersResponse?.players || [];
-    if (players.length === 0) return false;
+    if (players.length === 0) return [];
 
-    // Check if at least one of parent's players is on this event's team
+    // Get players on this event's team
     const team = teams.find((t: any) => t.id === event.teamId);
-    if (!team) return false;
+    if (!team) return [];
 
-    return players.some((player: any) => team.players?.includes(player.id));
+    return players.filter((player: any) => team.players?.includes(player.id));
+  };
+
+  const handleAvailabilityUpdate = (eventId: string, playerId: string, availability: string) => {
+    updateAvailabilityMutation.mutate({ eventId, playerId, availability });
+  };
+
+  const getPlayerAvailability = (event: any, playerId: string) => {
+    return event?.availability?.[playerId] || 'pending';
   };
   
   const canUpdateResult = (event: any) => {
@@ -220,13 +247,56 @@ export default function Events() {
                   </TouchableOpacity>
                 )}
 
-                {canMarkAvailability(event) && (
-                  <TouchableOpacity
-                    style={styles.availabilityButton}
-                    onPress={() => setSelectedAvailabilityEvent(event)}
-                  >
-                    <Text style={styles.availabilityButtonText}>Mark Availability</Text>
-                  </TouchableOpacity>
+                {getParentPlayersForEvent(event).length > 0 && (
+                  <View style={styles.availabilitySection}>
+                    <Text style={styles.availabilitySectionTitle}>Player Availability:</Text>
+                    {getParentPlayersForEvent(event).map((player: any) => {
+                      const availability = getPlayerAvailability(event, player.id);
+                      return (
+                        <View key={player.id} style={styles.playerAvailability}>
+                          <Text style={styles.playerName}>
+                            {player.firstName} {player.lastName}
+                          </Text>
+                          <View style={styles.availabilityButtons}>
+                            <TouchableOpacity
+                              style={[
+                                styles.availabilityBtn,
+                                availability === 'available' && styles.availableBtnActive,
+                              ]}
+                              onPress={() => handleAvailabilityUpdate(event.id, player.id, 'available')}
+                              disabled={updateAvailabilityMutation.isPending}
+                            >
+                              <Text
+                                style={[
+                                  styles.availabilityBtnText,
+                                  availability === 'available' && styles.availableBtnTextActive,
+                                ]}
+                              >
+                                ✓
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[
+                                styles.availabilityBtn,
+                                availability === 'unavailable' && styles.unavailableBtnActive,
+                              ]}
+                              onPress={() => handleAvailabilityUpdate(event.id, player.id, 'unavailable')}
+                              disabled={updateAvailabilityMutation.isPending}
+                            >
+                              <Text
+                                style={[
+                                  styles.availabilityBtnText,
+                                  availability === 'unavailable' && styles.unavailableBtnTextActive,
+                                ]}
+                              >
+                                ✗
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
                 )}
               </View>
             ))}
@@ -254,12 +324,6 @@ export default function Events() {
         visible={!!selectedFixture}
         fixture={selectedFixture}
         onClose={() => setSelectedFixture(null)}
-      />
-
-      <AvailabilityModal
-        visible={!!selectedAvailabilityEvent}
-        event={selectedAvailabilityEvent}
-        onClose={() => setSelectedAvailabilityEvent(null)}
       />
     </ScrollView>
   );
@@ -387,18 +451,61 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  availabilityButton: {
+  availabilitySection: {
     marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#007AFF',
-    borderRadius: 6,
-    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
-  availabilityButtonText: {
-    color: '#fff',
-    fontSize: 14,
+  availabilitySectionTitle: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  playerAvailability: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  playerName: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '500',
+  },
+  availabilityButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  availabilityBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  availabilityBtnText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  availableBtnActive: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  availableBtnTextActive: {
+    color: '#FFFFFF',
+  },
+  unavailableBtnActive: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
+  },
+  unavailableBtnTextActive: {
+    color: '#FFFFFF',
   },
   emptyContainer: {
     alignItems: 'center',

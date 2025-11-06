@@ -96,6 +96,27 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
+### November 2025 - Mobile Inline Availability Marking for Parents
+- Implemented inline availability marking directly on event cards for parents
+- Parents see their dependents listed on event cards for teams they play on
+- Each dependent has checkmark (✓) and X (✗) buttons for available/unavailable
+- Buttons highlight green when marked available, red when marked unavailable
+- Instant visual feedback without opening separate modal
+- Smart filtering: only shows availability controls for events where parent's dependents play
+- Uses PUT `/api/events/{eventId}/availability` endpoint
+- Replaced modal-based approach with simpler inline UX (fewer clicks)
+- Mobile: Integrated into mobile/app/(tabs)/events.tsx with inline player cards
+
+### November 2025 - Mobile Event Edit Functionality
+- Added Edit and Delete icon buttons to mobile Events page matching web design
+- Edit icon (blue) and Delete icon (red) from MaterialIcons (@expo/vector-icons)
+- Icons appear inline for coaches on events they manage
+- Updated AddEventModal to support both add and edit modes
+- Modal title changes to "Edit Event" when editing existing events
+- Form properly resets when switching from edit mode back to add mode
+- Added updateEventMutation using PUT request to `/api/events/{id}`
+- Fixed React 19 compatibility by using MaterialIcons instead of lucide-react-native
+
 ### November 2025 - Comprehensive Event Display & Management
 - Expanded Events & Fixtures section to show ALL event types (match, tournament, training, social)
 - Previously only matches/tournaments were shown, now all event types are visible with full details
