@@ -100,11 +100,13 @@ The application uses Zod schemas for type validation and data modeling:
 - Mobile Events & Fixtures page now shows ALL events (upcoming and completed)
 - Created `/api/events/all-session` endpoint to fetch all events instead of just upcoming
 - Added `isEventCompleted()` helper function to check if event endTime has passed
+- **Upcoming events**: Coaches can edit, delete, and mark availability for their dependents
+- **Completed events**: Only "Update Result" button shown for coaches on matches
 - Availability controls (✓/✗ buttons) hidden for completed events
-- "Update Result" button shown for coaches on completed matches only
-- Parents can still see completed events but cannot change availability
+- Both coaches and parents can mark availability for their dependents on upcoming fixtures
 - Events sorted by date (most recent first) to show latest completed events at top
 - Maintains role-based access: coaches see club events, parents see their dependent's events
+- Updated `getUserPlayersForEvent()` to work for both coaches and parents with dependents
 
 ### November 2025 - Mobile Inline Availability Marking for Parents
 - Implemented inline availability marking directly on event cards for parents
