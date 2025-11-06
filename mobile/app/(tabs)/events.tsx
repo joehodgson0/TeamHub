@@ -15,9 +15,9 @@ export default function Events() {
   const [selectedFixture, setSelectedFixture] = useState<any>(null);
 
   const { data: eventsResponse, isLoading } = useQuery({
-    queryKey: ['/api/events/upcoming-session'],
+    queryKey: ['/api/events/all-session'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/events/upcoming-session`, {
+      const response = await fetch(`${API_BASE_URL}/api/events/all-session`, {
         credentials: 'include',
       });
       return response.json();
@@ -60,7 +60,7 @@ export default function Events() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
       Alert.alert('Success', 'Event deleted successfully');
     },
     onError: () => {
@@ -82,7 +82,7 @@ export default function Events() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
     },
     onError: (error: any) => {
       Alert.alert('Error', error?.message || 'Failed to update availability');
@@ -157,13 +157,17 @@ export default function Events() {
     return event?.availability?.[playerId] || 'pending';
   };
   
-  const canUpdateResult = (event: any) => {
+  const isEventCompleted = (event: any) => {
     const eventEndTime = new Date(event.endTime);
     const now = new Date();
+    return now > eventEndTime;
+  };
+
+  const canUpdateResult = (event: any) => {
     return hasRole('coach') && 
            event.type === 'match' && 
            user?.teamIds?.includes(event.teamId) &&
-           now > eventEndTime;
+           isEventCompleted(event);
   };
 
   const handleDeleteEvent = (eventId: string, eventName: string) => {
@@ -250,7 +254,7 @@ export default function Events() {
                   </TouchableOpacity>
                 )}
 
-                {getParentPlayersForEvent(event).length > 0 && (
+                {getParentPlayersForEvent(event).length > 0 && !isEventCompleted(event) && (
                   <View style={styles.availabilitySection}>
                     <Text style={styles.availabilitySectionTitle}>Player Availability:</Text>
                     {getParentPlayersForEvent(event).map((player: any) => {
