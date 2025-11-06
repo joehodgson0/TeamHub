@@ -6,7 +6,7 @@ import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
 import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
-import { Edit, Trash2 } from 'lucide-react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function Events() {
   const { user, hasRole } = useAuth();
@@ -173,13 +173,13 @@ export default function Events() {
                       style={styles.iconButton}
                       onPress={() => setEditingEvent(event)}
                     >
-                      <Edit size={20} color="#007AFF" />
+                      <MaterialIcons name="edit" size={20} color="#007AFF" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.iconButton}
                       onPress={() => handleDeleteEvent(event.id, event.name || event.title || 'event')}
                     >
-                      <Trash2 size={20} color="#EF4444" />
+                      <MaterialIcons name="delete" size={20} color="#EF4444" />
                     </TouchableOpacity>
                   </View>
                 )}
