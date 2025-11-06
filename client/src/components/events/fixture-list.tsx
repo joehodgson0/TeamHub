@@ -311,7 +311,7 @@ export default function FixtureList() {
                         <span className="text-sm text-muted-foreground" data-testid={`fixture-availability-${fixture.id}`}>
                           Availability: {availability.confirmed}/{availability.total} confirmed
                         </span>
-                        {canManageFixture(fixture) && fixture.type === "match" && (
+                        {canManageFixture(fixture) && fixture.type === "match" && new Date() > fixture.endTime && (
                           <Button
                             variant="outline"
                             size="sm"

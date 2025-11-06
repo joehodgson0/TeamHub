@@ -57,9 +57,12 @@ export default function Events() {
   const canCreateEvent = hasRole('coach');
   
   const canUpdateResult = (event: any) => {
+    const eventEndTime = new Date(event.endTime);
+    const now = new Date();
     return hasRole('coach') && 
            event.type === 'match' && 
-           user?.teamIds?.includes(event.teamId);
+           user?.teamIds?.includes(event.teamId) &&
+           now > eventEndTime;
   };
 
   return (
