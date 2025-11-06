@@ -96,6 +96,14 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
+### November 2025 - Update Result Availability Validation
+- Added date/time validation for "Update Result" button in Events & Fixtures section
+- Button only appears AFTER an event has ended (compares current time with event end time)
+- Prevents coaches from entering match results before games are played
+- Implemented consistently across both web and mobile apps
+- Web: Added `new Date() > fixture.endTime` check in fixture-list.tsx
+- Mobile: Added date comparison in `canUpdateResult` function in events.tsx
+
 ### November 2025 - Mobile Join Club Functionality
 - Added Join Club form to mobile Teams page for coaches without a club
 - Club code input with validation (8-character requirement)
