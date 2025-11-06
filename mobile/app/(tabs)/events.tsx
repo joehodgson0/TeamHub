@@ -136,6 +136,9 @@ export default function Events() {
   const getParentPlayersForEvent = (event: any) => {
     if (!hasRole('parent')) return [];
     
+    // Only show availability for fixtures (not social events)
+    if (event.type === 'social') return [];
+    
     const players = playersResponse?.players || [];
     if (players.length === 0) return [];
 
