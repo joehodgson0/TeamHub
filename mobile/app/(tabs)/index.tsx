@@ -42,6 +42,18 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  // Fetch teams for team name resolution
+  const { data: teamsResponse } = useQuery({
+    queryKey: ['/api/teams/club', user?.clubId],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/teams/club/${user?.clubId}`, {
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    enabled: !!user?.clubId,
+  });
+
   // Fetch posts
   const { data: postsResponse } = useQuery({
     queryKey: ['/api/posts-session'],
@@ -151,14 +163,60 @@ export default function Dashboard() {
   const recentResults = getRecentResults();
   const teamPosts = getTeamPosts();
 
+  const getTeamName = (teamId: string) => {
+    if (!teamsResponse?.teams) return "Unknown Team";
+    const team = teamsResponse.teams.find((t: any) => t.id === teamId);
+    return team ? team.name : "Unknown Team";
+  };
+
+  const getAvailabilityCount = (event: any) => {
+    const availabilityEntries = Object.values(event.availability || {});
+    const confirmed = availabilityEntries.filter(status => status === "available").length;
+    const total = availabilityEntries.length;
+    return { confirmed, total };
+  };
+
+  const getEventTypeBadgeColor = (type: string, friendly: boolean = false) => {
+    // Handle friendly type explicitly
+    if (type === "friendly" || (type === "match" && friendly)) {
+      return '#3B82F6'; // Blue for friendly
+    }
+    if (type === "match") return '#DC2626'; // Red for match
+    if (type === "tournament") return '#EAB308'; // Yellow
+    if (type === "training") return '#10B981'; // Green
+    if (type === "social") return '#6B7280'; // Gray
+    return '#6B7280';
+  };
+
+  const getEventDisplayType = (event: any) => {
+    // Handle friendly type explicitly
+    if (event.type === "friendly" || (event.type === "match" && event.friendly)) {
+      return "Friendly";
+    }
+    if (event.type === "match") return "Match";
+    if (event.type === "tournament") return "Tournament";
+    if (event.type === "training") return "Training";
+    if (event.type === "social") return "Social";
+    return event.type.charAt(0).toUpperCase() + event.type.slice(1);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (date.toDateString() === now.toDateString()) {
+      return "Today";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return "Tomorrow";
+    }
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   return (
@@ -173,13 +231,32 @@ export default function Dashboard() {
             <Text style={styles.emptyText}>No upcoming events</Text>
           ) : (
             upcomingEvents.map((event: any) => (
-              <View key={event.id} style={styles.eventItem}>
-                <View style={styles.eventInfo}>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <Text style={styles.eventDate}>
-                    {formatDate(event.startTime)} at {formatTime(event.startTime)}
-                  </Text>
+              <View key={event.id} style={styles.eventCard}>
+                {/* Type Badge and Name */}
+                <View style={styles.eventCardHeader}>
+                  <View style={[styles.typeBadge, { backgroundColor: getEventTypeBadgeColor(event.type, event.friendly) }]}>
+                    <Text style={styles.typeBadgeText}>{getEventDisplayType(event)}</Text>
+                  </View>
+                  <Text style={styles.eventCardTitle} numberOfLines={1}>{event.name || 'Event'}</Text>
                 </View>
+
+                {/* Team */}
+                {event.teamId && (
+                  <Text style={styles.detailText}>
+                    <Text style={styles.detailLabel}>Team: </Text>
+                    <Text style={styles.detailValue}>{getTeamName(event.teamId)}</Text>
+                  </Text>
+                )}
+
+                {/* Date & Time */}
+                <Text style={styles.detailText}>
+                  🕐 {formatDate(event.startTime)}, {formatTime(event.startTime)}
+                </Text>
+
+                {/* Location */}
+                {event.location && (
+                  <Text style={styles.detailText}>📍 {event.location}</Text>
+                )}
               </View>
             ))
           )}
@@ -191,19 +268,55 @@ export default function Dashboard() {
           {upcomingFixtures.length === 0 ? (
             <Text style={styles.emptyText}>No upcoming fixtures</Text>
           ) : (
-            upcomingFixtures.map((fixture: any) => (
-              <View key={fixture.id} style={styles.eventItem}>
-                <View style={styles.eventInfo}>
-                  <Text style={styles.eventTitle}>{fixture.title}</Text>
-                  <Text style={styles.eventDate}>
-                    {formatDate(fixture.startTime)} at {formatTime(fixture.startTime)}
+            upcomingFixtures.map((fixture: any) => {
+              const availability = getAvailabilityCount(fixture);
+              return (
+                <View key={fixture.id} style={styles.fixtureCard}>
+                  {/* Type Badge and Name */}
+                  <View style={styles.eventCardHeader}>
+                    <View style={[styles.typeBadge, { backgroundColor: getEventTypeBadgeColor(fixture.type, fixture.friendly) }]}>
+                      <Text style={styles.typeBadgeText}>{getEventDisplayType(fixture)}</Text>
+                    </View>
+                    <Text style={styles.eventCardTitle} numberOfLines={1}>{fixture.name || 'Fixture'}</Text>
+                  </View>
+
+                  {/* Team */}
+                  {fixture.teamId && (
+                    <Text style={styles.detailText}>
+                      <Text style={styles.detailLabel}>Team: </Text>
+                      <Text style={styles.detailValue}>{getTeamName(fixture.teamId)}</Text>
+                    </Text>
+                  )}
+
+                  {/* Opponent */}
+                  {fixture.opponent && (
+                    <Text style={styles.detailText}>
+                      <Text style={styles.detailLabel}>vs </Text>
+                      <Text style={styles.detailValue}>{fixture.opponent}</Text>
+                    </Text>
+                  )}
+
+                  {/* Date & Time */}
+                  <Text style={styles.detailText}>
+                    🕐 {formatDate(fixture.startTime)}, {formatTime(fixture.startTime)}
                   </Text>
+
+                  {/* Location */}
                   {fixture.location && (
-                    <Text style={styles.eventLocation}>📍 {fixture.location}</Text>
+                    <Text style={styles.detailText}>📍 {fixture.location}</Text>
+                  )}
+
+                  {/* Player Availability */}
+                  {availability.total > 0 && (
+                    <View style={styles.availabilityRow}>
+                      <Text style={styles.availabilityText}>
+                        👥 {availability.confirmed}/{availability.total} available
+                      </Text>
+                    </View>
                   )}
                 </View>
-              </View>
-            ))
+              );
+            })
           )}
         </View>
 
@@ -286,6 +399,68 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
     paddingVertical: 12,
+  },
+  eventCard: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  fixtureCard: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  eventCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  typeBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  eventCardTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    flex: 1,
+  },
+  detailText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  detailLabel: {
+    color: '#9CA3AF',
+  },
+  detailValue: {
+    fontWeight: '500',
+    color: '#111827',
+  },
+  availabilityRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  availabilityText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   eventItem: {
     backgroundColor: '#fff',
