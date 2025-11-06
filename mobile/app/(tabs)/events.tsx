@@ -6,6 +6,7 @@ import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
 import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
+import { AvailabilityModal } from '@/components/modals/AvailabilityModal';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function Events() {
@@ -13,6 +14,7 @@ export default function Events() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedFixture, setSelectedFixture] = useState<any>(null);
+  const [selectedAvailabilityEvent, setSelectedAvailabilityEvent] = useState<any>(null);
 
   const { data: eventsResponse, isLoading } = useQuery({
     queryKey: ['/api/events/upcoming-session'],
@@ -35,6 +37,18 @@ export default function Events() {
       return response.json();
     },
     enabled: !!user?.clubId,
+  });
+
+  // Fetch parent's players/dependents for availability filtering
+  const { data: playersResponse } = useQuery({
+    queryKey: ['/api/players/parent', user?.id],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/players/parent/${user?.id}`, {
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    enabled: !!user?.id && hasRole('parent'),
   });
 
   const deleteEventMutation = useMutation({
@@ -98,6 +112,19 @@ export default function Events() {
   
   const canManageEvent = (event: any) => {
     return hasRole('coach') && user?.teamIds?.includes(event.teamId);
+  };
+
+  const canMarkAvailability = (event: any) => {
+    if (!hasRole('parent')) return false;
+    
+    const players = playersResponse?.players || [];
+    if (players.length === 0) return false;
+
+    // Check if at least one of parent's players is on this event's team
+    const team = teams.find((t: any) => t.id === event.teamId);
+    if (!team) return false;
+
+    return players.some((player: any) => team.players?.includes(player.id));
   };
   
   const canUpdateResult = (event: any) => {
@@ -192,6 +219,15 @@ export default function Events() {
                     <Text style={styles.updateResultButtonText}>Update Result</Text>
                   </TouchableOpacity>
                 )}
+
+                {canMarkAvailability(event) && (
+                  <TouchableOpacity
+                    style={styles.availabilityButton}
+                    onPress={() => setSelectedAvailabilityEvent(event)}
+                  >
+                    <Text style={styles.availabilityButtonText}>Mark Availability</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
@@ -218,6 +254,12 @@ export default function Events() {
         visible={!!selectedFixture}
         fixture={selectedFixture}
         onClose={() => setSelectedFixture(null)}
+      />
+
+      <AvailabilityModal
+        visible={!!selectedAvailabilityEvent}
+        event={selectedAvailabilityEvent}
+        onClose={() => setSelectedAvailabilityEvent(null)}
       />
     </ScrollView>
   );
@@ -341,6 +383,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   updateResultButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  availabilityButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#007AFF',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  availabilityButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
