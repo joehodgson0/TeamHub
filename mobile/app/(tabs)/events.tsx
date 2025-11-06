@@ -37,7 +37,8 @@ export default function Events() {
     enabled: !!user?.clubId,
   });
 
-  // Fetch parent's players/dependents for availability filtering
+  // Fetch user's players/dependents for availability filtering
+  // Works for both parents and coaches who have dependents
   const { data: playersResponse } = useQuery({
     queryKey: ['/api/players/parent', user?.id],
     queryFn: async () => {
@@ -46,7 +47,7 @@ export default function Events() {
       });
       return response.json();
     },
-    enabled: !!user?.id && hasRole('parent'),
+    enabled: !!user?.id,
   });
 
   const deleteEventMutation = useMutation({
@@ -133,14 +134,13 @@ export default function Events() {
     return hasRole('coach') && user?.teamIds?.includes(event.teamId);
   };
 
-  const getParentPlayersForEvent = (event: any) => {
-    if (!hasRole('parent')) return [];
+  const getUserPlayersForEvent = (event: any) => {
+    // For both parents and coaches, check if they have dependents on this team
+    const players = playersResponse?.players || [];
+    if (players.length === 0) return [];
     
     // Only show availability for fixtures (not social events)
     if (event.type === 'social') return [];
-    
-    const players = playersResponse?.players || [];
-    if (players.length === 0) return [];
 
     // Get players on this event's team
     const team = teams.find((t: any) => t.id === event.teamId);
@@ -254,10 +254,10 @@ export default function Events() {
                   </TouchableOpacity>
                 )}
 
-                {getParentPlayersForEvent(event).length > 0 && !isEventCompleted(event) && (
+                {getUserPlayersForEvent(event).length > 0 && !isEventCompleted(event) && (
                   <View style={styles.availabilitySection}>
                     <Text style={styles.availabilitySectionTitle}>Player Availability:</Text>
-                    {getParentPlayersForEvent(event).map((player: any) => {
+                    {getUserPlayersForEvent(event).map((player: any) => {
                       const availability = getPlayerAvailability(event, player.id);
                       return (
                         <View key={player.id} style={styles.playerAvailability}>
