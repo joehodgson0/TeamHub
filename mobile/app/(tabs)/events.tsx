@@ -143,7 +143,7 @@ export default function Events() {
     const team = teams.find((t: any) => t.id === event.teamId);
     if (!team) return [];
 
-    return players.filter((player: any) => team.players?.includes(player.id));
+    return players.filter((player: any) => team.playerIds?.includes(player.id));
   };
 
   const handleAvailabilityUpdate = (eventId: string, playerId: string, availability: string) => {
