@@ -6,10 +6,12 @@ import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
 import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
+import { Edit, Trash2 } from 'lucide-react-native';
 
 export default function Events() {
   const { user, hasRole } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedFixture, setSelectedFixture] = useState<any>(null);
 
   const { data: eventsResponse, isLoading } = useQuery({
@@ -167,21 +169,28 @@ export default function Events() {
                 
                 {canManageEvent(event) && (
                   <View style={styles.actionButtons}>
-                    {canUpdateResult(event) && (
-                      <TouchableOpacity
-                        style={styles.updateResultButton}
-                        onPress={() => setSelectedFixture(event)}
-                      >
-                        <Text style={styles.updateResultButtonText}>Update Result</Text>
-                      </TouchableOpacity>
-                    )}
                     <TouchableOpacity
-                      style={styles.deleteButton}
+                      style={styles.iconButton}
+                      onPress={() => setEditingEvent(event)}
+                    >
+                      <Edit size={20} color="#007AFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.iconButton}
                       onPress={() => handleDeleteEvent(event.id, event.name || event.title || 'event')}
                     >
-                      <Text style={styles.deleteButtonText}>Delete</Text>
+                      <Trash2 size={20} color="#EF4444" />
                     </TouchableOpacity>
                   </View>
+                )}
+                
+                {canUpdateResult(event) && (
+                  <TouchableOpacity
+                    style={styles.updateResultButton}
+                    onPress={() => setSelectedFixture(event)}
+                  >
+                    <Text style={styles.updateResultButtonText}>Update Result</Text>
+                  </TouchableOpacity>
                 )}
               </View>
             ))}
@@ -197,8 +206,12 @@ export default function Events() {
       </View>
 
       <AddEventModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        visible={showAddModal || !!editingEvent}
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingEvent(null);
+        }}
+        eventToEdit={editingEvent}
       />
       
       <MatchResultModal
@@ -310,10 +323,17 @@ const styles = StyleSheet.create({
   actionButtons: {
     marginTop: 12,
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
+  },
+  iconButton: {
+    padding: 8,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
   },
   updateResultButton: {
-    flex: 1,
+    marginTop: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: '#10B981',
@@ -321,18 +341,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   updateResultButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#EF4444',
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  deleteButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',

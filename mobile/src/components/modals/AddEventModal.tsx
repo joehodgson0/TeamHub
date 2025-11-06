@@ -20,6 +20,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 interface AddEventModalProps {
   visible: boolean;
   onClose: () => void;
+  eventToEdit?: any;
 }
 
 const EVENT_TYPES = [
@@ -29,8 +30,9 @@ const EVENT_TYPES = [
   { value: 'social', label: 'Social Event' },
 ];
 
-export function AddEventModal({ visible, onClose }: AddEventModalProps) {
+export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalProps) {
   const { user } = useAuth();
+  const isEditing = !!eventToEdit;
   
   // Form state
   const [eventType, setEventType] = useState<string>('match');
@@ -45,6 +47,25 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  // Populate form when editing, reset when not
+  useEffect(() => {
+    if (eventToEdit) {
+      setEventType(eventToEdit.type || 'match');
+      setName(eventToEdit.name || '');
+      setOpponent(eventToEdit.opponent || '');
+      setLocation(eventToEdit.location || '');
+      setStartDateTime(new Date(eventToEdit.startTime));
+      setEndDateTime(new Date(eventToEdit.endTime));
+      setAdditionalInfo(eventToEdit.additionalInfo || '');
+      setHomeAway(eventToEdit.homeAway || 'home');
+      setFriendly(eventToEdit.friendly || false);
+      setSelectedTeamId(eventToEdit.teamId || '');
+    } else if (!visible) {
+      // Reset form when modal is closed and not editing
+      resetForm();
+    }
+  }, [eventToEdit, visible]);
 
   // Fetch user's teams
   const { data: teamsResponse } = useQuery({
@@ -86,6 +107,24 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
     },
     onError: (error: any) => {
       Alert.alert('Error', error?.message || 'Failed to create event');
+    },
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: async (eventData: any) => {
+      return apiRequest(`/api/events/${eventToEdit.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(eventData),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+      Alert.alert('Success', 'Event updated successfully');
+      resetForm();
+      onClose();
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error?.message || 'Failed to update event');
     },
   });
 
@@ -165,8 +204,14 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
       eventData.name = name.trim();
     }
 
-    createEventMutation.mutate(eventData);
+    if (isEditing) {
+      updateEventMutation.mutate(eventData);
+    } else {
+      createEventMutation.mutate(eventData);
+    }
   };
+
+  const isPending = createEventMutation.isPending || updateEventMutation.isPending;
 
   return (
     <Modal
@@ -180,13 +225,13 @@ export function AddEventModal({ visible, onClose }: AddEventModalProps) {
           <TouchableOpacity onPress={onClose}>
             <Text style={styles.cancelButton}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Event</Text>
+          <Text style={styles.headerTitle}>{isEditing ? 'Edit Event' : 'Add Event'}</Text>
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={createEventMutation.isPending}
+            disabled={isPending}
           >
-            <Text style={[styles.saveButton, createEventMutation.isPending && styles.saveButtonDisabled]}>
-              {createEventMutation.isPending ? 'Creating...' : 'Create'}
+            <Text style={[styles.saveButton, isPending && styles.saveButtonDisabled]}>
+              {isPending ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save' : 'Create')}
             </Text>
           </TouchableOpacity>
         </View>
