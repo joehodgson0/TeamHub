@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
+import { queryClient } from '@/lib/queryClient';
 import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
 
@@ -22,7 +23,44 @@ export default function Events() {
     enabled: !!user,
   });
 
+  // Fetch teams for displaying team names
+  const { data: teamsResponse } = useQuery({
+    queryKey: ['/api/teams/club', user?.clubId],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/teams/club/${user?.clubId}`, {
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    enabled: !!user?.clubId,
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const response = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+      Alert.alert('Success', 'Event deleted successfully');
+    },
+    onError: () => {
+      Alert.alert('Error', 'Failed to delete event');
+    },
+  });
+
   const events = eventsResponse?.events || [];
+  const teams = teamsResponse?.teams || [];
+
+  const getTeamName = (teamId: string) => {
+    const team = teams.find((t: any) => t.id === teamId);
+    return team ? team.name : 'Unknown Team';
+  };
 
   const formatEventTime = (startTime: string, endTime: string) => {
     const start = new Date(startTime);
@@ -56,6 +94,10 @@ export default function Events() {
 
   const canCreateEvent = hasRole('coach');
   
+  const canManageEvent = (event: any) => {
+    return hasRole('coach') && user?.teamIds?.includes(event.teamId);
+  };
+  
   const canUpdateResult = (event: any) => {
     const eventEndTime = new Date(event.endTime);
     const now = new Date();
@@ -63,6 +105,21 @@ export default function Events() {
            event.type === 'match' && 
            user?.teamIds?.includes(event.teamId) &&
            now > eventEndTime;
+  };
+
+  const handleDeleteEvent = (eventId: string, eventName: string) => {
+    Alert.alert(
+      'Delete Event',
+      `Are you sure you want to delete "${eventName}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteEventMutation.mutate(eventId),
+        },
+      ]
+    );
   };
 
   return (
@@ -86,7 +143,12 @@ export default function Events() {
             {events.map((event: any) => (
               <View key={event.id} style={styles.eventCard}>
                 <View style={styles.eventHeader}>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
+                  <View style={styles.eventTitleContainer}>
+                    <Text style={styles.eventTitle}>{event.name || event.title || 'Event'}</Text>
+                    {event.teamId && (
+                      <Text style={styles.teamName}>{getTeamName(event.teamId)}</Text>
+                    )}
+                  </View>
                   <View style={[styles.typeBadge, { backgroundColor: getEventTypeBadgeColor(event.type) }]}>
                     <Text style={styles.typeBadgeText}>{event.type}</Text>
                   </View>
@@ -99,17 +161,27 @@ export default function Events() {
                   <Text style={styles.eventLocation}>📍 {event.location}</Text>
                 )}
                 
-                {event.opponent && (
+                {event.type === 'match' && event.opponent && (
                   <Text style={styles.eventOpponent}>vs {event.opponent}</Text>
                 )}
                 
-                {canUpdateResult(event) && (
-                  <TouchableOpacity
-                    style={styles.updateResultButton}
-                    onPress={() => setSelectedFixture(event)}
-                  >
-                    <Text style={styles.updateResultButtonText}>Update Result</Text>
-                  </TouchableOpacity>
+                {canManageEvent(event) && (
+                  <View style={styles.actionButtons}>
+                    {canUpdateResult(event) && (
+                      <TouchableOpacity
+                        style={styles.updateResultButton}
+                        onPress={() => setSelectedFixture(event)}
+                      >
+                        <Text style={styles.updateResultButtonText}>Update Result</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteEvent(event.id, event.name || event.title || 'event')}
+                    >
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             ))}
@@ -185,14 +257,22 @@ const styles = StyleSheet.create({
   eventHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  eventTitleContainer: {
+    flex: 1,
+    marginRight: 8,
   },
   eventTitle: {
     fontSize: 18,
     fontWeight: '600',
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 4,
+  },
+  teamName: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   typeBadge: {
     paddingHorizontal: 8,
@@ -227,8 +307,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 4,
   },
-  updateResultButton: {
+  actionButtons: {
     marginTop: 12,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  updateResultButton: {
+    flex: 1,
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: '#10B981',
@@ -236,6 +321,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   updateResultButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#EF4444',
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  deleteButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',

@@ -96,6 +96,18 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
+### November 2025 - Comprehensive Event Display & Management
+- Expanded Events & Fixtures section to show ALL event types (match, tournament, training, social)
+- Previously only matches/tournaments were shown, now all event types are visible with full details
+- Added team name display for all events (both web and mobile)
+- Added edit/delete capabilities for coaches on all event types they manage
+- Availability marking for parents works across all event types (web)
+- Conditional rendering: opponent and match-specific features only show for match-type events
+- Added delete functionality to mobile app with confirmation dialog
+- Web: Modified fixture-list.tsx to remove type filtering and show all events
+- Mobile: Added team fetching, delete mutation, and enhanced event cards with team names
+- Improved event name display logic to handle all event types appropriately
+
 ### November 2025 - Update Result Availability Validation
 - Added date/time validation for "Update Result" button in Events & Fixtures section
 - Button only appears AFTER an event has ended (compares current time with event end time)

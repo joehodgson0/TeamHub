@@ -139,15 +139,21 @@ export default function FixtureList() {
       events = events.filter(event => allowedTeamIds.includes(event.teamId));
     }
 
-    // Filter to only show matches and tournaments (exclude all other event types)
-    events = events.filter(event => event.type === "match" || event.type === "tournament");
+    // Show all event types (match, tournament, training, social)
+    // No filtering by type - show everything
 
-    // Filter out fixtures that already have match results
+    // Filter out match/tournament fixtures that already have match results
     if (matchResultsResponse?.matchResults) {
       const fixturesWithResults = new Set(
         matchResultsResponse.matchResults.map((result: any) => result.fixtureId)
       );
-      events = events.filter(event => !fixturesWithResults.has(event.id));
+      events = events.filter(event => {
+        // Only exclude matches/tournaments with results, keep all other event types
+        if (event.type === "match" || event.type === "tournament") {
+          return !fixturesWithResults.has(event.id);
+        }
+        return true;
+      });
     }
 
     return events;
@@ -186,6 +192,9 @@ export default function FixtureList() {
       const matchType = fixture.friendly ? "Friendly" : "Match";
       return `${homeAway} ${matchType}`;
     }
+    if (fixture.type === "tournament") return "Tournament";
+    if (fixture.type === "training") return "Training";
+    if (fixture.type === "social") return "Social Event";
     return fixture.type.charAt(0).toUpperCase() + fixture.type.slice(1);
   };
 
@@ -209,20 +218,31 @@ export default function FixtureList() {
     return team ? team.name : "Unknown Team";
   };
 
+  const getEventName = (fixture: any) => {
+    if (fixture.name) return fixture.name;
+    if (fixture.type === "match" && fixture.opponent) {
+      return `vs ${fixture.opponent}`;
+    }
+    if (fixture.type === "training") return "Training Session";
+    if (fixture.type === "social") return "Social Event";
+    if (fixture.type === "tournament") return "Tournament";
+    return "Event";
+  };
+
   return (
     <>
       <Card data-testid="card-fixtures">
         <CardHeader>
-          <CardTitle>Upcoming Fixtures</CardTitle>
+          <CardTitle>Upcoming Events & Fixtures</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {fixtures.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No Upcoming Fixtures</p>
+                <p className="text-lg font-medium mb-2">No Upcoming Events</p>
                 <p className="text-sm">
-                  {isCoach ? "Create your first fixture to get started" : "No events scheduled"}
+                  {isCoach ? "Create your first event to get started" : "No events scheduled"}
                 </p>
               </div>
             ) : (
@@ -236,18 +256,20 @@ export default function FixtureList() {
                     data-testid={`fixture-${fixture.id}`}
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <Badge className={getFixtureTypeColor(fixture.type, fixture.friendly)} data-testid={`fixture-type-${fixture.id}`}>
-                          {getFixtureDisplayType(fixture)}
-                        </Badge>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-1">
+                          <Badge className={getFixtureTypeColor(fixture.type, fixture.friendly)} data-testid={`fixture-type-${fixture.id}`}>
+                            {getFixtureDisplayType(fixture)}
+                          </Badge>
+                          {fixture.teamId && (
+                            <span className="text-sm text-primary font-medium" data-testid={`fixture-team-${fixture.id}`}>
+                              {getTeamName(fixture.teamId)}
+                            </span>
+                          )}
+                        </div>
                         <h4 className="font-medium" data-testid={`fixture-name-${fixture.id}`}>
-                          {fixture.name}
+                          {getEventName(fixture)}
                         </h4>
-                        {fixture.teamId && (
-                          <span className="text-sm text-primary font-medium" data-testid={`fixture-team-${fixture.id}`}>
-                            ({getTeamName(fixture.teamId)})
-                          </span>
-                        )}
                       </div>
                       {canManageFixture(fixture) && (
                         <div className="flex items-center space-x-2">
@@ -263,7 +285,7 @@ export default function FixtureList() {
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeleteEvent(fixture.id, fixture.name || 'event')}
+                            onClick={() => handleDeleteEvent(fixture.id, getEventName(fixture))}
                             disabled={deletingEventId === fixture.id}
                             data-testid={`button-delete-fixture-${fixture.id}`}
                           >
@@ -288,7 +310,7 @@ export default function FixtureList() {
                       </div>
                     </div>
 
-                    {fixture.opponent && (
+                    {fixture.type === "match" && fixture.opponent && (
                       <div className="mb-3">
                         <p className="text-muted-foreground text-sm">Opponent</p>
                         <p className="font-medium" data-testid={`fixture-opponent-${fixture.id}`}>
