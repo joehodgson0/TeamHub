@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Alert, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { queryClient } from '@/lib/queryClient';
@@ -63,8 +63,16 @@ export default function Register() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        style={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Join TeamHub today</Text>
 
@@ -144,7 +152,8 @@ export default function Register() {
           </TouchableOpacity>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
