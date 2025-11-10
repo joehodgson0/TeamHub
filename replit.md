@@ -82,6 +82,13 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Event Cache Invalidation Fix
+- Fixed events not appearing immediately after creation/editing
+- Updated cache invalidation to refresh both events page and dashboard
+- All event mutations now invalidate both `/api/events/all-session` and `/api/events/upcoming-session`
+- Affects: AddEventModal, MatchResultModal, AvailabilityModal
+- No logout/login required to see changes
+
 ### November 2025 - Sequential Date/Time Picker Implementation
 - Replaced combined datetime picker with sequential date → time picker flow
 - Fixed issue where time selection wasn't available due to library limitations
