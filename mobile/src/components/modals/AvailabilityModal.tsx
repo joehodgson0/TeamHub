@@ -67,6 +67,7 @@ export function AvailabilityModal({ visible, onClose, event }: AvailabilityModal
         ...prev,
         [playerId]: availability,
       }));
+      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
       Alert.alert('Success', 'Availability updated successfully');
     },

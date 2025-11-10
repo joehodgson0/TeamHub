@@ -111,6 +111,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
       Alert.alert('Success', 'Event created successfully');
       resetForm();
@@ -129,6 +130,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
       Alert.alert('Success', 'Event updated successfully');
       resetForm();

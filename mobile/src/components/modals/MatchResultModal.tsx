@@ -80,6 +80,7 @@ export function MatchResultModal({ visible, fixture, onClose }: MatchResultModal
     onSuccess: (result) => {
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ['/api/match-results/fixture', fixture.id] });
+        queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
         queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
         queryClient.invalidateQueries({ queryKey: ['/api/match-results-session'] });
         queryClient.invalidateQueries({ queryKey: ['/api/teams/club'] });
