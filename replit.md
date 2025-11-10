@@ -82,6 +82,14 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Sequential Date/Time Picker Implementation
+- Replaced combined datetime picker with sequential date → time picker flow
+- Fixed issue where time selection wasn't available due to library limitations
+- Works consistently on both iOS and Android platforms
+- User flow: Select date → automatically shown time picker → combined and saved
+- Maintains all existing features (auto-update end time, minimum date validation)
+- No new dependencies required
+
 ### November 2025 - AddEventModal Date Picker Fix
 - Fixed date picker defaulting to January 1st instead of current date
 - Date picker now initializes to today's date when creating new events
