@@ -82,6 +82,13 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - AddEventModal Date Picker Fix
+- Fixed date picker defaulting to January 1st instead of current date
+- Date picker now initializes to today's date when creating new events
+- Form properly resets all fields when modal is closed
+- Preserved behavior: editing events still loads existing event dates
+- Implementation: useEffect handles three scenarios (edit, open, close) with proper state management
+
 ### November 2025 - Add Dependent Modal DatePicker Fix
 - Fixed DatePicker not loading by moving it inside Modal component
 - DatePicker now properly appears above modal content with correct z-index
