@@ -5,13 +5,15 @@ import { API_BASE_URL } from '@/lib/config';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 export default function Dependents() {
   const { user } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    dateOfBirth: '',
+    dateOfBirth: new Date(new Date().getFullYear() - 10, 0, 1), // Default to 10 years ago
     teamCode: '',
   });
 
@@ -91,7 +93,12 @@ export default function Dependents() {
       queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
       
       setShowAddModal(false);
-      setFormData({ name: '', dateOfBirth: '', teamCode: '' });
+      // Reset form with Date object, not empty string
+      setFormData({ 
+        name: '', 
+        dateOfBirth: new Date(new Date().getFullYear() - 10, 0, 1), 
+        teamCode: '' 
+      });
       Alert.alert('Success', `${result.player?.name || 'Dependent'} added to ${result.team || 'team'}!`);
     },
     onError: (error: any) => {
@@ -100,16 +107,31 @@ export default function Dependents() {
   });
 
   const handleAddPlayer = () => {
-    if (!formData.name || !formData.dateOfBirth || !formData.teamCode) {
+    if (!formData.name || !formData.teamCode) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
+    // Format date as YYYY-MM-DD for the API (timezone-safe)
+    const year = formData.dateOfBirth.getFullYear();
+    const month = String(formData.dateOfBirth.getMonth() + 1).padStart(2, '0');
+    const day = String(formData.dateOfBirth.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+
     addPlayerMutation.mutate({
       name: formData.name,
-      dateOfBirth: formData.dateOfBirth,
+      dateOfBirth: formattedDate,
       teamCode: formData.teamCode,
       parentId: user?.id,
+    });
+  };
+
+  const formatDisplayDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
   };
 
@@ -199,12 +221,15 @@ export default function Dependents() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Date of Birth</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.dateOfBirth}
-                onChangeText={(text) => setFormData({ ...formData, dateOfBirth: text })}
-                placeholder="YYYY-MM-DD"
-              />
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={styles.dateText}>
+                  📅 {formatDisplayDate(formData.dateOfBirth)}
+                </Text>
+                <Text style={styles.changeText}>Change</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.inputGroup}>
@@ -240,6 +265,19 @@ export default function Dependents() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Date Picker */}
+      <DateTimePickerModal
+        isVisible={showDatePicker}
+        mode="date"
+        date={formData.dateOfBirth}
+        maximumDate={new Date()} // Can't be born in the future
+        onConfirm={(selectedDate: Date) => {
+          setFormData({ ...formData, dateOfBirth: selectedDate });
+          setShowDatePicker(false);
+        }}
+        onCancel={() => setShowDatePicker(false)}
+      />
     </ScrollView>
   );
 }
@@ -384,6 +422,25 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#fff',
+    fontWeight: '600',
+  },
+  datePickerButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  changeText: {
+    color: '#007AFF',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
