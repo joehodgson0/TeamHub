@@ -976,7 +976,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         index === self.findIndex(r => r.id === result.id)
       );
       
-      res.json({ success: true, matchResults: uniqueResults });
+      // Enrich results with fixture data (opponent, startTime) and score
+      const enrichedResults = await Promise.all(
+        uniqueResults.map(async (result) => {
+          const fixture = await storage.getEvent(result.fixtureId);
+          
+          // Calculate score from team's perspective
+          let score = '';
+          if (result.isHomeFixture) {
+            score = `${result.homeTeamGoals}-${result.awayTeamGoals}`;
+          } else {
+            score = `${result.awayTeamGoals}-${result.homeTeamGoals}`;
+          }
+          
+          return {
+            ...result,
+            opponent: fixture?.opponent || 'Unknown Opponent',
+            startTime: fixture?.startTime ?? result.startTime,
+            score
+          };
+        })
+      );
+      
+      res.json({ success: true, matchResults: enrichedResults });
     } catch (error) {
       console.error("Get match results error:", error);
       res.status(500).json({ success: false, error: "Failed to fetch match results" });
@@ -1006,7 +1028,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         index === self.findIndex(r => r.id === result.id)
       );
       
-      res.json({ success: true, matchResults: uniqueResults });
+      // Enrich results with fixture data (opponent, startTime) and score
+      const enrichedResults = await Promise.all(
+        uniqueResults.map(async (result) => {
+          const fixture = await storage.getEvent(result.fixtureId);
+          
+          // Calculate score from team's perspective
+          let score = '';
+          if (result.isHomeFixture) {
+            score = `${result.homeTeamGoals}-${result.awayTeamGoals}`;
+          } else {
+            score = `${result.awayTeamGoals}-${result.homeTeamGoals}`;
+          }
+          
+          return {
+            ...result,
+            opponent: fixture?.opponent || 'Unknown Opponent',
+            startTime: fixture?.startTime ?? result.startTime,
+            score
+          };
+        })
+      );
+      
+      res.json({ success: true, matchResults: enrichedResults });
     } catch (error) {
       console.error("Get match results error:", error);
       res.status(500).json({ success: false, error: "Failed to fetch match results" });
