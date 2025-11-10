@@ -18,7 +18,7 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Fetch user's players (for both parents and coaches who have dependents)
+  // Fetch user's players (for parent role)
   const { data: playersResponse } = useQuery({
     queryKey: ['/api/players/parent', user?.id],
     queryFn: async () => {
@@ -27,7 +27,7 @@ export default function Dashboard() {
       });
       return response.json();
     },
-    enabled: !!user?.id,
+    enabled: !!user && user?.roles?.includes('parent'),
   });
 
   // Fetch match results
@@ -176,52 +176,6 @@ export default function Dashboard() {
     return { confirmed, total };
   };
 
-  const getUserPlayersForFixture = (fixture: any) => {
-    // For both parents and coaches, get players they care about on this team
-    const players = playersResponse?.players || [];
-    if (players.length === 0) return [];
-    
-    // Only show availability for fixtures (not social events)
-    if (fixture.type === 'social') return [];
-
-    // Get players on this fixture's team
-    const teams = teamsResponse?.teams || [];
-    const team = teams.find((t: any) => t.id === fixture.teamId);
-    if (!team) return [];
-
-    return players.filter((player: any) => team.playerIds?.includes(player.id));
-  };
-
-  const getPlayerAvailability = (fixture: any, playerId: string) => {
-    return fixture?.availability?.[playerId] || 'pending';
-  };
-
-  const getAvailabilityIcon = (status: string) => {
-    switch (status) {
-      case 'available':
-        return '✅';
-      case 'unavailable':
-        return '❌';
-      case 'maybe':
-        return '❓';
-      default:
-        return '⏳';
-    }
-  };
-
-  const getAvailabilityLabel = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'Available';
-      case 'unavailable':
-        return 'Unavailable';
-      case 'maybe':
-        return 'Maybe';
-      default:
-        return 'Pending';
-    }
-  };
-
   const getEventTypeBadgeColor = (type: string, friendly: boolean = false) => {
     // Handle friendly type explicitly
     if (type === "friendly" || (type === "match" && friendly)) {
@@ -316,7 +270,6 @@ export default function Dashboard() {
           ) : (
             upcomingFixtures.map((fixture: any) => {
               const availability = getAvailabilityCount(fixture);
-              const userPlayers = getUserPlayersForFixture(fixture);
               return (
                 <View key={fixture.id} style={styles.fixtureCard}>
                   {/* Type Badge and Name */}
@@ -353,29 +306,8 @@ export default function Dashboard() {
                     <Text style={styles.detailText}>📍 {fixture.location}</Text>
                   )}
 
-                  {/* Individual Player Availability */}
-                  {userPlayers.length > 0 && (
-                    <View style={styles.playerAvailabilitySection}>
-                      <Text style={styles.availabilitySectionTitle}>Player Availability:</Text>
-                      {userPlayers.map((player: any) => {
-                        const status = getPlayerAvailability(fixture, player.id);
-                        return (
-                          <View key={player.id} style={styles.playerAvailabilityItem}>
-                            <Text style={styles.playerAvailabilityName}>
-                              {player.firstName} {player.lastName}
-                            </Text>
-                            <View style={styles.playerAvailabilityStatus}>
-                              <Text style={styles.availabilityIcon}>{getAvailabilityIcon(status)}</Text>
-                              <Text style={styles.availabilityStatusText}>{getAvailabilityLabel(status)}</Text>
-                            </View>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  )}
-
-                  {/* Team-wide Availability Count (if no user players or as additional info) */}
-                  {availability.total > 0 && userPlayers.length === 0 && (
+                  {/* Team-wide Availability Count */}
+                  {availability.total > 0 && (
                     <View style={styles.availabilityRow}>
                       <Text style={styles.availabilityText}>
                         👥 {availability.confirmed}/{availability.total} available
@@ -529,41 +461,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     fontWeight: '500',
-  },
-  playerAvailabilitySection: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  availabilitySectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 6,
-  },
-  playerAvailabilityItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  playerAvailabilityName: {
-    fontSize: 13,
-    color: '#111827',
-    fontWeight: '500',
-  },
-  playerAvailabilityStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  availabilityIcon: {
-    fontSize: 14,
-  },
-  availabilityStatusText: {
-    fontSize: 12,
-    color: '#6B7280',
   },
   eventItem: {
     backgroundColor: '#fff',
