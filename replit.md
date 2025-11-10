@@ -96,13 +96,16 @@ The application uses Zod schemas for type validation and data modeling:
 
 ## Recent Changes
 
-### November 2025 - Mobile Keyboard Avoidance for All Modals
-- Fixed keyboard obscuring modals and forms on mobile devices
+### November 2025 - Mobile Keyboard Avoidance for All Forms
+- Fixed keyboard obscuring forms and modals on mobile devices
 - Added KeyboardAvoidingView to all modal components:
   - AddEventModal: Event creation and editing forms
   - CreateTeamModal: Team creation form
   - MatchResultModal: Match result entry with player stats
   - AvailabilityModal: Player availability marking
+- Added KeyboardAvoidingView to authentication pages:
+  - Register (Create Account): 5-field registration form
+  - Login: Email and password form
 - Platform-specific behavior (iOS: padding, Android: height)
 - Enhanced ScrollView with keyboardShouldPersistTaps="handled" for better UX
 - Keyboard no longer blocks bottom form fields and submit buttons
