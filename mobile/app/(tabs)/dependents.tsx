@@ -263,21 +263,21 @@ export default function Dependents() {
               </View>
             </ScrollView>
           </View>
+
+          {/* Date Picker */}
+          <DateTimePickerModal
+            isVisible={showDatePicker}
+            mode="date"
+            date={formData.dateOfBirth}
+            maximumDate={new Date()} // Can't be born in the future
+            onConfirm={(selectedDate: Date) => {
+              setFormData({ ...formData, dateOfBirth: selectedDate });
+              setShowDatePicker(false);
+            }}
+            onCancel={() => setShowDatePicker(false)}
+          />
         </KeyboardAvoidingView>
       </Modal>
-
-      {/* Date Picker */}
-      <DateTimePickerModal
-        isVisible={showDatePicker}
-        mode="date"
-        date={formData.dateOfBirth}
-        maximumDate={new Date()} // Can't be born in the future
-        onConfirm={(selectedDate: Date) => {
-          setFormData({ ...formData, dateOfBirth: selectedDate });
-          setShowDatePicker(false);
-        }}
-        onCancel={() => setShowDatePicker(false)}
-      />
     </ScrollView>
   );
 }
