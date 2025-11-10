@@ -79,3 +79,33 @@ Uses Zod schemas for validation and modeling:
 -   **Styling:** NativeWind.
 -   **Icons:** Lucide React Native (mobile), MaterialIcons.
 -   **Navigation:** React Navigation (via Expo Router).
+
+## Recent Changes
+
+### November 2025 - Add Dependent Modal DatePicker Fix
+- Fixed DatePicker not loading by moving it inside Modal component
+- DatePicker now properly appears above modal content with correct z-index
+- Timezone-safe date formatting (YYYY-MM-DD) for API submission
+- User-friendly date display format (e.g., "Wed, Jan 1, 2015")
+- Default date set to 10 years ago with validation preventing future dates
+
+### November 2025 - Mobile Keyboard Avoidance for All Forms
+- Fixed keyboard obscuring forms and modals on mobile devices
+- Added KeyboardAvoidingView to all modal components:
+  - AddEventModal: Event creation and editing forms
+  - CreateTeamModal: Team creation form
+  - MatchResultModal: Match result entry with player stats
+  - AvailabilityModal: Player availability marking
+  - Add Dependent Modal: Add child/player to team
+- Added KeyboardAvoidingView to authentication pages:
+  - Register (Create Account): 5-field registration form
+  - Login: Email and password form
+- Platform-specific behavior (iOS: padding, Android: height)
+- Enhanced ScrollView with keyboardShouldPersistTaps="handled" for better UX
+
+### November 2025 - Event Filtering Fix
+- Fixed event filtering to only show events from managed teams for coaches
+- Coaches now only see events from teams in user.teamIds (teams they manage)
+- Parents only see events from teams their dependents play on
+- Users with both roles see events from both managed teams and dependent teams
+- Updated both /api/events/all-session and /api/events/upcoming-session endpoints
