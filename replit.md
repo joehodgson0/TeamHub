@@ -82,6 +82,13 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Dashboard Availability Count Fix
+- Fixed availability count to always show team roster size as denominator
+- Previously only showed counts when at least one person had marked availability
+- Now shows "0/N available" even when no one has responded (N = team player count)
+- Uses team's playerIds.length as the total instead of counting responses
+- Behavior: Team with 5 players and 0 responses shows "👥 0/5 available" instead of nothing
+
 ### November 2025 - Event Cache Invalidation Fix
 - Fixed events not appearing immediately after creation/editing
 - Updated cache invalidation to refresh both events page and dashboard
