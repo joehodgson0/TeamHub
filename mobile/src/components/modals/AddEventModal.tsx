@@ -46,8 +46,12 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   const [homeAway, setHomeAway] = useState<string>('home');
   const [friendly, setFriendly] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState('');
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  
+  // Date/Time picker state for sequential flow
+  const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  const [editingDateTime, setEditingDateTime] = useState<'start' | 'end'>('start');
+  const [tempDate, setTempDate] = useState<Date>(new Date());
 
   // Populate form when editing, reset when not
   useEffect(() => {
@@ -146,8 +150,52 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     setHomeAway('home');
     setFriendly(false);
     setSelectedTeamId(teams[0]?.id || '');
-    setShowStartDatePicker(false);
-    setShowEndDatePicker(false);
+    setShowDateTimePicker(false);
+    setPickerMode('date');
+    setEditingDateTime('start');
+    setTempDate(new Date());
+  };
+
+  // Handle opening the date/time picker sequence
+  const openDateTimePicker = (dateTimeType: 'start' | 'end') => {
+    setEditingDateTime(dateTimeType);
+    setPickerMode('date');
+    setTempDate(dateTimeType === 'start' ? startDateTime : endDateTime);
+    setShowDateTimePicker(true);
+  };
+
+  // Handle date selection (then show time picker)
+  const handleDateConfirm = (selectedDate: Date) => {
+    setTempDate(selectedDate);
+    setPickerMode('time');
+    // Keep picker open, just switch to time mode
+  };
+
+  // Handle time selection (final step)
+  const handleTimeConfirm = (selectedTime: Date) => {
+    // Combine the date from tempDate with time from selectedTime
+    const combined = new Date(tempDate);
+    combined.setHours(selectedTime.getHours());
+    combined.setMinutes(selectedTime.getMinutes());
+    combined.setSeconds(0);
+    combined.setMilliseconds(0);
+
+    if (editingDateTime === 'start') {
+      setStartDateTime(combined);
+      // Auto-update end time to be 2 hours later
+      setEndDateTime(new Date(combined.getTime() + 2 * 60 * 60 * 1000));
+    } else {
+      setEndDateTime(combined);
+    }
+
+    setShowDateTimePicker(false);
+    setPickerMode('date'); // Reset for next time
+  };
+
+  // Handle cancel
+  const handlePickerCancel = () => {
+    setShowDateTimePicker(false);
+    setPickerMode('date'); // Reset for next time
   };
 
   const formatDateTime = (date: Date) => {
@@ -346,7 +394,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
             <Text style={styles.label}>Start Date & Time</Text>
             <TouchableOpacity
               style={styles.dateTimeButton}
-              onPress={() => setShowStartDatePicker(true)}
+              onPress={() => openDateTimePicker('start')}
             >
               <View style={styles.dateTimeDisplay}>
                 <Text style={styles.dateText}>📅 {formatDisplayDate(startDateTime)}</Text>
@@ -361,7 +409,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
             <Text style={styles.label}>End Date & Time</Text>
             <TouchableOpacity
               style={styles.dateTimeButton}
-              onPress={() => setShowEndDatePicker(true)}
+              onPress={() => openDateTimePicker('end')}
             >
               <View style={styles.dateTimeDisplay}>
                 <Text style={styles.dateText}>📅 {formatDisplayDate(endDateTime)}</Text>
@@ -440,31 +488,14 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Start DateTime Picker */}
+      {/* Sequential Date/Time Picker */}
       <DateTimePickerModal
-        isVisible={showStartDatePicker}
-        mode="datetime"
-        date={startDateTime}
-        onConfirm={(selectedDate: Date) => {
-          setStartDateTime(selectedDate);
-          // Auto-update end time to be 2 hours later
-          setEndDateTime(new Date(selectedDate.getTime() + 2 * 60 * 60 * 1000));
-          setShowStartDatePicker(false);
-        }}
-        onCancel={() => setShowStartDatePicker(false)}
-      />
-
-      {/* End DateTime Picker */}
-      <DateTimePickerModal
-        isVisible={showEndDatePicker}
-        mode="datetime"
-        date={endDateTime}
-        minimumDate={startDateTime}
-        onConfirm={(selectedDate: Date) => {
-          setEndDateTime(selectedDate);
-          setShowEndDatePicker(false);
-        }}
-        onCancel={() => setShowEndDatePicker(false)}
+        isVisible={showDateTimePicker}
+        mode={pickerMode}
+        date={pickerMode === 'date' ? tempDate : (editingDateTime === 'start' ? startDateTime : endDateTime)}
+        minimumDate={editingDateTime === 'end' ? startDateTime : undefined}
+        onConfirm={pickerMode === 'date' ? handleDateConfirm : handleTimeConfirm}
+        onCancel={handlePickerCancel}
       />
     </Modal>
   );
