@@ -82,6 +82,14 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Create Post Modal Keyboard Avoidance
+- Fixed keyboard blocking the Create Post modal form inputs on mobile
+- Added KeyboardAvoidingView with platform-specific behavior (iOS: padding, Android: height)
+- Added ScrollView with keyboardShouldPersistTaps="handled" for better UX
+- Modal content now scrolls and adjusts when keyboard is visible
+- All form inputs and buttons remain accessible while typing
+- Matches the keyboard avoidance pattern used in other modals (AddEvent, MatchResult, etc.)
+
 ### November 2025 - Dashboard Availability Count Fix
 - Fixed availability count to always show team roster size as denominator
 - Previously only showed counts when at least one person had marked availability
