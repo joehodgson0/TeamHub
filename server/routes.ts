@@ -1305,7 +1305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/posts", async (req: any, res) => {
     try {
-      const { type, title, content, scope } = req.body;
+      const { type, title, content, scope, teamId: requestedTeamId } = req.body;
       
       if (!type || !title || !content || !scope) {
         return res.status(400).json({ success: false, error: "Missing required fields" });
@@ -1350,8 +1350,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ success: false, error: "You must manage a team to create team posts" });
         }
         
-        // Assign to user's first team (coaches typically manage one team)
-        teamId = user.teamIds[0];
+        // Validate that teamId is provided
+        if (!requestedTeamId) {
+          return res.status(400).json({ success: false, error: "Team ID is required for team posts" });
+        }
+        
+        // Validate that user manages the requested team
+        if (!user.teamIds.includes(requestedTeamId)) {
+          return res.status(403).json({ success: false, error: "You do not have permission to post to this team" });
+        }
+        
+        // Use the provided teamId
+        teamId = requestedTeamId;
       } else if (scope === "club") {
         // For club posts, assign to user's club
         clubId = user.clubId;

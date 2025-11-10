@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 
 export default function Posts() {
@@ -12,6 +12,7 @@ export default function Posts() {
   const [formData, setFormData] = useState({
     type: 'announcement' as 'announcement' | 'kit_request' | 'player_request',
     scope: 'team' as 'team' | 'club',
+    teamId: '',
     title: '',
     content: '',
   });
@@ -29,7 +30,27 @@ export default function Posts() {
     enabled: !!user,
   });
 
+  // Fetch user's teams for team selection
+  const { data: teamsResponse } = useQuery({
+    queryKey: ['/api/teams/club', user?.clubId],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/teams/club/${user?.clubId}`, {
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    enabled: !!user?.clubId && canCreatePost,
+  });
+
   const posts = postsResponse?.posts || [];
+  const userTeams = teamsResponse?.teams?.filter((team: any) => user?.teamIds?.includes(team.id)) || [];
+
+  // Auto-select first team when modal opens or teams are loaded
+  useEffect(() => {
+    if (showCreateModal && userTeams.length > 0 && !formData.teamId) {
+      setFormData(prev => ({ ...prev, teamId: userTeams[0].id }));
+    }
+  }, [showCreateModal, userTeams, formData.teamId]);
 
   const createPostMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -45,7 +66,7 @@ export default function Posts() {
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
         setShowCreateModal(false);
-        setFormData({ type: 'announcement', scope: 'team', title: '', content: '' });
+        setFormData({ type: 'announcement', scope: 'team', teamId: '', title: '', content: '' });
         Alert.alert('Success', 'Post created successfully!');
       } else {
         Alert.alert('Error', result.error || 'Failed to create post');
@@ -62,9 +83,16 @@ export default function Posts() {
       return;
     }
 
+    // Validate team selection for team-scoped posts
+    if (formData.scope === 'team' && !formData.teamId) {
+      Alert.alert('Error', 'Please select a team');
+      return;
+    }
+
     createPostMutation.mutate({
       type: formData.type,
       scope: formData.scope,
+      teamId: formData.scope === 'team' ? formData.teamId : undefined,
       title: formData.title,
       content: formData.content,
     });
@@ -268,6 +296,38 @@ export default function Posts() {
                   </TouchableOpacity>
                 </View>
               </View>
+
+              {/* Team Selector - only show when scope is 'team' */}
+              {formData.scope === 'team' && userTeams.length > 0 && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Select Team</Text>
+                  {userTeams.length === 1 ? (
+                    <View style={styles.teamInfoBox}>
+                      <Text style={styles.teamInfoText}>Team: {userTeams[0].name}</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.teamButtons}>
+                      {userTeams.map((team: any) => (
+                        <TouchableOpacity
+                          key={team.id}
+                          style={[
+                            styles.teamButton,
+                            formData.teamId === team.id && styles.teamButtonActive,
+                          ]}
+                          onPress={() => setFormData({ ...formData, teamId: team.id })}
+                        >
+                          <Text style={[
+                            styles.teamButtonText,
+                            formData.teamId === team.id && styles.teamButtonTextActive,
+                          ]}>
+                            {team.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Title</Text>
@@ -521,6 +581,40 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   scopeButtonTextActive: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  teamInfoBox: {
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  teamInfoText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  teamButtons: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  teamButton: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  teamButtonActive: {
+    backgroundColor: '#E3F2FD',
+    borderColor: '#007AFF',
+  },
+  teamButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  teamButtonTextActive: {
     color: '#007AFF',
     fontWeight: '600',
   },

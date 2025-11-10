@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createPostSchema, type CreatePost, type Post } from "@shared/schema";
@@ -63,17 +63,25 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
     },
   });
 
-  const form = useForm<CreatePost & { scope: "team" | "club" }>({
+  const form = useForm<CreatePost & { scope: "team" | "club"; teamId?: string }>({
     resolver: zodResolver(createPostSchema),
     defaultValues: {
       type: "announcement",
       title: "",
       content: "",
       scope: "team",
+      teamId: undefined,
     },
   });
 
-  const onSubmit = async (data: CreatePost & { scope: "team" | "club" }) => {
+  // Auto-set teamId when teams load and modal opens
+  useEffect(() => {
+    if (open && userTeams.length > 0 && !form.getValues('teamId')) {
+      form.setValue('teamId', userTeams[0].id);
+    }
+  }, [open, userTeams, form]);
+
+  const onSubmit = async (data: CreatePost & { scope: "team" | "club"; teamId?: string }) => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -83,15 +91,23 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
       return;
     }
 
+    // Validate team selection for team-scoped posts
+    if (data.scope === "team" && !data.teamId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a team for this post.",
+      });
+      return;
+    }
+
     try {
-      // Get manager's team automatically
-      const managerTeam = userTeams.length > 0 ? userTeams[0] : null;
-      
       const postData = {
         type: data.type,
         title: data.title,
         content: data.content,
         scope: data.scope,
+        teamId: data.scope === "team" ? data.teamId : undefined,
       };
 
       await createPostMutation.mutateAsync(postData);
@@ -176,14 +192,46 @@ export default function CreatePostModal({ open, onOpenChange }: CreatePostModalP
             </div>
 
             {selectedScope === "team" && userTeams.length > 0 && (
-              <div className="p-4 bg-muted/50 rounded-md">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Team:</strong> {userTeams[0]?.name}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Posts will be visible to your team members only
-                </p>
-              </div>
+              <FormField
+                control={form.control}
+                name="teamId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Team</FormLabel>
+                    {userTeams.length === 1 ? (
+                      <FormControl>
+                        <div>
+                          <input type="hidden" {...field} value={userTeams[0]?.id} />
+                          <div className="p-4 bg-muted/50 rounded-md">
+                            <p className="text-sm text-muted-foreground">
+                              <strong>Team:</strong> {userTeams[0]?.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Posts will be visible to your team members only
+                            </p>
+                          </div>
+                        </div>
+                      </FormControl>
+                    ) : (
+                      <Select onValueChange={field.onChange} value={field.value} data-testid="select-team">
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a team" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {userTeams.map((team: any) => (
+                            <SelectItem key={team.id} value={team.id}>
+                              {team.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
 
             <FormField
