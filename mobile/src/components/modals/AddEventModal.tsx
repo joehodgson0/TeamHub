@@ -62,8 +62,14 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       setHomeAway(eventToEdit.homeAway || 'home');
       setFriendly(eventToEdit.friendly || false);
       setSelectedTeamId(eventToEdit.teamId || '');
+    } else if (visible && !eventToEdit) {
+      // Reset to today's date when modal opens for creating new event
+      const now = new Date();
+      const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      setStartDateTime(now);
+      setEndDateTime(twoHoursLater);
     } else if (!visible) {
-      // Reset form when modal is closed and not editing
+      // Reset form when modal is closed
       resetForm();
     }
   }, [eventToEdit, visible]);
