@@ -82,6 +82,16 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Team Selection for Post Creation
+- Fixed team-level posts not showing on dashboard by adding team selection to Create Post modal
+- Mobile app: Added team selector with button UI for multi-team coaches, info box for single team
+- Web app: Added team selector with dropdown for multi-team coaches, static info for single team
+- Backend: Now requires and validates teamId for team-scoped posts instead of defaulting to first team
+- Auto-selects first team as default for convenience (coaches can change selection)
+- Validates user has permission to post to selected team (must be in user.teamIds)
+- Dashboard Team Posts widget now correctly shows posts from all managed teams
+- Solves issue where multi-team coaches could only post to their first team
+
 ### November 2025 - Create Post Modal Keyboard Avoidance
 - Fixed keyboard blocking the Create Post modal form inputs on mobile
 - Added KeyboardAvoidingView with platform-specific behavior (iOS: padding, Android: height)
