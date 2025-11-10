@@ -169,11 +169,17 @@ export default function Dashboard() {
     return team ? team.name : "Unknown Team";
   };
 
-  const getAvailabilityCount = (event: any) => {
-    const availabilityEntries = Object.values(event.availability || {});
+  const getAvailabilityCount = (fixture: any) => {
+    // Get the team to find total player count
+    const teams = teamsResponse?.teams || [];
+    const team = teams.find((t: any) => t.id === fixture.teamId);
+    const teamPlayerCount = team?.playerIds?.length || 0;
+    
+    // Count confirmed availability
+    const availabilityEntries = Object.values(fixture.availability || {});
     const confirmed = availabilityEntries.filter(status => status === "available").length;
-    const total = availabilityEntries.length;
-    return { confirmed, total };
+    
+    return { confirmed, total: teamPlayerCount };
   };
 
   const getEventTypeBadgeColor = (type: string, friendly: boolean = false) => {
