@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Modal, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Modal, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
@@ -90,7 +90,11 @@ export default function CreateTeamModal({ visible, onClose }: CreateTeamModalPro
       presentationStyle="pageSheet"
       onRequestClose={handleCancel}
     >
-      <View style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleCancel}>
@@ -105,7 +109,11 @@ export default function CreateTeamModal({ visible, onClose }: CreateTeamModalPro
         </View>
 
         {/* Content */}
-        <ScrollView style={styles.content}>
+        <ScrollView 
+          style={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Team Name */}
           <View style={styles.section}>
             <Text style={styles.label}>Team Name</Text>
@@ -144,7 +152,7 @@ export default function CreateTeamModal({ visible, onClose }: CreateTeamModalPro
             </View>
           </View>
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

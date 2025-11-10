@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  KeyboardAvoidingView,
   StyleSheet,
   Alert,
   Platform,
@@ -220,7 +221,11 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       onRequestClose={onClose}
       presentationStyle="pageSheet"
     >
-      <View style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose}>
             <Text style={styles.cancelButton}>Cancel</Text>
@@ -236,7 +241,11 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content}>
+        <ScrollView 
+          style={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Event Type */}
           <View style={styles.section}>
             <Text style={styles.label}>Event Type</Text>
@@ -423,7 +432,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
             />
           </View>
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
 
       {/* Start DateTime Picker */}
       <DateTimePickerModal

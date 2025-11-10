@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -90,7 +92,11 @@ export function AvailabilityModal({ visible, onClose, event }: AvailabilityModal
       onRequestClose={onClose}
       presentationStyle="pageSheet"
     >
-      <View style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose}>
             <Text style={styles.cancelButton}>Close</Text>
@@ -99,7 +105,11 @@ export function AvailabilityModal({ visible, onClose, event }: AvailabilityModal
           <View style={{ width: 60 }} />
         </View>
 
-        <ScrollView style={styles.content}>
+        <ScrollView 
+          style={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Event Info */}
           <View style={styles.eventInfo}>
             <Text style={styles.eventTitle}>
@@ -176,7 +186,7 @@ export function AvailabilityModal({ visible, onClose, event }: AvailabilityModal
             </View>
           )}
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
