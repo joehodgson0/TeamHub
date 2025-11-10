@@ -103,6 +103,7 @@ The application uses Zod schemas for type validation and data modeling:
   - CreateTeamModal: Team creation form
   - MatchResultModal: Match result entry with player stats
   - AvailabilityModal: Player availability marking
+  - Add Dependent Modal: Add child/player to team with name, date of birth, and team code
 - Added KeyboardAvoidingView to authentication pages:
   - Register (Create Account): 5-field registration form
   - Login: Email and password form
