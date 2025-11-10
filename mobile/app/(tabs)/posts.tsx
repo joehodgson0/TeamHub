@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
@@ -176,134 +176,142 @@ export default function Posts() {
         transparent={true}
         onRequestClose={() => setShowCreateModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Create Post</Text>
+            <ScrollView 
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.modalTitle}>Create Post</Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Type</Text>
-              <View style={styles.typeButtons}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Type</Text>
+                <View style={styles.typeButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      formData.type === 'announcement' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, type: 'announcement' })}
+                  >
+                    <Text style={[
+                      styles.typeButtonText,
+                      formData.type === 'announcement' && styles.typeButtonTextActive,
+                    ]}>
+                      📢 Announcement
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      formData.type === 'kit_request' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, type: 'kit_request' })}
+                  >
+                    <Text style={[
+                      styles.typeButtonText,
+                      formData.type === 'kit_request' && styles.typeButtonTextActive,
+                    ]}>
+                      👕 Kit Request
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      formData.type === 'player_request' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, type: 'player_request' })}
+                  >
+                    <Text style={[
+                      styles.typeButtonText,
+                      formData.type === 'player_request' && styles.typeButtonTextActive,
+                    ]}>
+                      ⚽ Player Request
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Visibility</Text>
+                <View style={styles.scopeButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.scopeButton,
+                      formData.scope === 'team' && styles.scopeButtonActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, scope: 'team' })}
+                  >
+                    <Text style={[
+                      styles.scopeButtonText,
+                      formData.scope === 'team' && styles.scopeButtonTextActive,
+                    ]}>
+                      Team Only
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.scopeButton,
+                      formData.scope === 'club' && styles.scopeButtonActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, scope: 'club' })}
+                  >
+                    <Text style={[
+                      styles.scopeButtonText,
+                      formData.scope === 'club' && styles.scopeButtonTextActive,
+                    ]}>
+                      Entire Club
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Title</Text>
+                <TextInput
+                  style={styles.input}
+                  value={formData.title}
+                  onChangeText={(text) => setFormData({ ...formData, title: text })}
+                  placeholder="Post title"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Content</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={formData.content}
+                  onChangeText={(text) => setFormData({ ...formData, content: text })}
+                  placeholder="Write your post content..."
+                  multiline
+                  numberOfLines={6}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <View style={styles.modalButtons}>
                 <TouchableOpacity
-                  style={[
-                    styles.typeButton,
-                    formData.type === 'announcement' && styles.typeButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, type: 'announcement' })}
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowCreateModal(false)}
                 >
-                  <Text style={[
-                    styles.typeButtonText,
-                    formData.type === 'announcement' && styles.typeButtonTextActive,
-                  ]}>
-                    📢 Announcement
-                  </Text>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[
-                    styles.typeButton,
-                    formData.type === 'kit_request' && styles.typeButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, type: 'kit_request' })}
+                  style={[styles.modalButton, styles.submitButton]}
+                  onPress={handleCreatePost}
+                  disabled={createPostMutation.isPending}
                 >
-                  <Text style={[
-                    styles.typeButtonText,
-                    formData.type === 'kit_request' && styles.typeButtonTextActive,
-                  ]}>
-                    👕 Kit Request
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.typeButton,
-                    formData.type === 'player_request' && styles.typeButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, type: 'player_request' })}
-                >
-                  <Text style={[
-                    styles.typeButtonText,
-                    formData.type === 'player_request' && styles.typeButtonTextActive,
-                  ]}>
-                    ⚽ Player Request
+                  <Text style={styles.submitButtonText}>
+                    {createPostMutation.isPending ? 'Creating...' : 'Create Post'}
                   </Text>
                 </TouchableOpacity>
               </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Visibility</Text>
-              <View style={styles.scopeButtons}>
-                <TouchableOpacity
-                  style={[
-                    styles.scopeButton,
-                    formData.scope === 'team' && styles.scopeButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, scope: 'team' })}
-                >
-                  <Text style={[
-                    styles.scopeButtonText,
-                    formData.scope === 'team' && styles.scopeButtonTextActive,
-                  ]}>
-                    Team Only
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.scopeButton,
-                    formData.scope === 'club' && styles.scopeButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, scope: 'club' })}
-                >
-                  <Text style={[
-                    styles.scopeButtonText,
-                    formData.scope === 'club' && styles.scopeButtonTextActive,
-                  ]}>
-                    Entire Club
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Title</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.title}
-                onChangeText={(text) => setFormData({ ...formData, title: text })}
-                placeholder="Post title"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Content</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={formData.content}
-                onChangeText={(text) => setFormData({ ...formData, content: text })}
-                placeholder="Write your post content..."
-                multiline
-                numberOfLines={6}
-                textAlignVertical="top"
-              />
-            </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowCreateModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.submitButton]}
-                onPress={handleCreatePost}
-                disabled={createPostMutation.isPending}
-              >
-                <Text style={styles.submitButtonText}>
-                  {createPostMutation.isPending ? 'Creating...' : 'Create Post'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );
