@@ -627,31 +627,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session.userId;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.clubId && user.teamIds.length === 0)) {
-        // User has no club or team associations - return empty
+      if (!user) {
         return res.json({ success: true, events: [] });
       }
       
       let allEvents: any[] = [];
       
-      // If user is a coach and has club association, get all events for club's teams
-      if (user.roles.includes("coach") && user.clubId) {
-        const clubTeams = await storage.getTeamsByClubId(user.clubId);
-        for (const team of clubTeams) {
-          const teamEvents = await storage.getUpcomingEvents(team.id);
-          allEvents.push(...teamEvents);
-        }
-      } else if (user.roles.includes("parent")) {
-        // For parents, get events for teams where their players are members
-        const players = await storage.getPlayersByParentId(user.id);
-        const playerTeamIds = players.map(player => player.teamId);
-        for (const teamId of playerTeamIds) {
+      // For coaches: get events only from teams they manage (user.teamIds)
+      if (user.roles.includes("coach") && user.teamIds.length > 0) {
+        for (const teamId of user.teamIds) {
           const teamEvents = await storage.getUpcomingEvents(teamId);
           allEvents.push(...teamEvents);
         }
-      } else {
-        // Get events for user's specific teams only
-        for (const teamId of user.teamIds) {
+      }
+      
+      // For parents: get events from teams where their dependents play
+      if (user.roles.includes("parent")) {
+        const players = await storage.getPlayersByParentId(user.id);
+        const playerTeamIds = players.map((player: any) => player.teamId);
+        for (const teamId of playerTeamIds) {
           const teamEvents = await storage.getUpcomingEvents(teamId);
           allEvents.push(...teamEvents);
         }
@@ -679,31 +673,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session.userId;
       const user = await storage.getUser(userId);
       
-      if (!user || (!user.clubId && user.teamIds.length === 0)) {
-        // User has no club or team associations - return empty
+      if (!user) {
         return res.json({ success: true, events: [] });
       }
       
       let allEvents: any[] = [];
       
-      // If user is a coach and has club association, get all events for club's teams
-      if (user.roles.includes("coach") && user.clubId) {
-        const clubTeams = await storage.getTeamsByClubId(user.clubId);
-        for (const team of clubTeams) {
-          const teamEvents = await storage.getEventsByTeamId(team.id);
-          allEvents.push(...teamEvents);
-        }
-      } else if (user.roles.includes("parent")) {
-        // For parents, get events for teams where their players are members
-        const players = await storage.getPlayersByParentId(user.id);
-        const playerTeamIds = players.map(player => player.teamId);
-        for (const teamId of playerTeamIds) {
+      // For coaches: get events only from teams they manage (user.teamIds)
+      if (user.roles.includes("coach") && user.teamIds.length > 0) {
+        for (const teamId of user.teamIds) {
           const teamEvents = await storage.getEventsByTeamId(teamId);
           allEvents.push(...teamEvents);
         }
-      } else {
-        // Get events for user's specific teams only
-        for (const teamId of user.teamIds) {
+      }
+      
+      // For parents: get events from teams where their dependents play
+      if (user.roles.includes("parent")) {
+        const players = await storage.getPlayersByParentId(user.id);
+        const playerTeamIds = players.map((player: any) => player.teamId);
+        for (const teamId of playerTeamIds) {
           const teamEvents = await storage.getEventsByTeamId(teamId);
           allEvents.push(...teamEvents);
         }
