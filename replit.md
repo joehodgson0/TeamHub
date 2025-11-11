@@ -82,6 +82,22 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - CORS Configuration for Mobile App
+- Fixed mobile app login error "JSON Parse error: Unexpected character: <"
+- Added secure CORS middleware to server with allowlist-based origin validation
+- Supports web app (Replit domains), mobile app (Expo URLs), and local development
+- Prevents CSRF attacks by validating origins while allowing credentials
+- Allowlist includes: .replit.dev domains, exp:// URLs, localhost, 127.0.0.1
+- Mobile apps and native requests (no origin header) are supported
+
+### November 2025 - Recent Results Dashboard Enhancement
+- Fixed recent results card not showing scores or opponent names
+- Backend now enriches match results with calculated score and opponent data
+- Score displayed from team's perspective (e.g., "3-1" if team scored 3)
+- Opponent name pulled from fixture data with fallback to "Unknown Opponent"
+- Match date included with fallback to prevent "Invalid Date" errors
+- Applied to both session and OAuth authentication endpoints
+
 ### November 2025 - Team Selection for Post Creation
 - Fixed team-level posts not showing on dashboard by adding team selection to Create Post modal
 - Mobile app: Added team selector with button UI for multi-team coaches, info box for single team
