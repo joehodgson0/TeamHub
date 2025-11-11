@@ -1,10 +1,56 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import * as fs from "fs";
 import * as path from "path";
 
 const app = express();
+
+// Configure CORS with secure origin allowlist
+const allowedOrigins = [
+  // Web app origins
+  'https://82e7b365-1a35-4433-9dd4-e760ea332ce1-00-1atx8t3ayfoav.picard.replit.dev',
+  process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
+  
+  // Expo/mobile development origins
+  'exp://localhost:8081',
+  'http://localhost:8081',
+  'http://localhost:19000',
+  'http://localhost:19006',
+  
+  // Local development
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5000',
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowlist or matches Expo patterns
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.startsWith('exp://') ||
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      origin.includes('.replit.dev')
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
