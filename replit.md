@@ -82,6 +82,15 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Match Results Caching Fix
+- Fixed Recent Results not showing scores on mobile dashboard
+- Disabled multiple layers of caching to ensure fresh data:
+  - Backend: Added timestamp to responses to force unique ETags
+  - Mobile: Set fetch cache to 'no-store'
+  - Mobile: Set React Query staleTime and cacheTime to 0
+- Match results now always display current scores (e.g., "1-0" instead of dash)
+- Applies to both session-based and OAuth authentication endpoints
+
 ### November 2025 - CORS Configuration for Mobile App
 - Fixed mobile app login error "JSON Parse error: Unexpected character: <"
 - Added secure CORS middleware to server with allowlist-based origin validation
