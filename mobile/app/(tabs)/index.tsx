@@ -36,10 +36,13 @@ export default function Dashboard() {
     queryFn: async () => {
       const response = await fetch(`${API_BASE_URL}/api/match-results-session`, {
         credentials: 'include',
+        cache: 'no-store', // Disable fetch caching
       });
       return response.json();
     },
     enabled: !!user,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache in React Query
   });
 
   // Fetch teams for team name resolution

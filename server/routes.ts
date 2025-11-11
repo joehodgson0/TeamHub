@@ -933,10 +933,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Session-based match results for username/password users
   app.get("/api/match-results-session", async (req: any, res) => {
     try {
-      // Disable caching to ensure fresh data with enriched fields
+      // Disable caching and ETags to ensure fresh data with enriched fields
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
+      res.removeHeader('ETag');
       
       if (!req.session.userId) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -1003,7 +1004,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
-      res.json({ success: true, matchResults: enrichedResults });
+      res.json({ 
+        success: true, 
+        matchResults: enrichedResults,
+        _timestamp: Date.now() // Force fresh response
+      });
     } catch (error) {
       console.error("Get match results error:", error);
       res.status(500).json({ success: false, error: "Failed to fetch match results" });
@@ -1060,7 +1065,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
-      res.json({ success: true, matchResults: enrichedResults });
+      res.json({ 
+        success: true, 
+        matchResults: enrichedResults,
+        _timestamp: Date.now() // Force fresh response
+      });
     } catch (error) {
       console.error("Get match results error:", error);
       res.status(500).json({ success: false, error: "Failed to fetch match results" });
