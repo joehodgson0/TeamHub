@@ -60,24 +60,57 @@ export default function Posts() {
     
     if (!user || !user.clubId) return allPosts;
 
-    return allPosts.filter((post: any) => {
+    console.log('[Posts Filter] User:', { 
+      roles: user.roles, 
+      teamIds: user.teamIds, 
+      clubId: user.clubId 
+    });
+    console.log('[Posts Filter] All posts:', allPosts.map((p: any) => ({ 
+      id: p.id, 
+      title: p.title, 
+      teamId: p.teamId, 
+      clubId: p.clubId 
+    })));
+    console.log('[Posts Filter] Players response:', playersResponse?.players);
+
+    const filtered = allPosts.filter((post: any) => {
       // Show club-wide posts (posts with clubId but no teamId)
-      if (post.clubId === user.clubId && !post.teamId) return true;
+      if (post.clubId === user.clubId && !post.teamId) {
+        console.log('[Posts Filter] ✓ Including club post:', post.title);
+        return true;
+      }
       
       // Show team-specific posts for user's teams
       if (post.teamId) {
+        console.log('[Posts Filter] Checking team post:', post.title, 'teamId:', post.teamId);
+        
         // For coaches, check if they manage the team
         if (user.roles?.includes("coach") && user.teamIds) {
-          return user.teamIds.includes(post.teamId);
+          const isManaged = user.teamIds.includes(post.teamId);
+          console.log('[Posts Filter] Coach check:', { isManaged, userTeams: user.teamIds, postTeam: post.teamId });
+          if (isManaged) {
+            console.log('[Posts Filter] ✓ Including team post (coach):', post.title);
+            return true;
+          }
         }
+        
         // For parents, check if their dependents are on the team
         if (user.roles?.includes("parent") && playersResponse?.players) {
-          return playersResponse.players.some((player: any) => player.teamId === post.teamId);
+          const hasDependent = playersResponse.players.some((player: any) => player.teamId === post.teamId);
+          console.log('[Posts Filter] Parent check:', { hasDependent, players: playersResponse.players.map((p: any) => p.teamId) });
+          if (hasDependent) {
+            console.log('[Posts Filter] ✓ Including team post (parent):', post.title);
+            return true;
+          }
         }
       }
       
+      console.log('[Posts Filter] ✗ Excluding post:', post.title);
       return false;
     });
+
+    console.log('[Posts Filter] Filtered posts:', filtered.length);
+    return filtered;
   };
 
   const posts = getFilteredPosts();
