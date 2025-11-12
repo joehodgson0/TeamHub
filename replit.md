@@ -82,6 +82,18 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Dashboard TeamPostsWidget Filtering Fix
+- Fixed critical filtering bug where dual-role users (coach+parent) weren't seeing non-announcement posts
+- Issue: Parent filter ran after coach filter, restricting all posts to announcements only
+- Solution: Separated filtering into mutually exclusive branches with role priority
+- Role-based filtering logic:
+  - Coaches: See club-wide posts + all post types from managed teams
+  - Parent-only users: See club-wide announcements + team announcements from dependent teams
+  - Other users (e.g., club admins): See club-wide posts as fallback
+- Dual-role users now correctly inherit coach permissions (see all post types)
+- Added deduplication to prevent repeated entries
+- Eliminated regression where users without coach/parent roles would see empty widget
+
 ### November 2025 - Mobile Posts Page Improvements
 - Changed page title from "Posts & Announcements" to "Posts" for simplicity
 - Added client-side filtering matching web implementation pattern
