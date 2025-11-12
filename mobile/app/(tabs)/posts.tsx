@@ -143,7 +143,7 @@ export default function Posts() {
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Posts & Announcements</Text>
+          <Text style={styles.title}>Posts</Text>
           {canCreatePost && (
             <TouchableOpacity
               style={styles.createButton}
