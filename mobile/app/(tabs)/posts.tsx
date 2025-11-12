@@ -30,7 +30,7 @@ export default function Posts() {
     enabled: !!user,
   });
 
-  // Fetch user's teams for team selection
+  // Fetch user's teams for team selection and filtering
   const { data: teamsResponse } = useQuery({
     queryKey: ['/api/teams/club', user?.clubId],
     queryFn: async () => {
@@ -39,10 +39,48 @@ export default function Posts() {
       });
       return response.json();
     },
-    enabled: !!user?.clubId && canCreatePost,
+    enabled: !!user?.clubId,
   });
 
-  const posts = postsResponse?.posts || [];
+  // Fetch user's players for filtering posts
+  const { data: playersResponse } = useQuery({
+    queryKey: ['/api/players/parent', user?.id],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/players/parent/${user?.id}`, {
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    enabled: !!user?.id && user?.roles?.includes('parent'),
+  });
+
+  // Filter posts based on user's teams and club
+  const getFilteredPosts = () => {
+    const allPosts = postsResponse?.posts || [];
+    
+    if (!user || !user.clubId) return allPosts;
+
+    return allPosts.filter((post: any) => {
+      // Show club-wide posts (posts with clubId but no teamId)
+      if (post.clubId === user.clubId && !post.teamId) return true;
+      
+      // Show team-specific posts for user's teams
+      if (post.teamId) {
+        // For coaches, check if they manage the team
+        if (user.roles?.includes("coach") && user.teamIds) {
+          return user.teamIds.includes(post.teamId);
+        }
+        // For parents, check if their dependents are on the team
+        if (user.roles?.includes("parent") && playersResponse?.players) {
+          return playersResponse.players.some((player: any) => player.teamId === post.teamId);
+        }
+      }
+      
+      return false;
+    });
+  };
+
+  const posts = getFilteredPosts();
   const userTeams = teamsResponse?.teams?.filter((team: any) => user?.teamIds?.includes(team.id)) || [];
 
   // Auto-select first team when modal opens or teams are loaded
