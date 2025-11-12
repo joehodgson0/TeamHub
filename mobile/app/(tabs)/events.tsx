@@ -50,6 +50,18 @@ export default function Events() {
     enabled: !!user?.id,
   });
 
+  // Fetch match results to filter out fixtures that already have results
+  const { data: matchResultsResponse } = useQuery({
+    queryKey: ['/api/match-results-session'],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/match-results-session`, {
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
   const deleteEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
       const response = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
@@ -90,7 +102,31 @@ export default function Events() {
     },
   });
 
-  const events = eventsResponse?.events || [];
+  // Filter events to exclude fixtures with results
+  const getFilteredEvents = () => {
+    const allEvents = eventsResponse?.events || [];
+    
+    // If no match results yet, return all events
+    if (!matchResultsResponse?.matchResults) {
+      return allEvents;
+    }
+    
+    // Create a Set of fixture IDs that have results
+    const fixturesWithResults = new Set(
+      matchResultsResponse.matchResults.map((result: any) => result.fixtureId)
+    );
+    
+    // Filter out match/tournament fixtures that already have results
+    return allEvents.filter((event: any) => {
+      // Only exclude matches/tournaments with results, keep all other event types
+      if (event.type === 'match' || event.type === 'tournament') {
+        return !fixturesWithResults.has(event.id);
+      }
+      return true;
+    });
+  };
+
+  const events = getFilteredEvents();
   const teams = teamsResponse?.teams || [];
 
   const getTeamName = (teamId: string) => {
