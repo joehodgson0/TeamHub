@@ -82,6 +82,15 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - RecentResultsWidget Enhancement
+- Enhanced mobile RecentResultsWidget to show complete match information
+- Added team name display prominently at the top of each result
+- Improved layout hierarchy: Team name → Opponent → Date
+- Added fallback handling for missing opponent/date data
+- Widget now receives teams array to resolve team names from IDs
+- Score display preserved from backend enrichment (team perspective)
+- Consistent with data already provided by backend score calculation
+
 ### November 2025 - Mobile Dashboard Widget Refactoring
 - Refactored mobile dashboard from inline widgets to reusable components
 - Created widget component architecture matching web app pattern:
