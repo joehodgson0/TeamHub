@@ -11,6 +11,8 @@ export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps
   // Debug logging to see what data we're getting
   if (results.length > 0) {
     console.log('Recent Results Data:', JSON.stringify(results[0], null, 2));
+    console.log('Score value:', results[0].score);
+    console.log('Score type:', typeof results[0].score);
   }
   
   return (
@@ -19,27 +21,40 @@ export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps
       isEmpty={results.length === 0}
       emptyMessage="No recent results"
     >
-      {results.map((result: any) => (
-        <View key={result.id} style={styles.resultItem}>
-          <View style={styles.resultInfo}>
-            <Text style={styles.resultTeam}>{getTeamName(result.teamId, teams)}</Text>
-            <Text style={styles.resultOpponent}>vs. {result.opponent || "Unknown"}</Text>
-            <Text style={styles.resultDate}>
-              {result.startTime ? formatDate(result.startTime) : "Unknown date"}
-            </Text>
+      {results.map((result: any) => {
+        // Calculate score from goals if score field is missing or invalid
+        let displayScore = result.score;
+        if (!displayScore && result.homeTeamGoals !== undefined && result.awayTeamGoals !== undefined) {
+          // Calculate from team's perspective
+          if (result.isHomeFixture) {
+            displayScore = `${result.homeTeamGoals}-${result.awayTeamGoals}`;
+          } else {
+            displayScore = `${result.awayTeamGoals}-${result.homeTeamGoals}`;
+          }
+        }
+        
+        return (
+          <View key={result.id} style={styles.resultItem}>
+            <View style={styles.resultInfo}>
+              <Text style={styles.resultTeam}>{getTeamName(result.teamId, teams)}</Text>
+              <Text style={styles.resultOpponent}>vs. {result.opponent || "Unknown"}</Text>
+              <Text style={styles.resultDate}>
+                {result.startTime ? formatDate(result.startTime) : "Unknown date"}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.resultBadge,
+                result.result === "win" && styles.resultWin,
+                result.result === "lose" && styles.resultLose,
+                result.result === "draw" && styles.resultDraw,
+              ]}
+            >
+              <Text style={styles.resultScore}>{displayScore || "-"}</Text>
+            </View>
           </View>
-          <View
-            style={[
-              styles.resultBadge,
-              result.result === "win" && styles.resultWin,
-              result.result === "lose" && styles.resultLose,
-              result.result === "draw" && styles.resultDraw,
-            ]}
-          >
-            <Text style={styles.resultScore}>{result.score || "-"}</Text>
-          </View>
-        </View>
-      ))}
+        );
+      })}
     </WidgetCard>
   );
 }
