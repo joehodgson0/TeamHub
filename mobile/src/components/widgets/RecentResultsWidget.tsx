@@ -1,12 +1,13 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { WidgetCard } from './WidgetCard';
-import { formatDate } from '@/utils/dashboard';
+import { formatDate, getTeamName } from '@/utils/dashboard';
 
 interface RecentResultsWidgetProps {
   results: any[];
+  teams: any[];
 }
 
-export function RecentResultsWidget({ results }: RecentResultsWidgetProps) {
+export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps) {
   return (
     <WidgetCard 
       title="🏆 Recent Results" 
@@ -16,8 +17,11 @@ export function RecentResultsWidget({ results }: RecentResultsWidgetProps) {
       {results.map((result: any) => (
         <View key={result.id} style={styles.resultItem}>
           <View style={styles.resultInfo}>
-            <Text style={styles.resultOpponent}>vs. {result.opponent}</Text>
-            <Text style={styles.resultDate}>{formatDate(result.startTime)}</Text>
+            <Text style={styles.resultTeam}>{getTeamName(result.teamId, teams)}</Text>
+            <Text style={styles.resultOpponent}>vs. {result.opponent || "Unknown"}</Text>
+            <Text style={styles.resultDate}>
+              {result.startTime ? formatDate(result.startTime) : "Unknown date"}
+            </Text>
           </View>
           <View
             style={[
@@ -48,14 +52,20 @@ const styles = StyleSheet.create({
   resultInfo: {
     flex: 1,
   },
-  resultOpponent: {
-    fontSize: 15,
-    fontWeight: "500",
+  resultTeam: {
+    fontSize: 16,
+    fontWeight: "600",
     color: "#1a1a1a",
+    marginBottom: 2,
+  },
+  resultOpponent: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
   },
   resultDate: {
     fontSize: 12,
-    color: "#666",
+    color: "#999",
     marginTop: 2,
   },
   resultBadge: {

@@ -206,7 +206,7 @@ export default function Dashboard() {
 
         <UpcomingEventsWidget events={upcomingEvents} teams={teams} />
         <UpcomingFixturesWidget fixtures={upcomingFixtures} teams={teams} />
-        <RecentResultsWidget results={recentResults} />
+        <RecentResultsWidget results={recentResults} teams={teams} />
         <TeamPostsWidget posts={teamPosts} />
       </View>
     </ScrollView>
