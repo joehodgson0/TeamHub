@@ -26,6 +26,22 @@ export default function Login() {
         credentials: 'include',
       });
 
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Server returned HTML or other non-JSON response (likely offline or error page)
+        Alert.alert(
+          'Server Unavailable',
+          'The TeamHub server is not responding. It may be starting up. Please wait a moment and try again.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Retry', onPress: handleLogin }
+          ]
+        );
+        setIsLoading(false);
+        return;
+      }
+
       const result = await response.json();
 
       console.log('Login response:', result);
@@ -45,7 +61,29 @@ export default function Login() {
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Error', `An error occurred: ${error instanceof Error ? error.message : 'Please try again'}`);
+      
+      // Better error message for JSON parse errors
+      if (error instanceof SyntaxError && error.message.includes('JSON')) {
+        Alert.alert(
+          'Connection Error',
+          'Cannot connect to the TeamHub server. The server may be sleeping or starting up. Please wait a moment and try again.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Retry', onPress: handleLogin }
+          ]
+        );
+      } else if (error instanceof TypeError && error.message.includes('Network')) {
+        Alert.alert(
+          'Network Error',
+          'Cannot reach the server. Please check your internet connection and try again.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Retry', onPress: handleLogin }
+          ]
+        );
+      } else {
+        Alert.alert('Error', `An error occurred: ${error instanceof Error ? error.message : 'Please try again'}`);
+      }
     } finally {
       setIsLoading(false);
     }
