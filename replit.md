@@ -82,6 +82,14 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Events Page Match Results Filtering
+- Added filtering to mobile Events page to hide fixtures that have match results
+- Matches the existing web implementation pattern
+- Fetches match results and creates Set of fixtureIds with results
+- Filters out only match/tournament events with results (preserves training/social events)
+- Automatically updates when results are added via MatchResultModal cache invalidation
+- Prevents clutter of completed fixtures on Events page
+
 ### November 2025 - RecentResultsWidget Enhancement
 - Enhanced mobile RecentResultsWidget to show complete match information
 - Added team name display prominently at the top of each result
