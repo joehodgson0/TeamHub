@@ -8,28 +8,38 @@ export default function MatchResultsWidget() {
   const { user } = useAuth();
 
   // Fetch recent match results from API
-  const { data: matchResultsResponse, isLoading } = useQuery<{ matchResults: any[] }>({
-    queryKey: ['/api/match-results-session'],
-    enabled: !!user
+  const { data: matchResultsResponse, isLoading } = useQuery<{
+    matchResults: any[];
+  }>({
+    queryKey: ["/api/match-results-session"],
+    enabled: !!user,
   });
 
   const recentResults = matchResultsResponse?.matchResults || [];
 
   const getOutcomeColor = (result: string) => {
     switch (result) {
-      case "win": return "bg-primary text-primary-foreground";
-      case "lose": return "bg-destructive text-destructive-foreground";
-      case "draw": return "bg-yellow-500 text-white";
-      default: return "bg-muted text-muted-foreground";
+      case "win":
+        return "bg-primary text-primary-foreground";
+      case "lose":
+        return "bg-destructive text-destructive-foreground";
+      case "draw":
+        return "bg-yellow-500 text-white";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getOutcomeDisplay = (result: string) => {
     switch (result) {
-      case "win": return "W";
-      case "lose": return "L";
-      case "draw": return "D";
-      default: return "?";
+      case "win":
+        return "W";
+      case "lose":
+        return "L";
+      case "draw":
+        return "D";
+      default:
+        return "?";
     }
   };
 
@@ -43,7 +53,7 @@ export default function MatchResultsWidget() {
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Trophy className="w-5 h-5 text-primary" />
-          <span>Recent Results</span>
+          <span>Recent Results2</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -61,23 +71,35 @@ export default function MatchResultsWidget() {
                 data-testid={`result-${result.id}`}
               >
                 <div className="flex-1">
-                  <p className="font-medium text-sm" data-testid={`result-opponent-${result.id}`}>
+                  <p
+                    className="font-medium text-sm"
+                    data-testid={`result-opponent-${result.id}`}
+                  >
                     vs. {result.opponent || "Unknown"}
                   </p>
-                  <p className="text-xs text-muted-foreground" data-testid={`result-date-${result.id}`}>
-                    {result.startTime ? formatMatchDate(result.startTime) : "Unknown date"}
+                  <p
+                    className="text-xs text-muted-foreground"
+                    data-testid={`result-date-${result.id}`}
+                  >
+                    {result.startTime
+                      ? formatMatchDate(result.startTime)
+                      : "Unknown date"}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span 
+                  <span
                     className={`px-2 py-1 rounded text-xs font-medium ${getOutcomeColor(result.result || "")}`}
                     data-testid={`result-outcome-${result.id}`}
                   >
                     {getOutcomeDisplay(result.result || "")}
                   </span>
-                  <span className="font-bold text-sm" data-testid={`result-score-${result.id}`}>
-                    {result.homeTeamGoals !== undefined && result.awayTeamGoals !== undefined 
-                      ? `${result.homeTeamGoals}-${result.awayTeamGoals}` 
+                  <span
+                    className="font-bold text-sm"
+                    data-testid={`result-score-${result.id}`}
+                  >
+                    {result.homeTeamGoals !== undefined &&
+                    result.awayTeamGoals !== undefined
+                      ? `${result.homeTeamGoals}-${result.awayTeamGoals}`
                       : "-"}
                   </span>
                 </div>
