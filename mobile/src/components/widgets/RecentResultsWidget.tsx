@@ -8,6 +8,11 @@ interface RecentResultsWidgetProps {
 }
 
 export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps) {
+  // Debug logging to see what data we're getting
+  if (results.length > 0) {
+    console.log('Recent Results Data:', JSON.stringify(results[0], null, 2));
+  }
+  
   return (
     <WidgetCard 
       title="🏆 Recent Results" 
