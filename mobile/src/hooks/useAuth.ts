@@ -35,7 +35,8 @@ export function useAuth() {
       return apiRequest('/api/auth/logout-traditional', { method: 'POST' });
     },
     onSuccess: () => {
-      queryClient.setQueryData(['/api/auth/user-session'], null);
+      // Clear ALL cached data to prevent data leakage between users
+      queryClient.clear();
     },
   });
 
