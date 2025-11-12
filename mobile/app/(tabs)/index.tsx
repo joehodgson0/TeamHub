@@ -158,23 +158,23 @@ export default function Dashboard() {
     if (!postsResponse?.posts) return [];
 
     let posts = postsResponse.posts;
+    let filteredPosts: any[] = [];
 
-    // For coaches, filter by their managed teams
+    // For coaches, include posts from teams they manage
     if (user?.roles?.includes("coach") && user?.teamIds?.length) {
-      posts = posts.filter((post: any) => {
+      const coachPosts = posts.filter((post: any) => {
         // Show club-wide posts or posts for their specific teams
         return (
           (post.clubId === user?.clubId && !post.teamId) ||
           user.teamIds.includes(post.teamId)
         );
       });
+      filteredPosts.push(...coachPosts);
     }
-
-    // For parents, filter by teams their players are on
-    // Note: For dual-role users, this further filters the coach results
-    if (user?.roles?.includes("parent") && playersResponse?.players) {
+    // For parents (who are NOT coaches), filter by teams their players are on
+    else if (user?.roles?.includes("parent") && playersResponse?.players) {
       const teamIds = playersResponse.players.map((p: any) => p.teamId);
-      posts = posts.filter((post: any) => {
+      const parentPosts = posts.filter((post: any) => {
         // Show club-wide announcements or posts for their dependents' teams
         return (
           (!post.teamId && post.clubId === user?.clubId) ||
@@ -182,15 +182,23 @@ export default function Dashboard() {
         );
       });
       // Parents only see announcements
-      posts = posts.filter((post: any) => post.type === "announcement");
+      const announcementPosts = parentPosts.filter((post: any) => post.type === "announcement");
+      filteredPosts.push(...announcementPosts);
+    }
+    // For other users (e.g., club admins), show club-wide posts
+    else if (user?.clubId) {
+      const clubPosts = posts.filter((post: any) => 
+        post.clubId === user?.clubId && !post.teamId
+      );
+      filteredPosts.push(...clubPosts);
     }
 
-    // If user has no team associations, return empty
-    if (!user?.teamIds?.length && !playersResponse?.players?.length) {
-      return [];
-    }
+    // Remove duplicates
+    const uniquePosts = filteredPosts.filter((post, index, self) => 
+      index === self.findIndex(p => p.id === post.id)
+    );
 
-    return posts.slice(0, 3);
+    return uniquePosts.slice(0, 3);
   };
 
   const upcomingEvents = getUpcomingEvents();
