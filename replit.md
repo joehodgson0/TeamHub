@@ -91,6 +91,9 @@ Uses Zod schemas for validation and modeling:
 - Score display preserved from backend enrichment (team perspective)
 - Consistent with data already provided by backend score calculation
 - Team names now display with age group prefix (e.g., "U12 Eagles" instead of "Eagles")
+- Added outcome badges (Win/Loss/Draw) with color-coded labels above scores
+- Fallback score calculation from homeTeamGoals/awayTeamGoals if backend enrichment fails
+- Fixed typo: backend returns "loss" not "lose" for outcome values
 
 ### November 2025 - Mobile Dashboard Widget Refactoring
 - Refactored mobile dashboard from inline widgets to reusable components
