@@ -24,6 +24,17 @@ export default function Teams() {
     enabled: Boolean(user && isCoach && user.clubId),
   });
 
+  const { data: clubData } = useQuery({
+    queryKey: ['/api/clubs', user?.clubId],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/clubs/${user?.clubId}`, {
+        credentials: 'include',
+      });
+      return response.json();
+    },
+    enabled: Boolean(user?.clubId),
+  });
+
   const allTeams = teamsData?.teams || [];
   const teams = isCoach && user?.teamIds 
     ? allTeams.filter((team: any) => user.teamIds.includes(team.id))
@@ -182,6 +193,13 @@ export default function Teams() {
     <>
       <ScrollView style={styles.container}>
         <View style={styles.content}>
+          {clubData?.club && (
+            <View style={styles.clubInfo}>
+              <Text style={styles.clubLabel}>Club</Text>
+              <Text style={styles.clubName}>{clubData.club.name}</Text>
+            </View>
+          )}
+          
           <View style={styles.header}>
             <Text style={styles.title}>Your Teams</Text>
             <TouchableOpacity
@@ -226,6 +244,26 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+  },
+  clubInfo: {
+    backgroundColor: '#f0f8ff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  clubLabel: {
+    fontSize: 12,
+    color: '#666',
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  clubName: {
+    fontSize: 18,
+    color: '#007AFF',
+    fontWeight: 'bold',
   },
   header: {
     flexDirection: 'row',
