@@ -33,7 +33,7 @@ export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps
           }
         }
         
-        const outcomeText = result.result === "win" ? "Win" : result.result === "lose" ? "Loss" : result.result === "draw" ? "Draw" : "";
+        const outcomeText = result.result === "win" ? "Win" : result.result === "loss" ? "Loss" : result.result === "draw" ? "Draw" : "";
         
         return (
           <View key={result.id} style={styles.resultItem}>
@@ -49,7 +49,7 @@ export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps
                 style={[
                   styles.resultBadge,
                   result.result === "win" && styles.resultWin,
-                  result.result === "lose" && styles.resultLose,
+                  result.result === "loss" && styles.resultLose,
                   result.result === "draw" && styles.resultDraw,
                 ]}
               >
