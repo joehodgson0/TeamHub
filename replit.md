@@ -90,6 +90,7 @@ Uses Zod schemas for validation and modeling:
 - Widget now receives teams array to resolve team names from IDs
 - Score display preserved from backend enrichment (team perspective)
 - Consistent with data already provided by backend score calculation
+- Team names now display with age group prefix (e.g., "U12 Eagles" instead of "Eagles")
 
 ### November 2025 - Mobile Dashboard Widget Refactoring
 - Refactored mobile dashboard from inline widgets to reusable components

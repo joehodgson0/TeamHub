@@ -59,5 +59,5 @@ export const getAvailabilityCount = (fixture: any, teams: any[]) => {
 
 export const getTeamName = (teamId: string, teams: any[]) => {
   const team = teams.find((t: any) => t.id === teamId);
-  return team ? team.name : "Unknown Team";
+  return team ? `${team.ageGroup} ${team.name}` : "Unknown Team";
 };
