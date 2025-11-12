@@ -627,6 +627,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session.userId;
       const user = await storage.getUser(userId);
       
+      console.log(`[events/upcoming-session] User: ${user?.email}, roles: ${user?.roles}, teamIds: ${JSON.stringify(user?.teamIds)}`);
+      
       if (!user) {
         return res.json({ success: true, events: [] });
       }
@@ -635,8 +637,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // For coaches: get events only from teams they manage (user.teamIds)
       if (user.roles.includes("coach") && user.teamIds.length > 0) {
+        console.log(`[events/upcoming-session] Coach branch: fetching events for teams ${JSON.stringify(user.teamIds)}`);
         for (const teamId of user.teamIds) {
           const teamEvents = await storage.getUpcomingEvents(teamId);
+          console.log(`[events/upcoming-session] Team ${teamId}: found ${teamEvents.length} events`);
           allEvents.push(...teamEvents);
         }
       }
@@ -645,8 +649,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.roles.includes("parent")) {
         const players = await storage.getPlayersByParentId(user.id);
         const playerTeamIds = players.map((player: any) => player.teamId);
+        console.log(`[events/upcoming-session] Parent branch: fetching events for teams ${JSON.stringify(playerTeamIds)}`);
         for (const teamId of playerTeamIds) {
           const teamEvents = await storage.getUpcomingEvents(teamId);
+          console.log(`[events/upcoming-session] Team ${teamId}: found ${teamEvents.length} events`);
           allEvents.push(...teamEvents);
         }
       }
@@ -655,6 +661,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const uniqueEvents = allEvents.filter((event, index, self) => 
         index === self.findIndex(e => e.id === event.id)
       );
+      
+      console.log(`[events/upcoming-session] Returning ${uniqueEvents.length} events`);
       
       res.json({ success: true, events: uniqueEvents });
     } catch (error) {
