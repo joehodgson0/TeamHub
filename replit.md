@@ -82,6 +82,19 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Mobile Dashboard Widget Refactoring
+- Refactored mobile dashboard from inline widgets to reusable components
+- Created widget component architecture matching web app pattern:
+  - `WidgetCard`: Wrapper component for consistent styling
+  - `RecentResultsWidget`: Match results display
+  - `UpcomingFixturesWidget`: Upcoming matches with availability
+  - `UpcomingEventsWidget`: Non-match events
+  - `TeamPostsWidget`: Team posts and announcements
+- Extracted shared utilities to `mobile/src/utils/dashboard.ts`
+- Reduced dashboard file from 645 lines to ~230 lines (64% reduction)
+- Improved code maintainability and testability
+- Dashboard retains data fetching, widgets receive data as props
+
 ### November 2025 - Mobile Login Error Handling Fix
 - Fixed recurring "JSON Parse error: Unexpected character: <" on mobile app login
 - Added proactive content-type checking before parsing JSON responses
