@@ -33,6 +33,8 @@ export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps
           }
         }
         
+        const outcomeText = result.result === "win" ? "Win" : result.result === "lose" ? "Loss" : result.result === "draw" ? "Draw" : "";
+        
         return (
           <View key={result.id} style={styles.resultItem}>
             <View style={styles.resultInfo}>
@@ -42,14 +44,17 @@ export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps
                 {result.startTime ? formatDate(result.startTime) : "Unknown date"}
               </Text>
             </View>
-            <View
-              style={[
-                styles.resultBadge,
-                result.result === "win" && styles.resultWin,
-                result.result === "lose" && styles.resultLose,
-                result.result === "draw" && styles.resultDraw,
-              ]}
-            >
+            <View style={styles.resultScoreContainer}>
+              <View
+                style={[
+                  styles.resultBadge,
+                  result.result === "win" && styles.resultWin,
+                  result.result === "lose" && styles.resultLose,
+                  result.result === "draw" && styles.resultDraw,
+                ]}
+              >
+                <Text style={styles.resultOutcome}>{outcomeText}</Text>
+              </View>
               <Text style={styles.resultScore}>{displayScore || "-"}</Text>
             </View>
           </View>
@@ -88,11 +93,17 @@ const styles = StyleSheet.create({
     color: "#999",
     marginTop: 2,
   },
+  resultScoreContainer: {
+    alignItems: "center",
+    gap: 4,
+  },
   resultBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 6,
     backgroundColor: "#e0e0e0",
+    minWidth: 60,
+    alignItems: "center",
   },
   resultWin: {
     backgroundColor: "#4caf50",
@@ -103,9 +114,16 @@ const styles = StyleSheet.create({
   resultDraw: {
     backgroundColor: "#ff9800",
   },
-  resultScore: {
+  resultOutcome: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: 12,
+    textTransform: "uppercase",
+  },
+  resultScore: {
+    color: "#1a1a1a",
+    fontWeight: "700",
+    fontSize: 16,
+    marginTop: 2,
   },
 });
