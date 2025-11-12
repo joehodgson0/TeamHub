@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet } from 'react-native';
+import type { ReactNode } from 'react';
 
 interface WidgetCardProps {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   emptyMessage?: string;
   isEmpty?: boolean;
 }
