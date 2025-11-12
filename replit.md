@@ -82,6 +82,16 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Mobile Posts Page Improvements
+- Changed page title from "Posts & Announcements" to "Posts" for simplicity
+- Added client-side filtering matching web implementation pattern
+- Filters show club-wide posts (clubId set, no teamId) for all club members
+- Team posts (teamId set) filtered by role:
+  - Coaches: see posts from teams they manage (user.teamIds)
+  - Parents: see posts from teams their dependents play on
+- Added playersResponse query for parent post filtering
+- Ensures both team and club posts display correctly on mobile
+
 ### November 2025 - Events Page Match Results Filtering
 - Added filtering to mobile Events page to hide fixtures that have match results
 - Matches the existing web implementation pattern
