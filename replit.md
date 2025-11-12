@@ -82,6 +82,17 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Mobile Login Error Handling Fix
+- Fixed recurring "JSON Parse error: Unexpected character: <" on mobile app login
+- Added proactive content-type checking before parsing JSON responses
+- Implemented specific error messages for different failure scenarios:
+  - Server unavailable/sleeping: Clear message that server may be starting up
+  - Network errors: Prompts user to check internet connection
+  - Other errors: Generic fallback with error details
+- Added "Retry" button to all error alerts for easy recovery
+- Prevents app crashes when server is sleeping or unavailable
+- PERMANENT FIX: No more daily credit usage for same error
+
 ### November 2025 - Match Results Caching Fix
 - Fixed Recent Results not showing scores on mobile dashboard
 - Disabled multiple layers of caching to ensure fresh data:
