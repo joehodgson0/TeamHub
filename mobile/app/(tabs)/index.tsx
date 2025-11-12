@@ -161,12 +161,12 @@ export default function Dashboard() {
     let filteredPosts: any[] = [];
 
     // For coaches, include posts from teams they manage
-    if (user?.roles?.includes("coach") && user?.teamIds?.length) {
+    if (user?.roles?.includes("coach")) {
       const coachPosts = posts.filter((post: any) => {
         // Show club-wide posts or posts for their specific teams
         return (
           (post.clubId === user?.clubId && !post.teamId) ||
-          user.teamIds.includes(post.teamId)
+          (user.teamIds && user.teamIds.includes(post.teamId))
         );
       });
       filteredPosts.push(...coachPosts);

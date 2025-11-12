@@ -87,12 +87,13 @@ Uses Zod schemas for validation and modeling:
 - Issue: Parent filter ran after coach filter, restricting all posts to announcements only
 - Solution: Separated filtering into mutually exclusive branches with role priority
 - Role-based filtering logic:
-  - Coaches: See club-wide posts + all post types from managed teams
+  - Coaches: See club-wide posts + all post types from managed teams (even if they have no teams yet)
   - Parent-only users: See club-wide announcements + team announcements from dependent teams
   - Other users (e.g., club admins): See club-wide posts as fallback
 - Dual-role users now correctly inherit coach permissions (see all post types)
 - Added deduplication to prevent repeated entries
 - Eliminated regression where users without coach/parent roles would see empty widget
+- Fixed coaches with empty teamIds being excluded from seeing club-wide posts
 
 ### November 2025 - Mobile Posts Page Improvements
 - Changed page title from "Posts & Announcements" to "Posts" for simplicity
