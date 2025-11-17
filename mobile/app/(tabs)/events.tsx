@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
@@ -13,6 +13,16 @@ export default function Events() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedFixture, setSelectedFixture] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/match-results-session'] });
+    setRefreshing(false);
+  };
 
   const { data: eventsResponse, isLoading } = useQuery({
     queryKey: ['/api/events/all-session'],
@@ -222,7 +232,12 @@ export default function Events() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Events & Fixtures</Text>
