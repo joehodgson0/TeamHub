@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 export default function Posts() {
   const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [formData, setFormData] = useState({
     type: 'announcement' as 'announcement' | 'kit_request' | 'player_request',
     scope: 'team' as 'team' | 'club',
@@ -18,6 +19,14 @@ export default function Posts() {
   });
 
   const canCreatePost = user?.roles?.includes('coach');
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id] });
+    setRefreshing(false);
+  };
 
   const { data: postsResponse, isLoading } = useQuery({
     queryKey: ['/api/posts-session'],
@@ -178,7 +187,12 @@ export default function Posts() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Posts</Text>
