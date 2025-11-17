@@ -95,19 +95,6 @@ export default function Posts() {
   const posts = getFilteredPosts();
   const userTeams = teamsResponse?.teams?.filter((team: any) => user?.teamIds?.includes(team.id)) || [];
 
-  // Debug logging
-  if (posts.length > 0 && user) {
-    console.log('[Posts Debug] Current user ID:', user.id);
-    console.log('[Posts Debug] First post sample:', {
-      id: posts[0]?.id,
-      title: posts[0]?.title,
-      authorId: posts[0]?.authorId,
-      author_id: (posts[0] as any)?.author_id,
-      hasAuthorId: 'authorId' in posts[0],
-      matchesUser: posts[0]?.authorId === user.id
-    });
-  }
-
   // Auto-select first team when modal opens or teams are loaded
   useEffect(() => {
     if (showCreateModal && userTeams.length > 0 && !formData.teamId) {
