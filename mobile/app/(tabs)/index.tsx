@@ -3,9 +3,12 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  RefreshControl,
 } from "react-native";
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { API_BASE_URL } from "@/lib/config";
 import { UpcomingEventsWidget } from "@/components/widgets/UpcomingEventsWidget";
 import { UpcomingFixturesWidget } from "@/components/widgets/UpcomingFixturesWidget";
@@ -14,6 +17,17 @@ import { TeamPostsWidget } from "@/components/widgets/TeamPostsWidget";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming-session"] });
+    await queryClient.invalidateQueries({ queryKey: ["/api/players/parent", user?.id] });
+    await queryClient.invalidateQueries({ queryKey: ["/api/match-results-session"] });
+    await queryClient.invalidateQueries({ queryKey: ["/api/teams/club", user?.clubId] });
+    await queryClient.invalidateQueries({ queryKey: ["/api/posts-session"] });
+    setRefreshing(false);
+  };
 
   // Fetch upcoming events
   const { data: eventsResponse } = useQuery({
@@ -208,7 +222,12 @@ export default function Dashboard() {
   const teams = teamsResponse?.teams || [];
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <View style={styles.content}>
         <Text style={styles.greeting}>Welcome, {user?.firstName}!</Text>
 
