@@ -61,6 +61,7 @@ Uses Zod schemas for validation and modeling:
 -   Dynamic tab navigation on mobile based on user roles.
 -   Keyboard avoidance implemented for all forms and modals on mobile.
 -   Sequential date/time picker for improved mobile usability.
+-   Pull-to-refresh functionality on all main mobile pages (Dashboard, Events, Teams, Posts) with React Query cache invalidation.
 
 ## External Dependencies
 
@@ -81,3 +82,22 @@ Uses Zod schemas for validation and modeling:
 -   **Styling:** NativeWind.
 -   **Icons:** Lucide React Native (mobile), MaterialIcons.
 -   **Navigation:** React Navigation (via Expo Router).
+
+## Recent Changes
+
+### November 2025 - Pull-to-Refresh Functionality Added
+- Implemented native pull-to-refresh on all main mobile pages (Dashboard, Events, Teams, Posts)
+- Users can swipe down to refresh data with visual loading spinner
+- Each page invalidates its specific React Query caches for fresh data
+- Dashboard refreshes: events, players, match results, teams, and posts
+- Events page refreshes: events, teams, players, and match results
+- Teams page refreshes: teams and club data
+- Posts page refreshes: posts, teams, and players
+- Provides standard mobile UX pattern for manual data refresh
+
+### November 2025 - Mobile Logout Cache Clearing Fix
+- Fixed critical data leakage issue where previous user's data persisted after logout
+- Issue: React Query cache not cleared on logout, causing new user to see old user's data
+- Solution: Changed logout to call `queryClient.clear()` to remove ALL cached data
+- Prevents events, posts, teams, players, and other data from leaking between user sessions
+- Users now see only their own data immediately after logging in
