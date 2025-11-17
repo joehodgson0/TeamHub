@@ -142,29 +142,32 @@ export default function Dashboard() {
   const getRecentResults = () => {
     if (!matchResultsResponse?.matchResults) return [];
 
-    let results = matchResultsResponse.matchResults;
+    const results = matchResultsResponse.matchResults;
+    const relevantTeamIds = new Set<string>();
 
-    // For coaches, filter by their managed teams
+    // For coaches, include their managed teams
     if (user?.roles?.includes("coach") && user?.teamIds?.length) {
-      results = results.filter((result: any) =>
-        user.teamIds.includes(result.teamId),
-      );
+      user.teamIds.forEach((teamId: string) => relevantTeamIds.add(teamId));
     }
 
-    // For parents, filter by teams their players are on
+    // For parents, include teams their dependents play on
     if (user?.roles?.includes("parent") && playersResponse?.players) {
-      const teamIds = playersResponse.players.map((p: any) => p.teamId);
-      results = results.filter((result: any) =>
-        teamIds.includes(result.teamId),
-      );
+      playersResponse.players.forEach((player: any) => {
+        if (player.teamId) relevantTeamIds.add(player.teamId);
+      });
     }
 
     // If user has no team associations, return empty
-    if (!user?.teamIds?.length && !playersResponse?.players?.length) {
+    if (relevantTeamIds.size === 0) {
       return [];
     }
 
-    return results.slice(0, 3);
+    // Filter results to include any team the user is associated with
+    const filteredResults = results.filter((result: any) =>
+      relevantTeamIds.has(result.teamId),
+    );
+
+    return filteredResults.slice(0, 3);
   };
 
   // Filter posts for user's teams
