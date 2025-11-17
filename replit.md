@@ -85,6 +85,15 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Mobile Edit/Delete Post Functionality Added
+- Implemented edit and delete functionality for posts on mobile app (feature parity with web)
+- Users can now edit their own posts via an edit icon on each post card
+- Users can delete their own posts with a confirmation dialog
+- Edit/delete actions only visible to post authors (permission check: `post.authorId === user.id`)
+- Edit modal pre-populates with existing post data for easy modification
+- Delete confirmation prevents accidental deletions
+- Both actions invalidate React Query cache to update UI immediately
+
 ### November 2025 - Pull-to-Refresh Functionality Added
 - Implemented native pull-to-refresh on all main mobile pages (Dashboard, Events, Teams, Posts)
 - Users can swipe down to refresh data with visual loading spinner
