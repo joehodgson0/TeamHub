@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { API_BASE_URL } from '@/lib/config';
@@ -12,6 +12,14 @@ export default function Teams() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [clubCode, setClubCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/clubs', user?.clubId] });
+    setRefreshing(false);
+  };
 
   const { data: teamsData, isLoading } = useQuery({
     queryKey: ['/api/teams/club', user?.clubId],
@@ -146,7 +154,12 @@ export default function Teams() {
 
   if (!user?.clubId) {
     return (
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.content}>
           <Text style={styles.title}>Join Club to Manage Teams</Text>
           
@@ -191,7 +204,12 @@ export default function Teams() {
 
   return (
     <>
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.content}>
           {clubData?.club && (
             <View style={styles.clubInfo}>
