@@ -289,13 +289,13 @@ export class DatabaseStorage implements IStorage {
       events_data = await db
         .select()
         .from(events)
-        .where(and(eq(events.teamId, teamId), gt(events.startTime, now)))
+        .where(and(eq(events.teamId, teamId), gt(events.endTime, now)))
         .orderBy(events.startTime);
     } else {
       events_data = await db
         .select()
         .from(events)
-        .where(gt(events.startTime, now))
+        .where(gt(events.endTime, now))
         .orderBy(events.startTime);
     }
     return events_data.map(event => this.normalizeEvent(event));
