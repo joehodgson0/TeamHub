@@ -35,11 +35,15 @@ export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps
         
         const outcomeText = result.result === "win" ? "Win" : result.result === "loss" ? "Loss" : result.result === "draw" ? "Draw" : "";
         
+        const teamName = getTeamName(result.teamId, teams);
+        const opponent = result.opponent || "Unknown";
+        
         return (
           <View key={result.id} style={styles.resultItem}>
             <View style={styles.resultInfo}>
-              <Text style={styles.resultTeam}>{getTeamName(result.teamId, teams)}</Text>
-              <Text style={styles.resultOpponent}>vs. {result.opponent || "Unknown"}</Text>
+              <Text style={styles.resultTeam}>
+                {teamName} vs {opponent}
+              </Text>
               <Text style={styles.resultDate}>
                 {result.startTime ? formatDate(result.startTime) : "Unknown date"}
               </Text>
@@ -79,14 +83,9 @@ const styles = StyleSheet.create({
   },
   resultTeam: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#1a1a1a",
-    marginBottom: 2,
-  },
-  resultOpponent: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#666",
+    marginBottom: 4,
   },
   resultDate: {
     fontSize: 12,
