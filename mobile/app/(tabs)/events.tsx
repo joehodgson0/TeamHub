@@ -279,7 +279,12 @@ export default function Events() {
                 <View style={styles.eventHeader}>
                   <View style={styles.eventTitleContainer}>
                     {isMatch ? (
-                      <Text style={styles.eventTitle}>{teamName} vs {opponent}</Text>
+                      <>
+                        <Text style={styles.eventTitle}>{teamName} vs {opponent}</Text>
+                        {event.friendly && (
+                          <Text style={styles.friendlyLabel}>⚽ Friendly Match</Text>
+                        )}
+                      </>
                     ) : (
                       <>
                         <Text style={styles.eventTitle}>{eventTitle}</Text>
@@ -481,6 +486,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  friendlyLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#3B82F6',
+    marginTop: 4,
   },
   typeBadge: {
     paddingHorizontal: 8,

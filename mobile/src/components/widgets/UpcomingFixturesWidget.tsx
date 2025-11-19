@@ -23,9 +23,14 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
         return (
           <View key={fixture.id} style={styles.fixtureCard}>
             <View style={styles.fixtureHeader}>
-              <Text style={styles.fixtureTitle} numberOfLines={2}>
-                {teamName} vs {opponent}
-              </Text>
+              <View style={styles.titleContainer}>
+                <Text style={styles.fixtureTitle} numberOfLines={2}>
+                  {teamName} vs {opponent}
+                </Text>
+                {fixture.type === 'match' && fixture.friendly && (
+                  <Text style={styles.friendlyLabel}>⚽ Friendly Match</Text>
+                )}
+              </View>
               <View
                 style={[
                   styles.typeBadge,
@@ -100,12 +105,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
+  titleContainer: {
+    flex: 1,
+  },
   fixtureTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111827",
     lineHeight: 24,
-    flex: 1,
+  },
+  friendlyLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#3B82F6",
+    marginTop: 4,
   },
   typeBadge: {
     paddingHorizontal: 10,

@@ -34,9 +34,14 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
       {events.map((event: any) => (
         <View key={event.id} style={styles.eventCard}>
           <View style={styles.eventCardHeader}>
-            <Text style={styles.eventTitle} numberOfLines={2}>
-              {getEventTitle(event)}
-            </Text>
+            <View style={styles.titleContainer}>
+              <Text style={styles.eventTitle} numberOfLines={2}>
+                {getEventTitle(event)}
+              </Text>
+              {event.type === 'match' && event.friendly && (
+                <Text style={styles.friendlyLabel}>⚽ Friendly Match</Text>
+              )}
+            </View>
             <View
               style={[
                 styles.typeBadge,
@@ -103,6 +108,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 8,
   },
+  titleContainer: {
+    flex: 1,
+  },
   typeBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -120,7 +128,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#111827",
     lineHeight: 24,
-    flex: 1,
+  },
+  friendlyLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#3B82F6",
+    marginTop: 4,
   },
   infoRow: {
     flexDirection: "row",
