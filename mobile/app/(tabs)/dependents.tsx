@@ -93,11 +93,13 @@ export default function Dependents() {
         }
       }
       
-      // Invalidate players query to show the new dependent
+      // Invalidate all relevant queries to reflect the new team association
       queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id] });
-      
-      // Invalidate teams query to update the team's player list
       queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/match-results-session'] });
       
       setShowAddModal(false);
       // Reset form with Date object, not empty string
