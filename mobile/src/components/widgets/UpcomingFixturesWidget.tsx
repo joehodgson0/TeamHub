@@ -17,9 +17,15 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
     >
       {fixtures.map((fixture: any) => {
         const availability = getAvailabilityCount(fixture, teams);
+        const teamName = fixture.teamId ? getTeamName(fixture.teamId, teams) : '';
+        const opponent = fixture.opponent || 'TBD';
+        
         return (
           <View key={fixture.id} style={styles.fixtureCard}>
             <View style={styles.fixtureHeader}>
+              <Text style={styles.fixtureTitle} numberOfLines={2}>
+                {teamName} vs {opponent}
+              </Text>
               <View
                 style={[
                   styles.typeBadge,
@@ -37,31 +43,14 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
               </View>
             </View>
 
-            {fixture.teamId && (
-              <View style={styles.infoRow}>
-                <Users size={16} color="#6B7280" />
-                <Text style={styles.infoText}>
-                  {getTeamName(fixture.teamId, teams)}
-                </Text>
-              </View>
-            )}
+            <View style={styles.infoRow}>
+              <Calendar size={16} color="#6B7280" />
+              <Text style={styles.infoText}>{formatDate(fixture.startTime)}</Text>
+            </View>
 
-            {fixture.opponent && (
-              <View style={styles.opponentRow}>
-                <Shield size={20} color="#374151" />
-                <Text style={styles.opponentText}>vs {fixture.opponent}</Text>
-              </View>
-            )}
-
-            <View style={styles.dateTimeContainer}>
-              <View style={styles.infoRow}>
-                <Calendar size={16} color="#6B7280" />
-                <Text style={styles.infoText}>{formatDate(fixture.startTime)}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Clock size={16} color="#6B7280" />
-                <Text style={styles.infoText}>{formatTime(fixture.startTime)}</Text>
-              </View>
+            <View style={styles.infoRow}>
+              <Clock size={16} color="#6B7280" />
+              <Text style={styles.infoText}>{formatTime(fixture.startTime)}</Text>
             </View>
 
             {fixture.location && (
@@ -106,8 +95,17 @@ const styles = StyleSheet.create({
   },
   fixtureHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
     marginBottom: 12,
+    gap: 8,
+  },
+  fixtureTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    lineHeight: 24,
+    flex: 1,
   },
   typeBadge: {
     paddingHorizontal: 10,
@@ -121,29 +119,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  opponentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  opponentText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-    flex: 1,
-  },
-  dateTimeContainer: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 8,
-  },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -154,7 +129,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#374151",
     fontWeight: "500",
-    flex: 1,
   },
   availabilityContainer: {
     marginTop: 12,

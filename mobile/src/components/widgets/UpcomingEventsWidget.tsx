@@ -18,6 +18,9 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
       {events.map((event: any) => (
         <View key={event.id} style={styles.eventCard}>
           <View style={styles.eventCardHeader}>
+            <Text style={styles.eventTitle} numberOfLines={2}>
+              {event.name || "Event"}
+            </Text>
             <View
               style={[
                 styles.typeBadge,
@@ -35,10 +38,6 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
             </View>
           </View>
 
-          <Text style={styles.eventTitle} numberOfLines={2}>
-            {event.name || "Event"}
-          </Text>
-
           {event.teamId && (
             <View style={styles.infoRow}>
               <Users size={16} color="#6B7280" />
@@ -48,15 +47,14 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
             </View>
           )}
 
-          <View style={styles.dateTimeContainer}>
-            <View style={styles.infoRow}>
-              <Calendar size={16} color="#6B7280" />
-              <Text style={styles.infoText}>{formatDate(event.startTime)}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Clock size={16} color="#6B7280" />
-              <Text style={styles.infoText}>{formatTime(event.startTime)}</Text>
-            </View>
+          <View style={styles.infoRow}>
+            <Calendar size={16} color="#6B7280" />
+            <Text style={styles.infoText}>{formatDate(event.startTime)}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Clock size={16} color="#6B7280" />
+            <Text style={styles.infoText}>{formatTime(event.startTime)}</Text>
           </View>
 
           {event.location && (
@@ -84,8 +82,10 @@ const styles = StyleSheet.create({
   },
   eventCardHeader: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    gap: 8,
   },
   typeBadge: {
     paddingHorizontal: 10,
@@ -100,16 +100,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   eventTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 12,
     lineHeight: 24,
-  },
-  dateTimeContainer: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 8,
+    flex: 1,
   },
   infoRow: {
     flexDirection: "row",
@@ -121,6 +116,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#374151",
     fontWeight: "500",
-    flex: 1,
   },
 });
