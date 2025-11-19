@@ -168,7 +168,15 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
 
   // Handle date selection (then show time picker)
   const handleDateConfirm = (selectedDate: Date) => {
-    setTempDate(selectedDate);
+    // Preserve the time from the original datetime when changing the date
+    const originalDateTime = editingDateTime === 'start' ? startDateTime : endDateTime;
+    const combined = new Date(selectedDate);
+    combined.setHours(originalDateTime.getHours());
+    combined.setMinutes(originalDateTime.getMinutes());
+    combined.setSeconds(0);
+    combined.setMilliseconds(0);
+    
+    setTempDate(combined);
     setPickerMode('time');
     // Keep picker open, just switch to time mode
   };
