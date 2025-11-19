@@ -141,7 +141,8 @@ export default function Events() {
 
   const getTeamName = (teamId: string) => {
     const team = teams.find((t: any) => t.id === teamId);
-    return team ? team.name : 'Unknown Team';
+    if (!team) return 'Unknown Team';
+    return team.ageGroup ? `${team.ageGroup} ${team.name}` : team.name;
   };
 
   const formatEventTime = (startTime: string, endTime: string) => {
@@ -519,35 +520,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   availabilitySection: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
   availabilitySectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#6B7280',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   playerAvailability: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   playerName: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#111827',
     fontWeight: '500',
   },
   availabilityButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   availabilityBtn: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#D1D5DB',
@@ -556,7 +557,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   availabilityBtnText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#9CA3AF',
   },
