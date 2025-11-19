@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { Calendar, Clock, MapPin, Users } from 'lucide-react-native';
 import { WidgetCard } from './WidgetCard';
 import { formatDate, formatTime, getEventTypeBadgeColor, getEventDisplayType, getTeamName } from '@/utils/dashboard';
 
@@ -32,26 +33,39 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
                 {getEventDisplayType(event)}
               </Text>
             </View>
-            <Text style={styles.eventCardTitle} numberOfLines={1}>
-              {event.name || "Event"}
-            </Text>
           </View>
 
-          {event.teamId && (
-            <Text style={styles.detailText}>
-              <Text style={styles.detailLabel}>Team: </Text>
-              <Text style={styles.detailValue}>
-                {getTeamName(event.teamId, teams)}
-              </Text>
-            </Text>
-          )}
-
-          <Text style={styles.detailText}>
-            🕐 {formatDate(event.startTime)}, {formatTime(event.startTime)}
+          <Text style={styles.eventTitle} numberOfLines={2}>
+            {event.name || "Event"}
           </Text>
 
+          {event.teamId && (
+            <View style={styles.infoRow}>
+              <Users size={16} color="#6B7280" />
+              <Text style={styles.infoText}>
+                {getTeamName(event.teamId, teams)}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.dateTimeContainer}>
+            <View style={styles.infoRow}>
+              <Calendar size={16} color="#6B7280" />
+              <Text style={styles.infoText}>{formatDate(event.startTime)}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Clock size={16} color="#6B7280" />
+              <Text style={styles.infoText}>{formatTime(event.startTime)}</Text>
+            </View>
+          </View>
+
           {event.location && (
-            <Text style={styles.detailText}>📍 {event.location}</Text>
+            <View style={styles.infoRow}>
+              <MapPin size={16} color="#6B7280" />
+              <Text style={styles.infoText} numberOfLines={1}>
+                {event.location}
+              </Text>
+            </View>
           )}
         </View>
       ))}
@@ -61,9 +75,9 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
 
 const styles = StyleSheet.create({
   eventCard: {
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
+    padding: 16,
+    borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
@@ -71,36 +85,42 @@ const styles = StyleSheet.create({
   eventCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: 10,
   },
   typeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   typeBadgeText: {
     color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
     textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  eventCardTitle: {
-    fontSize: 15,
-    fontWeight: "600",
+  eventTitle: {
+    fontSize: 17,
+    fontWeight: "700",
     color: "#111827",
-    flex: 1,
+    marginBottom: 12,
+    lineHeight: 24,
   },
-  detailText: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 4,
+  dateTimeContainer: {
+    flexDirection: "row",
+    gap: 16,
+    marginBottom: 8,
   },
-  detailLabel: {
-    color: "#9CA3AF",
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
   },
-  detailValue: {
+  infoText: {
+    fontSize: 14,
+    color: "#374151",
     fontWeight: "500",
-    color: "#111827",
+    flex: 1,
   },
 });

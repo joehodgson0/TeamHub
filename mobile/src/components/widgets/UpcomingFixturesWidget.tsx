@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { Calendar, Clock, MapPin, Users, Shield } from 'lucide-react-native';
 import { WidgetCard } from './WidgetCard';
 import { formatDate, formatTime, getEventTypeBadgeColor, getEventDisplayType, getAvailabilityCount, getTeamName } from '@/utils/dashboard';
 
@@ -18,7 +19,7 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
         const availability = getAvailabilityCount(fixture, teams);
         return (
           <View key={fixture.id} style={styles.fixtureCard}>
-            <View style={styles.eventCardHeader}>
+            <View style={styles.fixtureHeader}>
               <View
                 style={[
                   styles.typeBadge,
@@ -34,39 +35,56 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
                   {getEventDisplayType(fixture)}
                 </Text>
               </View>
-              <Text style={styles.eventCardTitle} numberOfLines={1}>
-                {fixture.name || "Fixture"}
-              </Text>
             </View>
 
             {fixture.teamId && (
-              <Text style={styles.detailText}>
-                <Text style={styles.detailLabel}>Team: </Text>
-                <Text style={styles.detailValue}>
+              <View style={styles.infoRow}>
+                <Users size={16} color="#6B7280" />
+                <Text style={styles.infoText}>
                   {getTeamName(fixture.teamId, teams)}
                 </Text>
-              </Text>
+              </View>
             )}
 
             {fixture.opponent && (
-              <Text style={styles.detailText}>
-                <Text style={styles.detailLabel}>vs </Text>
-                <Text style={styles.detailValue}>{fixture.opponent}</Text>
-              </Text>
+              <View style={styles.opponentRow}>
+                <Shield size={20} color="#374151" />
+                <Text style={styles.opponentText}>vs {fixture.opponent}</Text>
+              </View>
             )}
 
-            <Text style={styles.detailText}>
-              🕐 {formatDate(fixture.startTime)}, {formatTime(fixture.startTime)}
-            </Text>
+            <View style={styles.dateTimeContainer}>
+              <View style={styles.infoRow}>
+                <Calendar size={16} color="#6B7280" />
+                <Text style={styles.infoText}>{formatDate(fixture.startTime)}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Clock size={16} color="#6B7280" />
+                <Text style={styles.infoText}>{formatTime(fixture.startTime)}</Text>
+              </View>
+            </View>
 
             {fixture.location && (
-              <Text style={styles.detailText}>📍 {fixture.location}</Text>
+              <View style={styles.infoRow}>
+                <MapPin size={16} color="#6B7280" />
+                <Text style={styles.infoText} numberOfLines={1}>
+                  {fixture.location}
+                </Text>
+              </View>
             )}
 
             {availability.total > 0 && (
-              <View style={styles.availabilityRow}>
+              <View style={styles.availabilityContainer}>
+                <View style={styles.availabilityBar}>
+                  <View 
+                    style={[
+                      styles.availabilityFill, 
+                      { width: `${(availability.confirmed / availability.total) * 100}%` }
+                    ]} 
+                  />
+                </View>
                 <Text style={styles.availabilityText}>
-                  👥 {availability.confirmed}/{availability.total} available
+                  {availability.confirmed}/{availability.total} players available
                 </Text>
               </View>
             )}
@@ -79,57 +97,86 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
 
 const styles = StyleSheet.create({
   fixtureCard: {
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
+    padding: 16,
+    borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
-  eventCardHeader: {
+  fixtureHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: 12,
   },
   typeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
   typeBadgeText: {
     color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
     textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  eventCardTitle: {
-    fontSize: 15,
-    fontWeight: "600",
+  opponentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  opponentText: {
+    fontSize: 16,
+    fontWeight: "700",
     color: "#111827",
     flex: 1,
   },
-  detailText: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 4,
+  dateTimeContainer: {
+    flexDirection: "row",
+    gap: 16,
+    marginBottom: 8,
   },
-  detailLabel: {
-    color: "#9CA3AF",
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
   },
-  detailValue: {
+  infoText: {
+    fontSize: 14,
+    color: "#374151",
     fontWeight: "500",
-    color: "#111827",
+    flex: 1,
   },
-  availabilityRow: {
-    marginTop: 8,
-    paddingTop: 8,
+  availabilityContainer: {
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
   },
+  availabilityBar: {
+    height: 6,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 3,
+    marginBottom: 8,
+    overflow: "hidden",
+  },
+  availabilityFill: {
+    height: "100%",
+    backgroundColor: "#10B981",
+    borderRadius: 3,
+  },
   availabilityText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#6B7280",
-    fontWeight: "500",
+    fontWeight: "600",
   },
 });
