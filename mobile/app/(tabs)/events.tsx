@@ -254,13 +254,24 @@ export default function Events() {
           <Text style={styles.loadingText}>Loading events...</Text>
         ) : events.length > 0 ? (
           <View style={styles.eventsContainer}>
-            {events.map((event: any) => (
+            {events.map((event: any) => {
+              const isMatch = event.type === 'match' || event.type === 'tournament';
+              const teamName = event.teamId ? getTeamName(event.teamId) : '';
+              const opponent = event.opponent || 'TBD';
+              
+              return (
               <View key={event.id} style={styles.eventCard}>
                 <View style={styles.eventHeader}>
                   <View style={styles.eventTitleContainer}>
-                    <Text style={styles.eventTitle}>{event.name || event.title || 'Event'}</Text>
-                    {event.teamId && (
-                      <Text style={styles.teamName}>{getTeamName(event.teamId)}</Text>
+                    {isMatch ? (
+                      <Text style={styles.eventTitle}>{teamName} vs {opponent}</Text>
+                    ) : (
+                      <>
+                        <Text style={styles.eventTitle}>{event.name || event.title || 'Event'}</Text>
+                        {event.teamId && (
+                          <Text style={styles.teamName}>{teamName}</Text>
+                        )}
+                      </>
                     )}
                   </View>
                   <View style={[styles.typeBadge, { backgroundColor: getEventTypeBadgeColor(event.type) }]}>
@@ -273,10 +284,6 @@ export default function Events() {
                 
                 {event.location && (
                   <Text style={styles.eventLocation}>📍 {event.location}</Text>
-                )}
-                
-                {event.type === 'match' && event.opponent && (
-                  <Text style={styles.eventOpponent}>vs {event.opponent}</Text>
                 )}
                 
                 {canManageEvent(event) && (
@@ -357,7 +364,8 @@ export default function Events() {
                   </View>
                 )}
               </View>
-            ))}
+            );
+            })}
           </View>
         ) : (
           <View style={styles.emptyContainer}>
@@ -443,8 +451,9 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '700',
+    marginBottom: 8,
+    color: '#111827',
   },
   teamName: {
     fontSize: 14,
