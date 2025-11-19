@@ -329,14 +329,21 @@ export default function Events() {
 
                 {getUserPlayersForEvent(event).length > 0 && !isEventCompleted(event) && (
                   <View style={styles.availabilitySection}>
-                    <Text style={styles.availabilitySectionTitle}>Player Availability:</Text>
+                    <Text style={styles.availabilitySectionTitle}>Mark Player Availability:</Text>
                     {getUserPlayersForEvent(event).map((player: any) => {
                       const availability = getPlayerAvailability(event, player.id);
                       return (
-                        <View key={player.id} style={styles.playerAvailability}>
-                          <Text style={styles.playerName}>
-                            {player.firstName} {player.lastName}
-                          </Text>
+                        <View key={player.id} style={styles.playerAvailabilityCard}>
+                          <View style={styles.playerInfo}>
+                            <Text style={styles.playerName}>
+                              {player.firstName} {player.lastName}
+                            </Text>
+                            <Text style={styles.playerStatus}>
+                              {availability === 'available' ? '✓ Available' : 
+                               availability === 'unavailable' ? '✗ Unavailable' : 
+                               '⏱ Pending'}
+                            </Text>
+                          </View>
                           <View style={styles.availabilityButtons}>
                             <TouchableOpacity
                               style={[
@@ -534,26 +541,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   availabilitySection: {
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
   availabilitySectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  playerAvailability: {
+  playerAvailabilityCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  playerInfo: {
+    flex: 1,
+    marginRight: 12,
   },
   playerName: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#111827',
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  playerStatus: {
+    fontSize: 12,
+    color: '#6B7280',
     fontWeight: '500',
   },
   availabilityButtons: {
