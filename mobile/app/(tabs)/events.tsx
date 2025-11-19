@@ -260,6 +260,20 @@ export default function Events() {
               const teamName = event.teamId ? getTeamName(event.teamId) : '';
               const opponent = event.opponent || 'TBD';
               
+              // Get title based on event type
+              let eventTitle = event.name || event.title;
+              if (!eventTitle) {
+                if (event.type === 'training') {
+                  eventTitle = 'Training Session';
+                } else if (event.type === 'tournament') {
+                  eventTitle = 'Tournament';
+                } else if (event.type === 'social') {
+                  eventTitle = 'Social Event';
+                } else {
+                  eventTitle = 'Event';
+                }
+              }
+              
               return (
               <View key={event.id} style={styles.eventCard}>
                 <View style={styles.eventHeader}>
@@ -268,7 +282,7 @@ export default function Events() {
                       <Text style={styles.eventTitle}>{teamName} vs {opponent}</Text>
                     ) : (
                       <>
-                        <Text style={styles.eventTitle}>{event.name || event.title || 'Event'}</Text>
+                        <Text style={styles.eventTitle}>{eventTitle}</Text>
                         {event.teamId && (
                           <Text style={styles.teamName}>{teamName}</Text>
                         )}
