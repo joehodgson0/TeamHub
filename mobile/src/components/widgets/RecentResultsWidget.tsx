@@ -42,7 +42,10 @@ export function RecentResultsWidget({ results, teams }: RecentResultsWidgetProps
           <View key={result.id} style={styles.resultItem}>
             <View style={styles.resultInfo}>
               <Text style={styles.resultTeam}>
-                {teamName} vs {opponent}
+                {teamName}
+              </Text>
+              <Text style={styles.resultTeam}>
+                vs {opponent}
               </Text>
               <Text style={styles.resultDate}>
                 {result.startTime ? formatDate(result.startTime) : "Unknown date"}
