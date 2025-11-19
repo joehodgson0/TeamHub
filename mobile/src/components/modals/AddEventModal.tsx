@@ -494,7 +494,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       <DateTimePickerModal
         isVisible={showDateTimePicker}
         mode={pickerMode}
-        date={pickerMode === 'date' ? tempDate : (editingDateTime === 'start' ? startDateTime : endDateTime)}
+        date={tempDate}
         minimumDate={editingDateTime === 'end' ? startDateTime : undefined}
         onConfirm={pickerMode === 'date' ? handleDateConfirm : handleTimeConfirm}
         onCancel={handlePickerCancel}
