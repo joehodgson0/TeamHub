@@ -256,7 +256,7 @@ export default function Events() {
         ) : events.length > 0 ? (
           <View style={styles.eventsContainer}>
             {events.map((event: any) => {
-              const isMatch = event.type === 'match' || event.type === 'tournament';
+              const isMatch = event.type === 'match';
               const teamName = event.teamId ? getTeamName(event.teamId) : '';
               const opponent = event.opponent || 'TBD';
               
