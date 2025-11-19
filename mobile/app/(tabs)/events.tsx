@@ -306,6 +306,13 @@ export default function Events() {
                   <Text style={styles.eventLocation}>📍 {event.location}</Text>
                 )}
                 
+                {event.additionalInfo && (
+                  <View style={styles.additionalInfoContainer}>
+                    <Text style={styles.additionalInfoLabel}>ℹ️ Additional Info:</Text>
+                    <Text style={styles.additionalInfoText}>{event.additionalInfo}</Text>
+                  </View>
+                )}
+                
                 {canManageEvent(event) && (
                   <View style={styles.actionButtons}>
                     <TouchableOpacity
@@ -525,6 +532,23 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
     marginTop: 4,
+  },
+  additionalInfoContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  additionalInfoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  additionalInfoText: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
   },
   actionButtons: {
     marginTop: 12,

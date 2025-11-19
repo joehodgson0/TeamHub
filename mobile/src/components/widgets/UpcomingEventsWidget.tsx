@@ -86,6 +86,14 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
               </Text>
             </View>
           )}
+
+          {event.additionalInfo && (
+            <View style={styles.additionalInfoContainer}>
+              <Text style={styles.additionalInfoText} numberOfLines={2}>
+                ℹ️ {event.additionalInfo}
+              </Text>
+            </View>
+          )}
         </View>
       ))}
     </WidgetCard>
@@ -145,5 +153,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#374151",
     fontWeight: "500",
+  },
+  additionalInfoContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  additionalInfoText: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontStyle: "italic",
+    lineHeight: 18,
   },
 });

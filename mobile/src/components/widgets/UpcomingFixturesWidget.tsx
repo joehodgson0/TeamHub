@@ -82,6 +82,14 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
                 </Text>
               </View>
             )}
+
+            {fixture.additionalInfo && (
+              <View style={styles.additionalInfoContainer}>
+                <Text style={styles.additionalInfoText} numberOfLines={2}>
+                  ℹ️ {fixture.additionalInfo}
+                </Text>
+              </View>
+            )}
           </View>
         );
       })}
@@ -165,5 +173,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
     fontWeight: "600",
+  },
+  additionalInfoContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  additionalInfoText: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontStyle: "italic",
+    lineHeight: 18,
   },
 });
