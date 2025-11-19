@@ -9,6 +9,22 @@ interface UpcomingEventsWidgetProps {
 }
 
 export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProps) {
+  const getEventTitle = (event: any) => {
+    let eventTitle = event.name || event.title;
+    if (!eventTitle) {
+      if (event.type === 'training') {
+        eventTitle = 'Training Session';
+      } else if (event.type === 'tournament') {
+        eventTitle = 'Tournament';
+      } else if (event.type === 'social') {
+        eventTitle = 'Social Event';
+      } else {
+        eventTitle = 'Event';
+      }
+    }
+    return eventTitle;
+  };
+
   return (
     <WidgetCard 
       title="📅 Upcoming Events" 
@@ -19,7 +35,7 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
         <View key={event.id} style={styles.eventCard}>
           <View style={styles.eventCardHeader}>
             <Text style={styles.eventTitle} numberOfLines={2}>
-              {event.name || "Event"}
+              {getEventTitle(event)}
             </Text>
             <View
               style={[
