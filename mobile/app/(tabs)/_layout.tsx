@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, CircleDot, Baby, Calendar, MessageSquare, Settings } from 'lucide-react-native';
+import { LayoutDashboard, Baby, Calendar, MessageSquare, Settings } from 'lucide-react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function TabsLayout() {
@@ -34,7 +35,7 @@ export default function TabsLayout() {
           tabBarLabel: 'Team',
           href: isCoach ? '/teams' : null,
           tabBarIcon: ({ color, size }) => (
-            <CircleDot size={size} color={color} />
+            <MaterialIcons name="sports-soccer" size={size} color={color} />
           ),
         }}
       />
