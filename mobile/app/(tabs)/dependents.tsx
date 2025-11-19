@@ -69,7 +69,14 @@ export default function Dependents() {
         body: JSON.stringify(data),
         credentials: 'include',
       });
-      return response.json();
+      const result = await response.json();
+      
+      // Check if the request failed or if the response indicates failure
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to add dependent');
+      }
+      
+      return result;
     },
     onSuccess: (result) => {
       // Manually update user cache if clubId was set (first dependent)
