@@ -177,8 +177,19 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     combined.setMilliseconds(0);
     
     setTempDate(combined);
-    setPickerMode('time');
-    // Keep picker open, just switch to time mode
+    
+    // Android requires explicitly closing and reopening the picker to show time mode
+    if (Platform.OS === 'android') {
+      setShowDateTimePicker(false);
+      // Reopen in time mode after a short delay
+      setTimeout(() => {
+        setPickerMode('time');
+        setShowDateTimePicker(true);
+      }, 100);
+    } else {
+      // iOS can switch modes seamlessly
+      setPickerMode('time');
+    }
   };
 
   // Handle time selection (final step)
