@@ -104,7 +104,7 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Filter events for parent's teams
+  // Filter events for user's teams
   const getUpcomingEvents = () => {
     if (!eventsResponse?.events) return [];
 
@@ -112,15 +112,29 @@ export default function Dashboard() {
       (event: any) => event.type !== "match" && event.type !== "friendly",
     );
 
+    const relevantTeamIds = new Set<string>();
+
+    // For coaches, include their managed teams
+    if (user?.roles?.includes("coach") && user?.teamIds?.length) {
+      user.teamIds.forEach((teamId: string) => relevantTeamIds.add(teamId));
+    }
+
+    // For parents, include teams their dependents play on
     if (user?.roles?.includes("parent") && playersResponse?.players) {
-      const teamIds = playersResponse.players.map((p: any) => p.teamId);
-      events = events.filter((event: any) => teamIds.includes(event.teamId));
+      playersResponse.players.forEach((player: any) => {
+        if (player.teamId) relevantTeamIds.add(player.teamId);
+      });
+    }
+
+    // Filter events to include any team the user is associated with
+    if (relevantTeamIds.size > 0) {
+      events = events.filter((event: any) => relevantTeamIds.has(event.teamId));
     }
 
     return events.slice(0, 3);
   };
 
-  // Filter fixtures (matches) for parent's teams
+  // Filter fixtures (matches) for user's teams
   const getUpcomingFixtures = () => {
     if (!eventsResponse?.events) return [];
 
@@ -128,11 +142,23 @@ export default function Dashboard() {
       (event: any) => event.type === "match" || event.type === "friendly",
     );
 
+    const relevantTeamIds = new Set<string>();
+
+    // For coaches, include their managed teams
+    if (user?.roles?.includes("coach") && user?.teamIds?.length) {
+      user.teamIds.forEach((teamId: string) => relevantTeamIds.add(teamId));
+    }
+
+    // For parents, include teams their dependents play on
     if (user?.roles?.includes("parent") && playersResponse?.players) {
-      const teamIds = playersResponse.players.map((p: any) => p.teamId);
-      fixtures = fixtures.filter((event: any) =>
-        teamIds.includes(event.teamId),
-      );
+      playersResponse.players.forEach((player: any) => {
+        if (player.teamId) relevantTeamIds.add(player.teamId);
+      });
+    }
+
+    // Filter fixtures to include any team the user is associated with
+    if (relevantTeamIds.size > 0) {
+      fixtures = fixtures.filter((event: any) => relevantTeamIds.has(event.teamId));
     }
 
     return fixtures.slice(0, 3);

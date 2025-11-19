@@ -85,6 +85,37 @@ Uses Zod schemas for validation and modeling:
 
 ## Recent Changes
 
+### November 2025 - Mobile UI/UX Enhancements
+- **Dashboard Widget Improvements:**
+  - Redesigned Upcoming Events and Fixtures widgets with better spacing, typography, and visual hierarchy
+  - Added Lucide icons (Calendar, Clock, MapPin, Users) replacing emojis for professional appearance
+  - Match cards show "Team vs Opponent" format prominently at top
+  - Tournament cards show event name instead of vs format
+  - Team names now include age groups (e.g., "U12 Team", "U14 Falcons")
+  - Recent Results widget shows team vs opponent with bold formatting
+- **Tab Navigation Enhancement:**
+  - Replaced default icons with professional Lucide icons (LayoutDashboard, Users, Baby, Calendar, MessageSquare, Settings)
+  - Added color scheme: active tabs blue (#2563EB), inactive gray (#6B7280)
+- **Events Page Improvements:**
+  - Match cards prominently display team vs opponent at top
+  - Tournament cards show event name with team below
+  - Player availability section made more compact (25-30% less space)
+  - Team names include age groups throughout
+
+### November 2025 - Dashboard Filtering Fixes
+- **Fixed Multi-Role User Event Filtering:**
+  - Issue: Users with both coach and parent roles only saw events from dependents' teams
+  - Solution: Dashboard widgets now combine teams from both roles (coach teams + dependent teams)
+  - Applies to: Upcoming Events, Upcoming Fixtures, and Recent Results widgets
+  - Users now see all relevant events/results from all associated teams
+
+### November 2025 - Drizzle ORM Field Mapping Fix
+- **Fixed Database Column Mapping:**
+  - Added `casing: 'snake_case'` to Drizzle database initialization (server/db.ts)
+  - Enables automatic mapping between camelCase (JS) and snake_case (PostgreSQL)
+  - Fixed authorId, authorName fields not appearing in post queries
+  - Post delete operation now works correctly with `.returning()` method
+
 ### November 2025 - Mobile Edit/Delete Post Functionality Added
 - Implemented edit and delete functionality for posts on mobile app (feature parity with web)
 - Users can now edit their own posts via an edit icon on each post card
