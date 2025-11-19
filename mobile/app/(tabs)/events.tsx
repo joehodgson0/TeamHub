@@ -336,7 +336,7 @@ export default function Events() {
                         <View key={player.id} style={styles.playerAvailabilityCard}>
                           <View style={styles.playerInfo}>
                             <Text style={styles.playerName}>
-                              {player.firstName} {player.lastName}
+                              {player.name}
                             </Text>
                             <Text style={styles.playerStatus}>
                               {availability === 'available' ? '✓ Available' : 
