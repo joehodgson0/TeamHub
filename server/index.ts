@@ -140,34 +140,22 @@ function setupProductionBuild() {
     fs.mkdirSync(serverDir, { recursive: true });
   }
   
-  // Try to create symlink, fallback to copy
+  // Copy build files to server/public (symlinks may not work reliably in production)
   try {
-    console.log('[startup] Attempting to create symlink from build output to server/public...');
-    fs.symlinkSync(buildOutputPath, serverPublicPath, 'dir');
-    console.log('[startup] ✅ Symlink created successfully');
-    console.log(`[startup] Symlink: ${serverPublicPath} -> ${buildOutputPath}`);
-  } catch (symlinkError) {
-    console.warn('[startup] ⚠️  Symlink creation failed, falling back to copy operation');
-    console.warn(`[startup] Symlink error: ${symlinkError instanceof Error ? symlinkError.message : symlinkError}`);
-    
-    try {
-      console.log('[startup] Copying build output to server/public...');
-      fs.cpSync(buildOutputPath, serverPublicPath, { recursive: true });
-      console.log('[startup] ✅ Files copied successfully');
-      console.log(`[startup] Copied from: ${buildOutputPath}`);
-      console.log(`[startup] Copied to: ${serverPublicPath}`);
-    } catch (copyError) {
-      const error = new Error(
-        `Failed to setup production file serving. ` +
-        `Could not create symlink or copy from ${buildOutputPath} to ${serverPublicPath}. ` +
-        `Symlink error: ${symlinkError instanceof Error ? symlinkError.message : symlinkError}. ` +
-        `Copy error: ${copyError instanceof Error ? copyError.message : copyError}`
-      );
-      console.error('[startup] ❌ File serving setup failed:');
-      console.error(`[startup] Symlink failed: ${symlinkError}`);
-      console.error(`[startup] Copy failed: ${copyError}`);
-      throw error;
-    }
+    console.log('[startup] Copying build output to server/public...');
+    fs.cpSync(buildOutputPath, serverPublicPath, { recursive: true });
+    console.log('[startup] ✅ Files copied successfully');
+    console.log(`[startup] Copied from: ${buildOutputPath}`);
+    console.log(`[startup] Copied to: ${serverPublicPath}`);
+  } catch (copyError) {
+    const error = new Error(
+      `Failed to setup production file serving. ` +
+      `Could not copy from ${buildOutputPath} to ${serverPublicPath}. ` +
+      `Copy error: ${copyError instanceof Error ? copyError.message : copyError}`
+    );
+    console.error('[startup] ❌ File serving setup failed:');
+    console.error(`[startup] Copy failed: ${copyError}`);
+    throw error;
   }
   
   // Verify the setup worked
