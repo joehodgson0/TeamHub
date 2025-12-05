@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { API_BASE_URL } from '@/lib/config';
 
 export default function Settings() {
   const { user, logout, updateUserRoles } = useAuth();
@@ -53,6 +54,40 @@ export default function Settings() {
               router.replace('/(auth)/landing');
             } catch (error) {
               Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account?',
+      'This will permanently delete your account and all associated data including profile, dependents, and posts. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            setIsUpdating(true);
+            try {
+              const response = await fetch(`${API_BASE_URL}/api/auth/delete-account`, {
+                method: 'DELETE',
+                credentials: 'include',
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to delete account');
+              }
+
+              Alert.alert('Success', 'Your account has been deleted.');
+              router.replace('/(auth)/landing');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete account. Please try again.');
+            } finally {
+              setIsUpdating(false);
             }
           },
         },
@@ -123,6 +158,19 @@ export default function Settings() {
         <View style={styles.actions}>
           <Button title="Logout" onPress={handleLogout} variant="outline" />
         </View>
+
+        <View style={styles.dangerZone}>
+          <Text style={styles.dangerTitle}>Danger Zone</Text>
+          <Text style={styles.dangerDescription}>
+            Permanently delete your account and all associated data. This action cannot be undone.
+          </Text>
+          <Button 
+            title="Delete Account" 
+            onPress={handleDeleteAccount} 
+            variant="destructive"
+            disabled={isUpdating}
+          />
+        </View>
       </View>
     </ScrollView>
   );
@@ -192,5 +240,26 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 20,
     paddingBottom: 20,
+  },
+  dangerZone: {
+    marginTop: 30,
+    padding: 15,
+    backgroundColor: '#ffebee',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ff5252',
+    paddingBottom: 20,
+  },
+  dangerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ff5252',
+    marginBottom: 8,
+  },
+  dangerDescription: {
+    fontSize: 14,
+    color: '#d32f2f',
+    marginBottom: 12,
+    lineHeight: 20,
   },
 });

@@ -92,6 +92,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     });
   });
+
+  app.delete('/api/auth/delete-account', async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
+      // Delete all posts created by the user
+      const userPosts = await storage.getPostsByClubId(userId);
+      for (const post of userPosts) {
+        if (post.authorId === userId) {
+          await storage.deletePost(post.id);
+        }
+      }
+
+      // Delete all players (dependents) associated with the user
+      await storage.deletePlayersByParentId(userId);
+
+      // Delete the user account
+      await storage.deleteUser(userId);
+
+      // Destroy session
+      req.session.destroy((err: any) => {
+        if (err) {
+          return res.status(500).json({ success: false, error: 'Failed to delete account' });
+        }
+        res.json({ success: true });
+      });
+    } catch (error) {
+      console.error('Delete account error:', error);
+      res.status(500).json({ success: false, error: 'Failed to delete account' });
+    }
+  });
   
   // Alternative user route for traditional auth (checks session)
   app.get('/api/auth/user-session', async (req: any, res) => {

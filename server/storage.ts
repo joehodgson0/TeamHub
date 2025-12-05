@@ -10,6 +10,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUsers(): Promise<User[]>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<boolean>;
 
   // Club methods
   getClub(id: string): Promise<Club | undefined>;
@@ -32,6 +33,7 @@ export interface IStorage {
   getPlayersByTeamId(teamId: string): Promise<Player[]>;
   getPlayersByParentId(parentId: string): Promise<Player[]>;
   createPlayer(insertPlayer: InsertPlayer): Promise<Player>;
+  deletePlayersByParentId(parentId: string): Promise<boolean>;
 
   // Event methods
   getEvent(id: string): Promise<Event | undefined>;
@@ -543,6 +545,16 @@ export class DatabaseStorage implements IStorage {
       .delete(matchResults)
       .where(eq(matchResults.id, id));
     return deletedRows.rowCount > 0;
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deletePlayersByParentId(parentId: string): Promise<boolean> {
+    const result = await db.delete(players).where(eq(players.parentId, parentId)).returning();
+    return result.length > 0;
   }
 }
 
