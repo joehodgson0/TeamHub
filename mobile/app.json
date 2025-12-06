@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "TeamHub",
-    "slug": "teamhub-app",
+    "slug": "expo-on-replit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.joehodgson0.teamhub",
+      "bundleIdentifier": "com.joehodgson0.expoonreplit",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -26,7 +26,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "package": "com.joehodgson0.expoonreplit"
     },
     "plugins": [
       "expo-router",
