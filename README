@@ -3,3 +3,37 @@ npm run devwin
 
 To run mobile locally on windows
 npx expo --tunnel --port 5001 --clear
+
+no back button on create account
+/role-selection after register or login loads landing
+
+
+npx expo install expo-dev-client
+
+to build:
+eas build:dev --platform android --profile development
+
+
+
+open shell
+npm install expo
+npx install-expo-modules@latest
+
+rm -rf node_modules
+npm install
+
+
+# Clear the EAS build cache completely
+eas build:configure
+# Then rebuild with a clean cache
+eas build --platform ios --profile production --clear-cache
+eas build --platform android --profile production --clear-cache
+
+eas submit
+
+joehodgson0@gmmail.com
+Karoo!
+
+ios
+joehodgson0@gmail.com
+Karoo!12345
