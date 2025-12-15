@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "TeamHub",
-    "slug": "expo-on-replit",
+    "slug": "team-hub-uk",
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -46,7 +46,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "af35b297-ec5e-4a3a-83e4-fdc5f18707d5"
+        "projectId": "ed10bc6f-85ab-46fc-a604-5e10a809e5e6"
       },
       "apiUrl": "https://team-hub-uk.replit.app"
     },
@@ -55,7 +55,7 @@
     "updates": {
       "enabled": false,
       "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/af35b297-ec5e-4a3a-83e4-fdc5f18707d5"
+      "url": "https://u.expo.dev/ed10bc6f-85ab-46fc-a604-5e10a809e5e6"
     }
   }
 }
