@@ -78,15 +78,29 @@ export default function Settings() {
                 credentials: 'include',
               });
 
-              if (!response.ok) {
-                throw new Error('Failed to delete account');
+              const data = await response.json();
+
+              if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Failed to delete account');
               }
 
-              Alert.alert('Success', 'Your account has been deleted.');
-              router.replace('/(auth)/landing');
+              Alert.alert('Success', 'Your account has been deleted.', [
+                {
+                  text: 'OK',
+                  onPress: async () => {
+                    // Logout and redirect
+                    try {
+                      await logout();
+                    } catch (e) {
+                      console.error('Logout error after account deletion:', e);
+                    }
+                    router.replace('/(auth)/landing');
+                  },
+                },
+              ]);
             } catch (error) {
+              console.error('Delete account error:', error);
               Alert.alert('Error', 'Failed to delete account. Please try again.');
-            } finally {
               setIsUpdating(false);
             }
           },

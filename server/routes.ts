@@ -95,14 +95,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/auth/delete-account', async (req: any, res) => {
     try {
-      const userId = req.session.userId;
+      // Get userId from either session-based auth (web) or Replit Auth (mobile)
+      let userId = req.session?.userId;
+      if (!userId && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
       
       if (!userId) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
 
+      console.log('Deleting account for user:', userId);
+
       // Delete all posts created by the user
       const userPosts = await storage.getPostsByClubId(userId);
+      console.log('Found posts to delete:', userPosts.length);
       for (const post of userPosts) {
         if (post.authorId === userId) {
           await storage.deletePost(post.id);
@@ -110,18 +117,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Delete all players (dependents) associated with the user
+      console.log('Deleting players for parent:', userId);
       await storage.deletePlayersByParentId(userId);
 
       // Delete the user account
+      console.log('Deleting user:', userId);
       await storage.deleteUser(userId);
 
-      // Destroy session
-      req.session.destroy((err: any) => {
-        if (err) {
-          return res.status(500).json({ success: false, error: 'Failed to delete account' });
-        }
+      // Destroy session if it exists
+      if (req.session) {
+        req.session.destroy((err: any) => {
+          if (err) {
+            console.error('Session destroy error:', err);
+            return res.status(500).json({ success: false, error: 'Failed to delete account' });
+          }
+          res.json({ success: true });
+        });
+      } else {
+        // For Replit Auth, just respond successfully
         res.json({ success: true });
-      });
+      }
     } catch (error) {
       console.error('Delete account error:', error);
       res.status(500).json({ success: false, error: 'Failed to delete account' });
