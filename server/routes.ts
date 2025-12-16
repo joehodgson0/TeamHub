@@ -93,12 +93,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.delete('/api/auth/delete-account', async (req: any, res) => {
+  // Delete account - supports both session and Replit Auth
+  app.delete('/api/auth/delete-account', isAuthenticated, async (req: any, res) => {
     try {
-      // Get userId from either session-based auth (web) or Replit Auth (mobile)
-      let userId = req.session?.userId;
-      if (!userId && req.user?.claims?.sub) {
-        userId = req.user.claims.sub;
+      // Get userId from Replit Auth (middleware sets req.user)
+      let userId = req.user?.claims?.sub;
+      
+      // Fallback to session-based auth if available (for web)
+      if (!userId && req.session?.userId) {
+        userId = req.session.userId;
       }
       
       if (!userId) {
@@ -124,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Deleting user:', userId);
       await storage.deleteUser(userId);
 
-      // Destroy session if it exists
+      // Destroy session if it exists (for web traditional auth)
       if (req.session) {
         req.session.destroy((err: any) => {
           if (err) {
