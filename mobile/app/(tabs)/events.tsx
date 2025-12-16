@@ -33,6 +33,8 @@ export default function Events() {
       return response.json();
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
 
   // Fetch teams for displaying team names
