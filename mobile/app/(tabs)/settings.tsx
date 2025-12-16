@@ -73,15 +73,23 @@ export default function Settings() {
           onPress: async () => {
             setIsUpdating(true);
             try {
+              console.log('Starting delete account. API URL:', API_BASE_URL);
+              
               const response = await fetch(`${API_BASE_URL}/api/auth/delete-account`, {
                 method: 'DELETE',
                 credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
               });
 
+              console.log('Delete account response status:', response.status);
+              
               const data = await response.json();
+              console.log('Delete account response data:', data);
 
               if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Failed to delete account');
+                throw new Error(data.error || `Failed to delete account (${response.status})`);
               }
 
               Alert.alert('Success', 'Your account has been deleted.', [
@@ -100,7 +108,9 @@ export default function Settings() {
               ]);
             } catch (error) {
               console.error('Delete account error:', error);
-              Alert.alert('Error', 'Failed to delete account. Please try again.');
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              console.error('Delete account error details:', errorMessage);
+              Alert.alert('Error', `Failed to delete account: ${errorMessage}`);
               setIsUpdating(false);
             }
           },
