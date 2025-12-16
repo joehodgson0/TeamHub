@@ -94,17 +94,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete account - supports both session and Replit Auth
-  app.delete('/api/auth/delete-account', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/auth/delete-account', async (req: any, res) => {
     try {
-      // Get userId from Replit Auth (middleware sets req.user)
-      let userId = req.user?.claims?.sub;
+      console.log('Delete account request received');
+      console.log('Has session:', !!req.session);
+      console.log('Has user:', !!req.user);
+      console.log('Session userId:', req.session?.userId);
+      console.log('User claims:', req.user?.claims);
+
+      // Get userId from session-based auth (web traditional auth)
+      let userId = req.session?.userId;
       
-      // Fallback to session-based auth if available (for web)
-      if (!userId && req.session?.userId) {
-        userId = req.session.userId;
+      // Fallback to Replit Auth if no session
+      if (!userId && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+      }
+      
+      // If still no userId, try checking if req.isAuthenticated()
+      if (!userId && req.isAuthenticated?.()) {
+        userId = req.user?.id || req.user?.claims?.sub;
       }
       
       if (!userId) {
+        console.log('No userId found - returning 401');
         return res.status(401).json({ success: false, error: 'Unauthorized' });
       }
 
@@ -128,16 +140,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteUser(userId);
 
       // Destroy session if it exists (for web traditional auth)
-      if (req.session) {
+      if (req.session?.destroy) {
         req.session.destroy((err: any) => {
           if (err) {
             console.error('Session destroy error:', err);
             return res.status(500).json({ success: false, error: 'Failed to delete account' });
           }
+          console.log('Account deleted successfully');
           res.json({ success: true });
         });
       } else {
         // For Replit Auth, just respond successfully
+        console.log('Account deleted successfully (no session)');
         res.json({ success: true });
       }
     } catch (error) {
