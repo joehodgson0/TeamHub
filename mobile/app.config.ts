@@ -1,0 +1,66 @@
+import type { ExpoConfig } from 'expo/config';
+
+const config: ExpoConfig = {
+  name: 'TeamHub',
+  slug: 'team-hub-uk',
+  version: '1.0.2',
+  orientation: 'portrait',
+  icon: './assets/images/icon.png',
+  scheme: 'teamhub',
+  userInterfaceStyle: 'automatic',
+  newArchEnabled: true,
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: 'com.joehodgson0.teamhub',
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
+  },
+  android: {
+    adaptiveIcon: {
+      foregroundImage: './assets/images/adaptive-icon.png',
+      backgroundColor: '#ffffff',
+    },
+    edgeToEdgeEnabled: true,
+    package: 'com.joehodgson0.teamhub',
+  },
+  web: {
+    bundler: 'metro',
+    output: 'static',
+    package: 'com.joehodgson0.teamhub',
+  },
+  plugins: [
+    'expo-router',
+    [
+      'expo-splash-screen',
+      {
+        image: './assets/images/splash-icon.png',
+        imageWidth: 200,
+        resizeMode: 'contain',
+        backgroundColor: '#ffffff',
+      },
+    ],
+  ],
+  experiments: {
+    typedRoutes: true,
+  },
+  extra: {
+    router: {},
+    eas: {
+      projectId: 'ed10bc6f-85ab-46fc-a604-5e10a809e5e6',
+    },
+    // Use environment variable for API URL, fallback to development
+    apiUrl:
+      process.env.EXPO_PUBLIC_API_URL ||
+      'https://82e7b365-1a35-4433-9dd4-e760ea332ce1-00-1atx8t3ayfoav.picard.replit.dev',
+  },
+  owner: 'joehodgson0',
+  runtimeVersion: '1.0.0',
+  updates: {
+    enabled: false,
+    fallbackToCacheTimeout: 0,
+    url: 'https://u.expo.dev/ed10bc6f-85ab-46fc-a604-5e10a809e5e6',
+  },
+};
+
+export default config;
