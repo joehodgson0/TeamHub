@@ -46,6 +46,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     isFetching = true;
     
+    // Set loading to true for forced refreshes (e.g., after login)
+    // This ensures the root layout's useEffect re-triggers
+    if (forceRefresh) {
+      setIsLoading(true);
+    }
+    
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/user-session`, {
         credentials: 'include',
@@ -59,7 +65,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
       
       const data = await response.json();
-      const newUser = (data.user as User | null) ?? null;
+      // API returns user data directly (not wrapped in a 'user' property)
+      const newUser = (data.id ? data : null) as User | null;
       
       cachedUser = newUser;
       setUser(newUser);
