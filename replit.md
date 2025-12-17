@@ -135,6 +135,21 @@ Uses Zod schemas for validation and modeling:
 - Posts page refreshes: posts, teams, and players
 - Provides standard mobile UX pattern for manual data refresh
 
+### December 2025 - Mobile Tab Navigation Performance Fix
+- **Created UserContext for instant user data access:**
+  - Replaced React Query-based useAuth hook with in-memory UserContext
+  - User data is cached in module-level variable for instant access on tab switches
+  - Eliminates network round-trips when navigating between tabs
+- **Updated all auth flows to call refreshUser():**
+  - Login, Register, and Role-Selection pages now properly populate the user cache after authentication
+  - Ensures users are correctly routed to tabs after successful login
+- **Logout properly clears all cached data:**
+  - Clears both UserContext cache and React Query cache
+  - Prevents stale data leakage between user sessions
+- **Tab layout optimized with memoization:**
+  - Tab layout wrapped with React.memo to prevent unnecessary re-renders
+  - Uses cached user data from context instead of making API calls
+
 ### November 2025 - Mobile Logout Cache Clearing Fix
 - Fixed critical data leakage issue where previous user's data persisted after logout
 - Issue: React Query cache not cleared on logout, causing new user to see old user's data
