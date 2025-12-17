@@ -6,7 +6,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useUser } from "@/context/UserContext";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { API_BASE_URL } from "@/lib/config";
@@ -16,7 +16,7 @@ import { RecentResultsWidget } from "@/components/widgets/RecentResultsWidget";
 import { TeamPostsWidget } from "@/components/widgets/TeamPostsWidget";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useUser();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {

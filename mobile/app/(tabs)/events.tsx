@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
 import { AddEventModal } from '@/components/modals/AddEventModal';
@@ -9,7 +9,7 @@ import { MatchResultModal } from '@/components/modals/MatchResultModal';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function Events() {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole } = useUser();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedFixture, setSelectedFixture] = useState<any>(null);

@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
-import { queryClient } from '@/lib/queryClient';
 
 export default function RoleSelection() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useUser();
   const [selectedRoles, setSelectedRoles] = useState<('coach' | 'parent')[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,8 +35,8 @@ export default function RoleSelection() {
       const result = await response.json();
 
       if (result.success) {
-        // Update user with new roles in the cache
-        queryClient.setQueryData(['/api/auth/user-session'], result.user);
+        // Refresh user data in context
+        await refreshUser();
         router.replace('/(tabs)');
       } else {
         Alert.alert('Error', result.error || 'Failed to update roles');

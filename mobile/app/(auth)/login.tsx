@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
-import { queryClient } from '@/lib/queryClient';
+import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 
 export default function Login() {
+  const { refreshUser } = useUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,8 +49,8 @@ export default function Login() {
       console.log('Response status:', response.status);
 
       if (result.success) {
-        // Manually set the user in the cache since React Native doesn't handle cookies
-        queryClient.setQueryData(['/api/auth/user-session'], result.user);
+        // Refresh user data in context after successful login
+        await refreshUser();
         
         if (!result.user.roles || result.user.roles.length === 0) {
           router.replace('/(auth)/role-selection');

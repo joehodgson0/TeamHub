@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Modal, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
 
@@ -14,7 +14,7 @@ const ageGroups = [
 ];
 
 export default function CreateTeamModal({ visible, onClose }: CreateTeamModalProps) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useUser();
   const [teamName, setTeamName] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('U12');
   const [isLoading, setIsLoading] = useState(false);
@@ -46,14 +46,8 @@ export default function CreateTeamModal({ visible, onClose }: CreateTeamModalPro
       const result = await response.json();
 
       if (result.success && result.team) {
-        // Manually update user data in cache to add the new team ID (avoid redirect)
-        const currentUser: any = queryClient.getQueryData(['/api/auth/user-session']);
-        if (currentUser) {
-          queryClient.setQueryData(['/api/auth/user-session'], {
-            ...currentUser,
-            teamIds: [...(currentUser.teamIds || []), result.team.id],
-          });
-        }
+        // Refresh user data in context to include new team
+        await refreshUser();
         
         // Refresh the teams list
         queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user.clubId] });

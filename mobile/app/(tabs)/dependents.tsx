@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useState } from 'react';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 export default function Dependents() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [formData, setFormData] = useState({

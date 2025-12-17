@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
 
@@ -22,7 +22,7 @@ interface AvailabilityModalProps {
 }
 
 export function AvailabilityModal({ visible, onClose, event }: AvailabilityModalProps) {
-  const { user } = useAuth();
+  const { user } = useUser();
   
   // Local state for availability to handle real-time updates
   const [localAvailability, setLocalAvailability] = useState<Record<string, string>>({});

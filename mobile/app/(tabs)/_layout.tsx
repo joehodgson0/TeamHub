@@ -1,18 +1,12 @@
 import { Tabs } from 'expo-router';
-import { useMemo } from 'react';
+import { memo } from 'react';
 import { LayoutDashboard, Baby, Calendar, MessageSquare, Settings } from 'lucide-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 
-export default function TabsLayout() {
-  const { user } = useAuth();
-  
-  // Memoize role checks to prevent unnecessary re-renders during tab navigation
-  const { isCoach, isParent, isBoth } = useMemo(() => ({
-    isCoach: user?.roles?.includes('coach'),
-    isParent: user?.roles?.includes('parent'),
-    isBoth: user?.roles?.includes('coach') && user?.roles?.includes('parent'),
-  }), [user?.roles]);
+function TabsLayout() {
+  // Use memoized context values - no network requests on tab switch
+  const { isCoach, isParent } = useUser();
 
   return (
     <Tabs 
@@ -87,3 +81,6 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+// Memoize to prevent unnecessary re-renders on tab navigation
+export default memo(TabsLayout);

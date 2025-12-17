@@ -1,11 +1,11 @@
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/useAuth';
+import { UserProvider, useUser } from '@/context/UserContext';
 import { useEffect } from 'react';
 
 function RootLayoutNav() {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading } = useUser();
   const segments = useSegments();
   const router = useRouter();
 
@@ -30,7 +30,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RootLayoutNav />
+      <UserProvider>
+        <RootLayoutNav />
+      </UserProvider>
     </QueryClientProvider>
   );
 }

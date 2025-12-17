@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
 import CreateTeamModal from '@/components/modals/CreateTeamModal';
 
 export default function Teams() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const isCoach = user?.roles?.includes('coach');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [clubCode, setClubCode] = useState('');

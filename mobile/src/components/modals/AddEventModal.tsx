@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { API_BASE_URL } from '@/lib/config';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -32,7 +32,7 @@ const EVENT_TYPES = [
 ];
 
 export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalProps) {
-  const { user } = useAuth();
+  const { user } = useUser();
   const isEditing = !!eventToEdit;
   
   // Form state

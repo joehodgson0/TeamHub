@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser, clearUserCache } from '@/context/UserContext';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { API_BASE_URL } from '@/lib/config';
 
 export default function Settings() {
-  const { user, logout, updateUserRoles } = useAuth();
+  const { user, logout, updateUserRoles } = useUser();
   const [selectedRoles, setSelectedRoles] = useState<Array<'coach' | 'parent'>>([]);
   const [isUpdating, setIsUpdating] = useState(false);
 

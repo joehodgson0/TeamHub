@@ -1,13 +1,13 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 
 export default function Posts() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
