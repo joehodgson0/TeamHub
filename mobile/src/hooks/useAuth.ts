@@ -28,6 +28,8 @@ export function useAuth() {
       return (data.user as User | null) ?? null;
     },
     retry: false,
+    staleTime: 1000 * 60 * 10, // Cache for 10 minutes - user session doesn't change often
+    gcTime: 1000 * 60 * 15, // Keep in cache for 15 minutes
   });
 
   const logoutMutation = useMutation({
