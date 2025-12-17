@@ -50,13 +50,9 @@ export default function Login() {
 
       if (result.success) {
         // Refresh user data in context after successful login
+        // The root layout will automatically navigate based on auth state
         await refreshUser();
-        
-        if (!result.user.roles || result.user.roles.length === 0) {
-          router.replace('/(auth)/role-selection');
-        } else {
-          router.replace('/(tabs)');
-        }
+        // Navigation is handled by the root layout's useEffect
       } else {
         Alert.alert('Error', result.error || 'Failed to login');
       }

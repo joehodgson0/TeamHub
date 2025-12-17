@@ -51,8 +51,8 @@ export default function Register() {
 
       if (result.success) {
         // Refresh user data in context after successful registration
+        // The root layout will automatically navigate to role-selection
         await refreshUser();
-        router.replace('/(auth)/role-selection');
       } else {
         Alert.alert('Error', result.error || 'Failed to register');
       }

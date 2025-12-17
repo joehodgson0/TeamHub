@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
@@ -36,8 +35,8 @@ export default function RoleSelection() {
 
       if (result.success) {
         // Refresh user data in context
+        // The root layout will automatically navigate to tabs
         await refreshUser();
-        router.replace('/(tabs)');
       } else {
         Alert.alert('Error', result.error || 'Failed to update roles');
       }
