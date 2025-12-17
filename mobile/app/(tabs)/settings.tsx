@@ -84,8 +84,21 @@ export default function Settings() {
               });
 
               console.log('Delete account response status:', response.status);
+              console.log('Delete account response headers:', response.headers.get('content-type'));
               
-              const data = await response.json();
+              // Try to parse as JSON, but handle HTML error responses
+              let data: any;
+              const contentType = response.headers.get('content-type');
+              
+              if (contentType?.includes('application/json')) {
+                data = await response.json();
+              } else {
+                // If not JSON, get the raw text (likely an error page)
+                const text = await response.text();
+                console.log('Delete account response (non-JSON):', text.substring(0, 500));
+                throw new Error(`Server returned non-JSON response (${response.status}): ${text.substring(0, 200)}`);
+              }
+              
               console.log('Delete account response data:', data);
 
               if (!response.ok || !data.success) {
