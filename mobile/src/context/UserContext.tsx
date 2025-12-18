@@ -35,15 +35,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(!cachedUser);
 
   const fetchUser = useCallback(async (forceRefresh = false) => {
+    const startTime = Date.now();
+    
     // Skip if already fetching or if we have cached data and not forcing refresh
     if (isFetching || (cachedUser && !forceRefresh)) {
       if (cachedUser) {
+        console.log(`[UserContext] Cache hit - returning cached user in ${Date.now() - startTime}ms`);
         setUser(cachedUser);
         setIsLoading(false);
       }
       return;
     }
 
+    console.log(`[UserContext] Cache miss - fetching user from server (forceRefresh=${forceRefresh})`);
     isFetching = true;
     
     // Set loading to true for forced refreshes (e.g., after login)
@@ -70,8 +74,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       
       cachedUser = newUser;
       setUser(newUser);
+      console.log(`[UserContext] User fetched from server in ${Date.now() - startTime}ms`);
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error('[UserContext] Error fetching user:', error);
     } finally {
       setIsLoading(false);
       isFetching = false;

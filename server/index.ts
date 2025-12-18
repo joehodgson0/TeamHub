@@ -69,16 +69,25 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      // Enhanced logging for session-related endpoints (tab navigation performance tracking)
+      const isSessionEndpoint = path.includes('-session') || path.includes('user-session');
+      const perfTag = duration > 500 ? '[SLOW]' : duration > 200 ? '[MEDIUM]' : '[FAST]';
+      
+      let logLine = `${perfTag} ${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      if (logLine.length > 120) {
+        logLine = logLine.slice(0, 119) + "…";
       }
 
       log(logLine);
+      
+      // Additional warning for slow session endpoints
+      if (isSessionEndpoint && duration > 300) {
+        log(`[PERF WARNING] Session endpoint ${path} took ${duration}ms - may cause tab navigation lag`);
+      }
     }
   });
 

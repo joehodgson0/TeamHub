@@ -1,12 +1,16 @@
 import { Tabs } from 'expo-router';
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { LayoutDashboard, Baby, Calendar, MessageSquare, Settings } from 'lucide-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useUser } from '@/context/UserContext';
 
 function TabsLayout() {
   // Use memoized context values - no network requests on tab switch
-  const { isCoach, isParent } = useUser();
+  const { isCoach, isParent, user } = useUser();
+
+  useEffect(() => {
+    console.log(`[TabsLayout] Rendered - isCoach=${isCoach}, isParent=${isParent}, userId=${user?.id}`);
+  });
 
   return (
     <Tabs 

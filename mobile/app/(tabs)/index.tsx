@@ -5,7 +5,7 @@ import {
   ScrollView,
   RefreshControl,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -18,6 +18,10 @@ import { TeamPostsWidget } from "@/components/widgets/TeamPostsWidget";
 export default function Dashboard() {
   const { user, refreshUser } = useUser();
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    console.log(`[Dashboard] Tab mounted/focused - userId=${user?.id}`);
+  }, [user?.id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
