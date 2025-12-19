@@ -33,7 +33,7 @@ export default function Dashboard() {
     setRefreshing(false);
   };
 
-  // Fetch upcoming events
+  // Fetch upcoming events - load instantly from cache, fetch in background
   const { data: eventsResponse } = useQuery({
     queryKey: ["/api/events/upcoming-session"],
     queryFn: async () => {
@@ -46,9 +46,11 @@ export default function Dashboard() {
       return response.json();
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes - prevents refetch on tab switch
+    gcTime: 1000 * 60 * 10,
   });
 
-  // Fetch user's players (for parent role)
+  // Fetch user's players (for parent role) - load instantly from cache
   const { data: playersResponse } = useQuery({
     queryKey: ["/api/players/parent", user?.id],
     queryFn: async () => {
@@ -61,9 +63,11 @@ export default function Dashboard() {
       return response.json();
     },
     enabled: !!user && user?.roles?.includes("parent"),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
-  // Fetch match results
+  // Fetch match results - load instantly from cache
   const { data: matchResultsResponse } = useQuery({
     queryKey: ["/api/match-results-session"],
     queryFn: async () => {
@@ -76,11 +80,11 @@ export default function Dashboard() {
       return response.json();
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
-  // Fetch teams for team name resolution
+  // Fetch teams for team name resolution - load instantly from cache
   const { data: teamsResponse } = useQuery({
     queryKey: ["/api/teams/club", user?.clubId],
     queryFn: async () => {
@@ -93,9 +97,11 @@ export default function Dashboard() {
       return response.json();
     },
     enabled: !!user?.clubId,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
-  // Fetch posts
+  // Fetch posts - load instantly from cache
   const { data: postsResponse } = useQuery({
     queryKey: ["/api/posts-session"],
     queryFn: async () => {
@@ -105,6 +111,8 @@ export default function Dashboard() {
       return response.json();
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
   // Filter events for user's teams

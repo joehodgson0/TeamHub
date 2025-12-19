@@ -37,7 +37,7 @@ export default function Events() {
     gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
 
-  // Fetch teams for displaying team names
+  // Fetch teams for displaying team names - load instantly from cache
   const { data: teamsResponse } = useQuery({
     queryKey: ['/api/teams/club', user?.clubId],
     queryFn: async () => {
@@ -47,9 +47,11 @@ export default function Events() {
       return response.json();
     },
     enabled: !!user?.clubId,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
-  // Fetch user's players/dependents for availability filtering
+  // Fetch user's players/dependents for availability filtering - load instantly from cache
   // Works for both parents and coaches who have dependents
   const { data: playersResponse } = useQuery({
     queryKey: ['/api/players/parent', user?.id],
@@ -60,9 +62,11 @@ export default function Events() {
       return response.json();
     },
     enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
-  // Fetch match results to filter out fixtures that already have results
+  // Fetch match results to filter out fixtures that already have results - load instantly from cache
   const { data: matchResultsResponse } = useQuery({
     queryKey: ['/api/match-results-session'],
     queryFn: async () => {
@@ -72,6 +76,8 @@ export default function Events() {
       return response.json();
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
   const deleteEventMutation = useMutation({

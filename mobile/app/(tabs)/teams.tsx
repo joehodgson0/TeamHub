@@ -30,6 +30,8 @@ export default function Teams() {
       return response.json();
     },
     enabled: Boolean(user && isCoach && user.clubId),
+    staleTime: 1000 * 60 * 5, // Prevents refetch on tab switch
+    gcTime: 1000 * 60 * 10,
   });
 
   const { data: clubData } = useQuery({
@@ -41,6 +43,8 @@ export default function Teams() {
       return response.json();
     },
     enabled: Boolean(user?.clubId),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
   const allTeams = teamsData?.teams || [];
@@ -92,6 +96,8 @@ export default function Teams() {
         return response.json();
       },
       enabled: Boolean(team?.id),
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 10,
     });
 
     const teamPlayers = playersData?.players || [];

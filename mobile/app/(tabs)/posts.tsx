@@ -44,7 +44,7 @@ export default function Posts() {
     gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
 
-  // Fetch user's teams for team selection and filtering
+  // Fetch user's teams for team selection and filtering - load instantly from cache
   const { data: teamsResponse } = useQuery({
     queryKey: ['/api/teams/club', user?.clubId],
     queryFn: async () => {
@@ -54,9 +54,11 @@ export default function Posts() {
       return response.json();
     },
     enabled: !!user?.clubId,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
-  // Fetch user's players for filtering posts
+  // Fetch user's players for filtering posts - load instantly from cache
   const { data: playersResponse } = useQuery({
     queryKey: ['/api/players/parent', user?.id],
     queryFn: async () => {
@@ -66,6 +68,8 @@ export default function Posts() {
       return response.json();
     },
     enabled: !!user?.id && user?.roles?.includes('parent'),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 
   // Filter posts based on user's teams and club
