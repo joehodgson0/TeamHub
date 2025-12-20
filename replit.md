@@ -135,7 +135,25 @@ Uses Zod schemas for validation and modeling:
 - Posts page refreshes: posts, teams, and players
 - Provides standard mobile UX pattern for manual data refresh
 
-### December 2025 - Mobile Tab Navigation Performance Fix
+### December 2025 - Mobile Tab Navigation Performance Fix (Phase 2)
+- **Instant Tab Loading for Development Builds:**
+  - Added `lazy: false` to all Tabs.Screen options to keep screens mounted between tab switches
+  - Memoized all tab bar icon components and callbacks to prevent re-renders
+  - Tab switching is now instant - screens stay mounted instead of remounting on each navigation
+- **Memoized Expensive Selectors:**
+  - Dashboard: relevantTeamIds, upcomingEvents, upcomingFixtures, recentResults, teamPosts, teams all use useMemo
+  - Events: events and teams selectors memoized to prevent recalculation
+  - Posts: posts and userTeams selectors memoized
+  - All tab components wrapped with React.memo() to prevent unnecessary re-renders
+- **Query Prefetching After Login:**
+  - Login flow prefetches events, posts, match results, and teams data immediately after authentication
+  - Uses Promise.allSettled for graceful handling of partial failures
+  - Warms the React Query cache so tabs load instantly after login
+- **React Query Cache Optimization:**
+  - All queries use staleTime: 5 minutes to prevent refetches on tab switches
+  - Data persists in cache and updates silently in background when stale
+
+### December 2025 - Mobile Tab Navigation Performance Fix (Phase 1)
 - **Created UserContext for instant user data access:**
   - Replaced React Query-based useAuth hook with in-memory UserContext
   - User data is cached in module-level variable for instant access on tab switches
