@@ -3,10 +3,10 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { Button } from '@/components/ui/Button';
 
-export default function Posts() {
+function Posts() {
   const { user } = useUser();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -72,34 +72,30 @@ export default function Posts() {
     gcTime: 1000 * 60 * 10,
   });
 
-  // Filter posts based on user's teams and club
-  const getFilteredPosts = () => {
+  // Memoize filtered posts - prevent recalculation on every render
+  const posts = useMemo(() => {
     const allPosts = postsResponse?.posts || [];
-    
     if (!user || !user.clubId) return allPosts;
 
     return allPosts.filter((post: any) => {
-      // Show club-wide posts (posts with clubId but no teamId)
       if (post.clubId === user.clubId && !post.teamId) return true;
-      
-      // Show team-specific posts for user's teams
       if (post.teamId) {
-        // For coaches, check if they manage the team
         if (user.roles?.includes("coach") && user.teamIds) {
           return user.teamIds.includes(post.teamId);
         }
-        // For parents, check if their dependents are on the team
         if (user.roles?.includes("parent") && playersResponse?.players) {
           return playersResponse.players.some((player: any) => player.teamId === post.teamId);
         }
       }
-      
       return false;
     });
-  };
+  }, [postsResponse?.posts, user?.clubId, user?.roles, user?.teamIds, playersResponse?.players]);
 
-  const posts = getFilteredPosts();
-  const userTeams = teamsResponse?.teams?.filter((team: any) => user?.teamIds?.includes(team.id)) || [];
+  // Memoize user teams
+  const userTeams = useMemo(() => 
+    teamsResponse?.teams?.filter((team: any) => user?.teamIds?.includes(team.id)) || [],
+    [teamsResponse?.teams, user?.teamIds]
+  );
 
   // Auto-select first team when modal opens or teams are loaded
   useEffect(() => {
@@ -1072,3 +1068,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+// Memoize to prevent unnecessary re-renders on tab switch
+export default memo(Posts);

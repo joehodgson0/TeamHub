@@ -4,6 +4,55 @@ import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
+import { queryClient } from '@/lib/queryClient';
+
+// Prefetch critical data after login to warm cache for instant tab loading
+const prefetchTabData = async (user: any) => {
+  if (!user) return;
+  
+  const prefetchPromises = [
+    queryClient.prefetchQuery({
+      queryKey: ['/api/events/upcoming-session'],
+      queryFn: async () => {
+        const response = await fetch(`${API_BASE_URL}/api/events/upcoming-session`, { credentials: 'include' });
+        return response.json();
+      },
+      staleTime: 1000 * 60 * 5,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ['/api/posts-session'],
+      queryFn: async () => {
+        const response = await fetch(`${API_BASE_URL}/api/posts-session`, { credentials: 'include' });
+        return response.json();
+      },
+      staleTime: 1000 * 60 * 5,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ['/api/match-results-session'],
+      queryFn: async () => {
+        const response = await fetch(`${API_BASE_URL}/api/match-results-session`, { credentials: 'include' });
+        return response.json();
+      },
+      staleTime: 1000 * 60 * 5,
+    }),
+  ];
+  
+  if (user.clubId) {
+    prefetchPromises.push(
+      queryClient.prefetchQuery({
+        queryKey: ['/api/teams/club', user.clubId],
+        queryFn: async () => {
+          const response = await fetch(`${API_BASE_URL}/api/teams/club/${user.clubId}`, { credentials: 'include' });
+          return response.json();
+        },
+        staleTime: 1000 * 60 * 5,
+      })
+    );
+  }
+  
+  // Use Promise.allSettled to handle partial failures gracefully
+  await Promise.allSettled(prefetchPromises);
+};
 
 export default function Login() {
   const { refreshUser } = useUser();
@@ -50,8 +99,11 @@ export default function Login() {
 
       if (result.success) {
         // Refresh user data in context after successful login
-        // The root layout will automatically navigate based on auth state
         await refreshUser();
+        
+        // Prefetch tab data after refreshUser resolves to ensure user context is populated
+        // This warms the cache for instant tab loading
+        await prefetchTabData(result.user);
         // Navigation is handled by the root layout's useEffect
       } else {
         Alert.alert('Error', result.error || 'Failed to login');

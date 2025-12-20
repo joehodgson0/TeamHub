@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
@@ -8,7 +8,7 @@ import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
 import { MaterialIcons } from '@expo/vector-icons';
 
-export default function Events() {
+function Events() {
   const { user, hasRole } = useUser();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
@@ -120,32 +120,25 @@ export default function Events() {
     },
   });
 
-  // Filter events to exclude fixtures with results
-  const getFilteredEvents = () => {
+  // Memoize filtered events - prevent recalculation on every render
+  const events = useMemo(() => {
     const allEvents = eventsResponse?.events || [];
+    if (!matchResultsResponse?.matchResults) return allEvents;
     
-    // If no match results yet, return all events
-    if (!matchResultsResponse?.matchResults) {
-      return allEvents;
-    }
-    
-    // Create a Set of fixture IDs that have results
     const fixturesWithResults = new Set(
       matchResultsResponse.matchResults.map((result: any) => result.fixtureId)
     );
     
-    // Filter out match/tournament fixtures that already have results
     return allEvents.filter((event: any) => {
-      // Only exclude matches/tournaments with results, keep all other event types
       if (event.type === 'match' || event.type === 'tournament') {
         return !fixturesWithResults.has(event.id);
       }
       return true;
     });
-  };
+  }, [eventsResponse?.events, matchResultsResponse?.matchResults]);
 
-  const events = getFilteredEvents();
-  const teams = teamsResponse?.teams || [];
+  // Memoize teams array
+  const teams = useMemo(() => teamsResponse?.teams || [], [teamsResponse?.teams]);
 
   const getTeamName = (teamId: string) => {
     const team = teams.find((t: any) => t.id === teamId);
@@ -672,3 +665,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+// Memoize to prevent unnecessary re-renders on tab switch
+export default memo(Events);
