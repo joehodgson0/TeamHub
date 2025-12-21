@@ -101,9 +101,9 @@ export default function Login() {
         // Refresh user data in context after successful login
         await refreshUser();
         
-        // Prefetch tab data after refreshUser resolves to ensure user context is populated
-        // This warms the cache for instant tab loading
-        await prefetchTabData(result.user);
+        // Prefetch tab data in background - don't await
+        // Tabs will load instantly with cached data, prefetch updates cache as it loads
+        prefetchTabData(result.user);
         // Navigation is handled by the root layout's useEffect
       } else {
         Alert.alert('Error', result.error || 'Failed to login');
