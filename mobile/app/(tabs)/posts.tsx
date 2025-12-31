@@ -25,9 +25,9 @@ function Posts() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
-    await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
-    await queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/posts-session'], refetchType: 'none' });
+      await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId], refetchType: 'none' });
+      await queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id], refetchType: 'none' });
     setRefreshing(false);
   };
 

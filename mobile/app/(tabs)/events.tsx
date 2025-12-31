@@ -17,10 +17,10 @@ function Events() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
-    await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
-    await queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id] });
-    await queryClient.invalidateQueries({ queryKey: ['/api/match-results-session'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'], refetchType: 'none' });
+      await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId], refetchType: 'none' });
+      await queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id], refetchType: 'none' });
+      await queryClient.invalidateQueries({ queryKey: ['/api/match-results-session'], refetchType: 'none' });
     setRefreshing(false);
   };
 

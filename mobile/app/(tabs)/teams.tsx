@@ -16,8 +16,8 @@ export default function Teams() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
-    await queryClient.invalidateQueries({ queryKey: ['/api/clubs', user?.clubId] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId], refetchType: 'none' });
+      await queryClient.invalidateQueries({ queryKey: ['/api/clubs', user?.clubId], refetchType: 'none' });
     setRefreshing(false);
   };
 
