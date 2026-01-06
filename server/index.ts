@@ -1,9 +1,18 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
 import * as fs from "fs";
 import * as path from "path";
+
+function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
 
 const app = express();
 
@@ -198,11 +207,13 @@ function setupProductionBuild() {
     // doesn't interfere with the other routes
     if ((process.env.NODE_ENV || '').trim() === 'development') {
       console.log('[startup] Setting up Vite development server...');
+      const { setupVite } = await import("./vite");
       await setupVite(app, server);
       console.log('[startup] Vite development server ready');
     } else {
       console.log('[startup] Setting up static file serving for production...');
       setupProductionBuild();
+      const { serveStatic } = await import("./static");
       serveStatic(app);
       console.log('[startup] Static file serving configured');
     }
