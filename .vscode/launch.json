@@ -16,8 +16,8 @@
             ],
             "env": {
                 "NODE_ENV": "development",
-                "DATABASE_URL": "postgresql://neondb_owner:npg_6HGpAyB4Lwze@ep-noisy-snow-a84ix8ap-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require",
-                "SESSION_SECRET": "you_super_secret_key"
+                "DATABASE_URL": "${env:DATABASE_URL}",
+                "SESSION_SECRET": "${env:SESSION_SECRET}"
             }
         }
     ]
