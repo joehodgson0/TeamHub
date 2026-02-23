@@ -174,3 +174,5 @@ Uses Zod schemas for validation and modeling:
 - Solution: Changed logout to call `queryClient.clear()` to remove ALL cached data
 - Prevents events, posts, teams, players, and other data from leaking between user sessions
 - Users now see only their own data immediately after logging in
+
+New Information
