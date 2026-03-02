@@ -4,7 +4,7 @@ import { API_BASE_URL } from './config';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes - prevent refetch on tab switch
+      staleTime: 1000 * 60 * 2, // 2 minutes - data becomes stale sooner for fresher updates
       gcTime: 1000 * 60 * 10, // 10 minutes - keep data in memory longer
       refetchOnWindowFocus: false, // CRITICAL: Don't refetch when tab gains focus
       refetchOnReconnect: false, // Don't refetch on network reconnect

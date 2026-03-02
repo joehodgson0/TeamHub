@@ -21,11 +21,11 @@ function Dashboard() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-      await queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming-session"], refetchType: 'none' });
-      await queryClient.invalidateQueries({ queryKey: ["/api/players/parent", user?.id], refetchType: 'none' });
-      await queryClient.invalidateQueries({ queryKey: ["/api/match-results-session"], refetchType: 'none' });
-      await queryClient.invalidateQueries({ queryKey: ["/api/teams/club", user?.clubId], refetchType: 'none' });
-      await queryClient.invalidateQueries({ queryKey: ["/api/posts-session"], refetchType: 'none' });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming-session"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/match-results-session"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/posts-session"] }),
+    ]);
     setRefreshing(false);
   };
 
@@ -42,8 +42,7 @@ function Dashboard() {
       return response.json();
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5 minutes - prevents refetch on tab switch
-    gcTime: 1000 * 60 * 10,
+    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Fetch user's players (for parent role) - load instantly from cache
@@ -59,8 +58,6 @@ function Dashboard() {
       return response.json();
     },
     enabled: !!user && user?.roles?.includes("parent"),
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
   });
 
   // Fetch match results - load instantly from cache
@@ -76,8 +73,7 @@ function Dashboard() {
       return response.json();
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
+    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Fetch teams for team name resolution - load instantly from cache
@@ -93,8 +89,6 @@ function Dashboard() {
       return response.json();
     },
     enabled: !!user?.clubId,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
   });
 
   // Fetch posts - load instantly from cache
@@ -107,8 +101,7 @@ function Dashboard() {
       return response.json();
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
+    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Memoize relevant team IDs to avoid recalculation

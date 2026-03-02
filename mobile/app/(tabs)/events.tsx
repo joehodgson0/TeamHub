@@ -17,10 +17,7 @@ function Events() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-      await queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'], refetchType: 'none' });
-      await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId], refetchType: 'none' });
-      await queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id], refetchType: 'none' });
-      await queryClient.invalidateQueries({ queryKey: ['/api/match-results-session'], refetchType: 'none' });
+    await queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
     setRefreshing(false);
   };
 
@@ -33,8 +30,7 @@ function Events() {
       return response.json();
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Fetch teams for displaying team names - load instantly from cache
@@ -47,8 +43,6 @@ function Events() {
       return response.json();
     },
     enabled: !!user?.clubId,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
   });
 
   // Fetch user's players/dependents for availability filtering - load instantly from cache
@@ -62,8 +56,6 @@ function Events() {
       return response.json();
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
   });
 
   // Fetch match results to filter out fixtures that already have results - load instantly from cache
@@ -76,8 +68,6 @@ function Events() {
       return response.json();
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
   });
 
   const deleteEventMutation = useMutation({

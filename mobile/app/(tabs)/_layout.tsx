@@ -73,7 +73,7 @@ function TabsLayout() {
           tabBarLabel: 'Team',
           href: isCoach ? '/teams' : null,
           tabBarIcon: renderTeamsIcon,
-          lazy: false,
+          lazy: true,
         }}
       />
       <Tabs.Screen
@@ -83,7 +83,7 @@ function TabsLayout() {
           tabBarLabel: 'Dependents',
           href: isParent ? '/dependents' : null,
           tabBarIcon: renderDependentsIcon,
-          lazy: false,
+          lazy: true,
         }}
       />
       <Tabs.Screen
@@ -92,7 +92,7 @@ function TabsLayout() {
           title: 'Events',
           tabBarLabel: 'Events',
           tabBarIcon: renderEventsIcon,
-          lazy: false,
+          lazy: true,
         }}
       />
       <Tabs.Screen
@@ -101,7 +101,7 @@ function TabsLayout() {
           title: 'Posts',
           tabBarLabel: 'Posts',
           tabBarIcon: renderPostsIcon,
-          lazy: false,
+          lazy: true,
         }}
       />
       <Tabs.Screen
@@ -110,7 +110,7 @@ function TabsLayout() {
           title: 'Settings',
           tabBarLabel: 'Settings',
           tabBarIcon: renderSettingsIcon,
-          lazy: false,
+          lazy: true,
         }}
       />
     </Tabs>

@@ -25,9 +25,7 @@ function Posts() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-      await queryClient.invalidateQueries({ queryKey: ['/api/posts-session'], refetchType: 'none' });
-      await queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId], refetchType: 'none' });
-      await queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id], refetchType: 'none' });
+    await queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
     setRefreshing(false);
   };
 
@@ -40,8 +38,7 @@ function Posts() {
       return response.json();
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Fetch user's teams for team selection and filtering - load instantly from cache
@@ -54,8 +51,6 @@ function Posts() {
       return response.json();
     },
     enabled: !!user?.clubId,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
   });
 
   // Fetch user's players for filtering posts - load instantly from cache
@@ -68,8 +63,6 @@ function Posts() {
       return response.json();
     },
     enabled: !!user?.id && user?.roles?.includes('parent'),
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
   });
 
   // Memoize filtered posts - prevent recalculation on every render
