@@ -69,6 +69,6 @@
     "minimatch": "10.2.3",
     "serialize-javascript": "7.0.3",
     "tar": "7.5.8",
-    "react-server-dom-webpack": "19.0.3"
+    "react-server-dom-webpack": "19.2.4"
   }
 }
