@@ -1,0 +1,78 @@
+Running "npm ci --include=dev" in /Users/expo/workingdir/build/mobile directory
+npm error code EUSAGE
+npm error
+npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.
+npm error
+npm error Missing: minimatch@3.1.5 from lock file
+npm error Missing: glob@10.5.0 from lock file
+npm error Missing: minimatch@9.0.9 from lock file
+npm error Missing: minimatch@9.0.9 from lock file
+npm error Missing: glob@7.2.3 from lock file
+npm error Missing: glob@7.2.3 from lock file
+npm error Missing: minimatch@9.0.9 from lock file
+npm error Missing: glob@9.3.5 from lock file
+npm error Missing: jackspeak@3.4.3 from lock file
+npm error Missing: minimatch@9.0.9 from lock file
+npm error Missing: path-scurry@1.11.1 from lock file
+npm error Missing: glob@7.2.3 from lock file
+npm error Missing: glob@7.2.3 from lock file
+npm error Missing: brace-expansion@1.1.12 from lock file
+npm error Missing: glob@7.2.3 from lock file
+npm error Missing: glob@7.2.3 from lock file
+npm error Missing: glob@7.2.3 from lock file
+npm error Missing: brace-expansion@2.0.2 from lock file
+npm error Missing: balanced-match@1.0.2 from lock file
+npm error Missing: brace-expansion@2.0.2 from lock file
+npm error Missing: balanced-match@1.0.2 from lock file
+npm error Missing: fs.realpath@1.0.0 from lock file
+npm error Missing: inflight@1.0.6 from lock file
+npm error Missing: path-is-absolute@1.0.1 from lock file
+npm error Missing: brace-expansion@2.0.2 from lock file
+npm error Missing: balanced-match@1.0.2 from lock file
+npm error Missing: minimatch@8.0.7 from lock file
+npm error Missing: minipass@4.2.8 from lock file
+npm error Missing: path-scurry@1.11.1 from lock file
+npm error Missing: brace-expansion@2.0.2 from lock file
+npm error Missing: balanced-match@1.0.2 from lock file
+npm error Missing: lru-cache@10.4.3 from lock file
+npm error Missing: minipass@7.1.3 from lock file
+npm error Missing: minimatch@9.0.9 from lock file
+npm error Missing: brace-expansion@2.0.2 from lock file
+npm error Missing: balanced-match@1.0.2 from lock file
+npm error Missing: @isaacs/cliui@8.0.2 from lock file
+npm error Missing: @pkgjs/parseargs@0.11.0 from lock file
+npm error Missing: string-width@5.1.2 from lock file
+npm error Missing: string-width-cjs@4.2.3 from lock file
+npm error Missing: strip-ansi@7.2.0 from lock file
+npm error Missing: strip-ansi-cjs@6.0.1 from lock file
+npm error Missing: wrap-ansi@8.1.0 from lock file
+npm error Missing: wrap-ansi-cjs@7.0.0 from lock file
+npm error Missing: brace-expansion@2.0.2 from lock file
+npm error Missing: balanced-match@1.0.2 from lock file
+npm error Missing: lru-cache@10.4.3 from lock file
+npm error Missing: eastasianwidth@0.2.0 from lock file
+npm error Missing: emoji-regex@9.2.2 from lock file
+npm error Missing: ansi-regex@6.2.2 from lock file
+npm error Missing: ansi-styles@6.2.3 from lock file
+npm error Missing: balanced-match@1.0.2 from lock file
+npm error Missing: concat-map@0.0.1 from lock file
+npm error
+npm error Clean install a project
+npm error
+npm error Usage:
+npm error npm ci
+npm error
+npm error Options:
+npm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]
+npm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]
+npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+npm error [--no-bin-links] [--no-fund] [--dry-run]
+npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+npm error
+npm error aliases: clean-install, ic, install-clean, isntall-clean
+npm error
+npm error Run "npm help ci" for more info
+npm error A complete log of this run can be found in: /Users/expo/.npm/_logs/2026-03-02T13_49_33_346Z-debug-0.log
+npm ci --include=dev exited with non-zero code: 1
