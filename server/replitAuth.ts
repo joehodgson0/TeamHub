@@ -36,9 +36,11 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    name: '__Host-session', // Secure session cookie name
     cookie: {
       httpOnly: true,
       secure: true,
+      sameSite: 'lax',
       maxAge: sessionTtl,
     },
   });

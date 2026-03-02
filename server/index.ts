@@ -1,5 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
+import csrf from "csurf";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
@@ -15,6 +18,17 @@ function log(message: string, source = "express") {
 }
 
 const app = express();
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      "connect-src": ["'self'", "*.replit.dev", "*.replit.app", "https://replit.com"],
+    },
+  },
+}));
 
 // Configure CORS with secure origin allowlist
 const allowedOrigins = [
@@ -58,11 +72,27 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+
+// CSRF protection for non-GET requests (excluding mobile which uses tokens)
+const csrfProtection = csrf({ cookie: true });
+app.use((req, res, next) => {
+  // Skip CSRF for mobile app requests (typically identified by specific headers or absence of origin)
+  if (!req.get('origin') || req.get('x-requested-with') === 'com.myapp.mobile') {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
+
+// Provide CSRF token to frontend
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: (req as any).csrfToken() });
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
