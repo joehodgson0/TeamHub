@@ -42,7 +42,6 @@ function Dashboard() {
       return response.json();
     },
     enabled: !!user,
-    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Fetch user's players (for parent role) - load instantly from cache
@@ -73,7 +72,6 @@ function Dashboard() {
       return response.json();
     },
     enabled: !!user,
-    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Fetch teams for team name resolution - load instantly from cache
@@ -101,7 +99,6 @@ function Dashboard() {
       return response.json();
     },
     enabled: !!user,
-    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Memoize relevant team IDs to avoid recalculation

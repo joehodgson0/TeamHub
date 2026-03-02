@@ -92,7 +92,7 @@ function TabsLayout() {
           title: 'Events',
           tabBarLabel: 'Events',
           tabBarIcon: renderEventsIcon,
-          lazy: true,
+          lazy: false,
         }}
       />
       <Tabs.Screen
@@ -101,7 +101,7 @@ function TabsLayout() {
           title: 'Posts',
           tabBarLabel: 'Posts',
           tabBarIcon: renderPostsIcon,
-          lazy: true,
+          lazy: false,
         }}
       />
       <Tabs.Screen
@@ -110,7 +110,7 @@ function TabsLayout() {
           title: 'Settings',
           tabBarLabel: 'Settings',
           tabBarIcon: renderSettingsIcon,
-          lazy: true,
+          lazy: false,
         }}
       />
     </Tabs>

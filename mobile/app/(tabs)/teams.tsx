@@ -32,7 +32,6 @@ export default function Teams() {
       return response.json();
     },
     enabled: Boolean(user && isCoach && user.clubId),
-    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   const { data: clubData } = useQuery({

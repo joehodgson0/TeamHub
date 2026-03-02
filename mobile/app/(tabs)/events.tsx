@@ -30,7 +30,6 @@ function Events() {
       return response.json();
     },
     enabled: !!user,
-    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Fetch teams for displaying team names - load instantly from cache

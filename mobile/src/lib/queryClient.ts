@@ -4,12 +4,13 @@ import { API_BASE_URL } from './config';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 2, // 2 minutes - data becomes stale sooner for fresher updates
-      gcTime: 1000 * 60 * 10, // 10 minutes - keep data in memory longer
-      refetchOnWindowFocus: false, // CRITICAL: Don't refetch when tab gains focus
-      refetchOnReconnect: false, // Don't refetch on network reconnect
-      refetchOnMount: false, // Don't refetch on component mount if data exists
-      retry: 1,
+      staleTime: 1000 * 60 * 5, // 5 minutes - data stays fresh, no background refetches during normal use
+      gcTime: 1000 * 60 * 15, // 15 minutes - keep data in memory across all tab switches
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false, // Never refetch on mount if data exists — use pull-to-refresh instead
+      networkMode: 'always', // Never pause queries due to React Native network detection
+      retry: 0, // Fail fast — don't retry, keeps the UI responsive on error
     },
   },
 });

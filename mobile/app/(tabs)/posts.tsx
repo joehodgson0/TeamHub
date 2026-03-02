@@ -38,7 +38,6 @@ function Posts() {
       return response.json();
     },
     enabled: !!user,
-    refetchOnMount: true, // Background refetch on tab visit if stale
   });
 
   // Fetch user's teams for team selection and filtering - load instantly from cache
