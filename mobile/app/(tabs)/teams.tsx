@@ -7,7 +7,7 @@ import { queryClient } from '@/lib/queryClient';
 import CreateTeamModal from '@/components/modals/CreateTeamModal';
 
 export default function Teams() {
-  const { user } = useUser();
+  const { user, refreshUser } = useUser();
   const isCoach = user?.roles?.includes('coach');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [clubCode, setClubCode] = useState('');
@@ -69,8 +69,8 @@ export default function Teams() {
       const result = await response.json();
 
       if (result.success && result.user) {
-        // Manually update the user data in cache to avoid loading state and redirect
-        queryClient.setQueryData(['/api/auth/user-session'], result.user);
+        // Update UserContext cache so the UI immediately reflects the new clubId
+        await refreshUser();
         
         Alert.alert('Success', `Successfully joined ${result.clubName || 'the club'}!`);
         setClubCode('');
