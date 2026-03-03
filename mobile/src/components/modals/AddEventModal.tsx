@@ -160,10 +160,14 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
 
   // Handle opening the date/time picker sequence
   const openDateTimePicker = (dateTimeType: 'start' | 'end') => {
+    const dateToShow = new Date(dateTimeType === 'start' ? startDateTime.getTime() : endDateTime.getTime());
     setEditingDateTime(dateTimeType);
     setPickerMode('date');
-    setTempDate(dateTimeType === 'start' ? startDateTime : endDateTime);
-    setShowDateTimePicker(true);
+    setTempDate(dateToShow);
+    // Delay showing picker so tempDate state is committed before the native picker reads it
+    setTimeout(() => {
+      setShowDateTimePicker(true);
+    }, 100);
   };
 
   // Handle date selection (then show time picker)
@@ -178,18 +182,13 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     
     setTempDate(combined);
     
-    // Android requires explicitly closing and reopening the picker to show time mode
-    if (Platform.OS === 'android') {
-      setShowDateTimePicker(false);
-      // Reopen in time mode after a short delay
-      setTimeout(() => {
-        setPickerMode('time');
-        setShowDateTimePicker(true);
-      }, 100);
-    } else {
-      // iOS can switch modes seamlessly
+    // Close and reopen the picker in time mode after a short delay
+    // to ensure the updated tempDate is committed before the native picker reads it
+    setShowDateTimePicker(false);
+    setTimeout(() => {
       setPickerMode('time');
-    }
+      setShowDateTimePicker(true);
+    }, 100);
   };
 
   // Handle time selection (final step)
