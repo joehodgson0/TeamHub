@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 import { queryClient } from '@/lib/queryClient';
-import { useState, useEffect, useMemo, memo } from 'react';
+import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { Button } from '@/components/ui/Button';
 
 function Posts() {
@@ -13,6 +13,8 @@ function Posts() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const createScrollRef = useRef<ScrollView>(null);
+  const editScrollRef = useRef<ScrollView>(null);
   const [formData, setFormData] = useState({
     type: 'announcement' as 'announcement' | 'kit_request' | 'player_request',
     scope: 'team' as 'team' | 'club',
@@ -368,6 +370,7 @@ function Posts() {
         >
           <View style={styles.modalContent}>
             <ScrollView 
+              ref={createScrollRef}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
@@ -507,6 +510,11 @@ function Posts() {
                   multiline
                   numberOfLines={6}
                   textAlignVertical="top"
+                  onFocus={() => {
+                    setTimeout(() => {
+                      createScrollRef.current?.scrollToEnd({ animated: true });
+                    }, 300);
+                  }}
                 />
               </View>
 
@@ -545,6 +553,7 @@ function Posts() {
         >
           <View style={styles.modalContent}>
             <ScrollView 
+              ref={editScrollRef}
               style={styles.modalScrollView}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -658,6 +667,11 @@ function Posts() {
                   multiline
                   numberOfLines={6}
                   textAlignVertical="top"
+                  onFocus={() => {
+                    setTimeout(() => {
+                      editScrollRef.current?.scrollToEnd({ animated: true });
+                    }, 300);
+                  }}
                 />
               </View>
 
