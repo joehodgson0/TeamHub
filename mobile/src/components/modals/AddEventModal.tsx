@@ -51,7 +51,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const [editingDateTime, setEditingDateTime] = useState<'start' | 'end'>('start');
-  const [tempDate, setTempDate] = useState<Date>(new Date());
+  const [tempDate, setTempDate] = useState<Date>(() => new Date());
 
   // Populate form when editing, reset when not
   useEffect(() => {
@@ -60,8 +60,17 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       setName(eventToEdit.name || '');
       setOpponent(eventToEdit.opponent || '');
       setLocation(eventToEdit.location || '');
-      setStartDateTime(new Date(eventToEdit.startTime));
-      setEndDateTime(new Date(eventToEdit.endTime));
+      const startTime = new Date(eventToEdit.startTime);
+      const endTime = new Date(eventToEdit.endTime);
+      // Validate parsed dates
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        const now = new Date();
+        setStartDateTime(now);
+        setEndDateTime(new Date(now.getTime() + 2 * 60 * 60 * 1000));
+      } else {
+        setStartDateTime(startTime);
+        setEndDateTime(endTime);
+      }
       setAdditionalInfo(eventToEdit.additionalInfo || '');
       setHomeAway(eventToEdit.homeAway || 'home');
       setFriendly(eventToEdit.friendly || false);
@@ -160,7 +169,14 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
 
   // Handle opening the date/time picker sequence
   const openDateTimePicker = (dateTimeType: 'start' | 'end') => {
-    const dateToShow = new Date(dateTimeType === 'start' ? startDateTime.getTime() : endDateTime.getTime());
+    const dateToShow = dateTimeType === 'start' ? startDateTime : endDateTime;
+    
+    // Validate the date is a proper Date object and is valid
+    if (!dateToShow || !(dateToShow instanceof Date) || isNaN(dateToShow.getTime())) {
+      Alert.alert('Error', 'Unable to open date picker. Please refresh and try again.');
+      return;
+    }
+    
     setEditingDateTime(dateTimeType);
     setPickerMode('date');
     setTempDate(dateToShow);
