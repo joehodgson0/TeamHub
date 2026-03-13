@@ -179,11 +179,8 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     
     setEditingDateTime(dateTimeType);
     setPickerMode('date');
-    setTempDate(dateToShow);
-    // Delay showing picker so tempDate state is committed before the native picker reads it
-    setTimeout(() => {
-      setShowDateTimePicker(true);
-    }, 100);
+    setTempDate(new Date(dateToShow.getTime())); // new instance to guarantee key change
+    setShowDateTimePicker(true);
   };
 
   // Handle date selection (then show time picker)
@@ -197,14 +194,13 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     combined.setMilliseconds(0);
     
     setTempDate(combined);
-    
-    // Close and reopen the picker in time mode after a short delay
-    // to ensure the updated tempDate is committed before the native picker reads it
     setShowDateTimePicker(false);
+    
+    // Delay to let the native picker fully dismiss before reopening in time mode
     setTimeout(() => {
       setPickerMode('time');
       setShowDateTimePicker(true);
-    }, 100);
+    }, 300);
   };
 
   // Handle time selection (final step)
@@ -524,8 +520,9 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Sequential Date/Time Picker */}
+      {/* Sequential Date/Time Picker — key forces remount so native picker initializes with correct date */}
       <DateTimePickerModal
+        key={`${editingDateTime}-${pickerMode}-${tempDate.getTime()}`}
         isVisible={showDateTimePicker}
         mode={pickerMode}
         date={tempDate}

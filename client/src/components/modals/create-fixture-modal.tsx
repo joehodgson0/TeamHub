@@ -268,41 +268,53 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               <FormField
                 control={form.control}
                 name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="datetime-local"
-                        data-testid="input-start-time"
-                        {...field}
-                        value={field.value instanceof Date ? field.value.toISOString().slice(0, 16) : field.value}
-                        onChange={(e) => field.onChange(new Date(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const toLocal = (d: Date) => {
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                  };
+                  return (
+                    <FormItem>
+                      <FormLabel>Start Time</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="datetime-local"
+                          data-testid="input-start-time"
+                          {...field}
+                          value={field.value instanceof Date ? toLocal(field.value) : field.value}
+                          onChange={(e) => field.onChange(new Date(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Time</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="datetime-local"
-                        data-testid="input-end-time"
-                        {...field}
-                        value={field.value instanceof Date ? field.value.toISOString().slice(0, 16) : field.value}
-                        onChange={(e) => field.onChange(new Date(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const toLocal = (d: Date) => {
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                  };
+                  return (
+                    <FormItem>
+                      <FormLabel>End Time</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="datetime-local"
+                          data-testid="input-end-time"
+                          {...field}
+                          value={field.value instanceof Date ? toLocal(field.value) : field.value}
+                          onChange={(e) => field.onChange(new Date(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
