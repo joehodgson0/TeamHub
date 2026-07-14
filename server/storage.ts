@@ -1,6 +1,6 @@
-import { users, clubs, teams, players, events, posts, matchResults, type User, type UpsertUser, type Club, type Team, type Player, type Event, type Post, type MatchResult, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertMatchResult } from "@shared/schema";
+import { users, clubs, teams, players, events, posts, matchResults, fees, feeAssignments, payments, type User, type UpsertUser, type Club, type Team, type Player, type Event, type Post, type MatchResult, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertMatchResult, type Fee, type InsertFee, type FeeAssignment, type InsertFeeAssignment, type Payment, type InsertPayment } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User methods for Replit Auth - MANDATORY
@@ -71,6 +71,30 @@ export interface IStorage {
   upsertMatchResult(fixtureId: string, teamId: string, matchResultData: Omit<InsertMatchResult, 'id' | 'fixtureId' | 'teamId'>): Promise<MatchResult>;
   updateTeamStatsFromResults(teamId: string): Promise<void>;
   deleteMatchResult(id: string): Promise<boolean>;
+
+  // Fee methods
+  getFee(id: string): Promise<Fee | undefined>;
+  getFeesByClubId(clubId: string): Promise<Fee[]>;
+  createFee(insertFee: InsertFee): Promise<Fee>;
+  updateFee(id: string, updates: Partial<Fee>): Promise<Fee | undefined>;
+  deleteFee(id: string): Promise<boolean>;
+
+  // Fee assignment methods
+  getFeeAssignment(id: string): Promise<FeeAssignment | undefined>;
+  getFeeAssignmentsByFeeId(feeId: string): Promise<FeeAssignment[]>;
+  getFeeAssignmentsByPlayerId(playerId: string): Promise<FeeAssignment[]>;
+  getFeeAssignmentsByPlayerIds(playerIds: string[]): Promise<FeeAssignment[]>;
+  createFeeAssignment(insertFeeAssignment: InsertFeeAssignment): Promise<FeeAssignment>;
+  createFeeAssignments(insertFeeAssignments: InsertFeeAssignment[]): Promise<FeeAssignment[]>;
+  updateFeeAssignment(id: string, updates: Partial<FeeAssignment>): Promise<FeeAssignment | undefined>;
+
+  // Payment methods
+  getPayment(id: string): Promise<Payment | undefined>;
+  getPaymentsByFeeAssignmentId(feeAssignmentId: string): Promise<Payment[]>;
+  getPaymentsByUserId(userId: string): Promise<Payment[]>;
+  getPaymentByProviderSessionId(providerSessionId: string): Promise<Payment | undefined>;
+  createPayment(insertPayment: InsertPayment): Promise<Payment>;
+  updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -555,6 +579,106 @@ export class DatabaseStorage implements IStorage {
   async deletePlayersByParentId(parentId: string): Promise<boolean> {
     const result = await db.delete(players).where(eq(players.parentId, parentId)).returning();
     return result.length > 0;
+  }
+
+  // Fee methods
+  async getFee(id: string): Promise<Fee | undefined> {
+    const [fee] = await db.select().from(fees).where(eq(fees.id, id));
+    return fee;
+  }
+
+  async getFeesByClubId(clubId: string): Promise<Fee[]> {
+    return db.select().from(fees).where(eq(fees.clubId, clubId));
+  }
+
+  async createFee(insertFee: InsertFee): Promise<Fee> {
+    const [fee] = await db.insert(fees).values(insertFee).returning();
+    return fee;
+  }
+
+  async updateFee(id: string, updates: Partial<Fee>): Promise<Fee | undefined> {
+    const [fee] = await db
+      .update(fees)
+      .set(updates)
+      .where(eq(fees.id, id))
+      .returning();
+    return fee;
+  }
+
+  async deleteFee(id: string): Promise<boolean> {
+    const result = await db.delete(fees).where(eq(fees.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Fee assignment methods
+  async getFeeAssignment(id: string): Promise<FeeAssignment | undefined> {
+    const [assignment] = await db.select().from(feeAssignments).where(eq(feeAssignments.id, id));
+    return assignment;
+  }
+
+  async getFeeAssignmentsByFeeId(feeId: string): Promise<FeeAssignment[]> {
+    return db.select().from(feeAssignments).where(eq(feeAssignments.feeId, feeId));
+  }
+
+  async getFeeAssignmentsByPlayerId(playerId: string): Promise<FeeAssignment[]> {
+    return db.select().from(feeAssignments).where(eq(feeAssignments.playerId, playerId));
+  }
+
+  async getFeeAssignmentsByPlayerIds(playerIds: string[]): Promise<FeeAssignment[]> {
+    if (playerIds.length === 0) return [];
+    return db.select().from(feeAssignments).where(inArray(feeAssignments.playerId, playerIds));
+  }
+
+  async createFeeAssignment(insertFeeAssignment: InsertFeeAssignment): Promise<FeeAssignment> {
+    const [assignment] = await db.insert(feeAssignments).values(insertFeeAssignment).returning();
+    return assignment;
+  }
+
+  async createFeeAssignments(insertFeeAssignments: InsertFeeAssignment[]): Promise<FeeAssignment[]> {
+    if (insertFeeAssignments.length === 0) return [];
+    return db.insert(feeAssignments).values(insertFeeAssignments).returning();
+  }
+
+  async updateFeeAssignment(id: string, updates: Partial<FeeAssignment>): Promise<FeeAssignment | undefined> {
+    const [assignment] = await db
+      .update(feeAssignments)
+      .set(updates)
+      .where(eq(feeAssignments.id, id))
+      .returning();
+    return assignment;
+  }
+
+  // Payment methods
+  async getPayment(id: string): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+
+  async getPaymentsByFeeAssignmentId(feeAssignmentId: string): Promise<Payment[]> {
+    return db.select().from(payments).where(eq(payments.feeAssignmentId, feeAssignmentId));
+  }
+
+  async getPaymentsByUserId(userId: string): Promise<Payment[]> {
+    return db.select().from(payments).where(eq(payments.paidByUserId, userId));
+  }
+
+  async getPaymentByProviderSessionId(providerSessionId: string): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.providerSessionId, providerSessionId));
+    return payment;
+  }
+
+  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    const [payment] = await db.insert(payments).values(insertPayment).returning();
+    return payment;
+  }
+
+  async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined> {
+    const [payment] = await db
+      .update(payments)
+      .set(updates)
+      .where(eq(payments.id, id))
+      .returning();
+    return payment;
   }
 }
 

@@ -2,9 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
-import { insertMatchResultSchema } from "@shared/schema";
+import { insertMatchResultSchema, createFeeSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import bcrypt from "bcryptjs";
+import { getPaymentProvider, isPaymentProviderConfigured, getPaymentProviderType } from "./payments";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth - referenced from javascript_log_in_with_replit blueprint
@@ -1594,10 +1595,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/awards", async (req, res) => {
     try {
       const awardData = req.body;
-      
+
       // Generate unique award ID
       const awardId = `award_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       const newAward = await storage.createAward({
         ...awardData,
         id: awardId,
@@ -1608,6 +1609,691 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Create award error:", error);
       res.status(500).json({ success: false, error: "Failed to create award" });
+    }
+  });
+
+  // ============================================
+  // Fee Management Routes (Club Managers Only)
+  // ============================================
+
+  // Helper to get user ID from session
+  const getUserIdFromSession = (req: any): string | null => {
+    return req.session?.userId || req.user?.claims?.sub || null;
+  };
+
+  // Helper to check if user is a coach/manager
+  const isCoach = async (userId: string): Promise<boolean> => {
+    const user = await storage.getUser(userId);
+    return user?.roles?.includes("coach") || false;
+  };
+
+  // GET /api/fees - List all fees for the user's club
+  app.get("/api/fees", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !user.clubId) {
+        return res.status(400).json({ success: false, error: "User not associated with a club" });
+      }
+
+      if (!user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Only coaches can manage fees" });
+      }
+
+      const fees = await storage.getFeesByClubId(user.clubId);
+      res.json({ success: true, fees });
+    } catch (error) {
+      console.error("Get fees error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch fees" });
+    }
+  });
+
+  // GET /api/fees/:id - Get a single fee with assignments
+  app.get("/api/fees/:id", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const fee = await storage.getFee(id);
+
+      if (!fee) {
+        return res.status(404).json({ success: false, error: "Fee not found" });
+      }
+
+      // Verify user has access to this club's fees
+      const user = await storage.getUser(userId);
+      if (!user || user.clubId !== fee.clubId) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      const assignments = await storage.getFeeAssignmentsByFeeId(id);
+      res.json({ success: true, fee, assignments });
+    } catch (error) {
+      console.error("Get fee error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch fee" });
+    }
+  });
+
+  // POST /api/fees - Create a new fee
+  app.post("/api/fees", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !user.clubId) {
+        return res.status(400).json({ success: false, error: "User not associated with a club" });
+      }
+
+      if (!user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Only coaches can create fees" });
+      }
+
+      // Validate request body
+      const validatedData = createFeeSchema.parse({
+        ...req.body,
+        dueDate: new Date(req.body.dueDate),
+      });
+
+      // Generate fee ID
+      const feeId = `fee_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const newFee = await storage.createFee({
+        id: feeId,
+        clubId: user.clubId,
+        name: validatedData.name,
+        description: validatedData.description || null,
+        amount: validatedData.amount,
+        currency: "gbp",
+        dueDate: validatedData.dueDate,
+        category: validatedData.category,
+        isRecurring: validatedData.isRecurring || false,
+        createdBy: userId,
+      });
+
+      res.json({ success: true, fee: newFee });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, error: error.errors });
+      }
+      console.error("Create fee error:", error);
+      res.status(500).json({ success: false, error: "Failed to create fee" });
+    }
+  });
+
+  // PUT /api/fees/:id - Update a fee
+  app.put("/api/fees/:id", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const fee = await storage.getFee(id);
+
+      if (!fee) {
+        return res.status(404).json({ success: false, error: "Fee not found" });
+      }
+
+      // Verify user has access
+      const user = await storage.getUser(userId);
+      if (!user || user.clubId !== fee.clubId || !user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      const updates: any = {};
+      if (req.body.name) updates.name = req.body.name;
+      if (req.body.description !== undefined) updates.description = req.body.description;
+      if (req.body.amount) updates.amount = req.body.amount;
+      if (req.body.dueDate) updates.dueDate = new Date(req.body.dueDate);
+      if (req.body.category) updates.category = req.body.category;
+
+      const updatedFee = await storage.updateFee(id, updates);
+      res.json({ success: true, fee: updatedFee });
+    } catch (error) {
+      console.error("Update fee error:", error);
+      res.status(500).json({ success: false, error: "Failed to update fee" });
+    }
+  });
+
+  // DELETE /api/fees/:id - Delete a fee (only if no payments made)
+  app.delete("/api/fees/:id", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const fee = await storage.getFee(id);
+
+      if (!fee) {
+        return res.status(404).json({ success: false, error: "Fee not found" });
+      }
+
+      // Verify user has access
+      const user = await storage.getUser(userId);
+      if (!user || user.clubId !== fee.clubId || !user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      // Check if any payments have been made
+      const assignments = await storage.getFeeAssignmentsByFeeId(id);
+      const hasPaidAssignments = assignments.some(a => a.status === "paid" || a.amountPaid > 0);
+
+      if (hasPaidAssignments) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Cannot delete fee with existing payments. Cancel assignments instead." 
+        });
+      }
+
+      await storage.deleteFee(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete fee error:", error);
+      res.status(500).json({ success: false, error: "Failed to delete fee" });
+    }
+  });
+
+  // POST /api/fees/:id/assign - Assign fee to teams/players
+  app.post("/api/fees/:id/assign", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const { id: feeId } = req.params;
+      const { teamIds, playerIds } = req.body;
+
+      const fee = await storage.getFee(feeId);
+      if (!fee) {
+        return res.status(404).json({ success: false, error: "Fee not found" });
+      }
+
+      // Verify user has access
+      const user = await storage.getUser(userId);
+      if (!user || user.clubId !== fee.clubId || !user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      const assignments: any[] = [];
+
+      // If teamIds provided, get all players from those teams
+      if (teamIds && teamIds.length > 0) {
+        for (const teamId of teamIds) {
+          const players = await storage.getPlayersByTeamId(teamId);
+          for (const player of players) {
+            // Check if assignment already exists
+            const existingAssignments = await storage.getFeeAssignmentsByFeeId(feeId);
+            const alreadyAssigned = existingAssignments.some(a => a.playerId === player.id);
+
+            if (!alreadyAssigned) {
+              const assignmentId = `fa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              assignments.push({
+                id: assignmentId,
+                feeId,
+                playerId: player.id,
+                teamId,
+                status: "pending",
+                amountDue: fee.amount,
+                amountPaid: 0,
+              });
+            }
+          }
+        }
+      }
+
+      // If playerIds provided, assign to specific players
+      if (playerIds && playerIds.length > 0) {
+        for (const playerId of playerIds) {
+          const player = await storage.getPlayer(playerId);
+          if (player) {
+            // Check if assignment already exists
+            const existingAssignments = await storage.getFeeAssignmentsByFeeId(feeId);
+            const alreadyAssigned = existingAssignments.some(a => a.playerId === playerId);
+
+            if (!alreadyAssigned) {
+              const assignmentId = `fa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              assignments.push({
+                id: assignmentId,
+                feeId,
+                playerId,
+                teamId: player.teamId,
+                status: "pending",
+                amountDue: fee.amount,
+                amountPaid: 0,
+              });
+            }
+          }
+        }
+      }
+
+      // Create all assignments
+      const createdAssignments = await storage.createFeeAssignments(assignments);
+
+      res.json({ 
+        success: true, 
+        assignmentsCreated: createdAssignments.length,
+        assignments: createdAssignments 
+      });
+    } catch (error) {
+      console.error("Assign fee error:", error);
+      res.status(500).json({ success: false, error: "Failed to assign fee" });
+    }
+  });
+
+  // GET /api/fees/:id/assignments - Get all assignments for a fee
+  app.get("/api/fees/:id/assignments", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const { id: feeId } = req.params;
+
+      const fee = await storage.getFee(feeId);
+      if (!fee) {
+        return res.status(404).json({ success: false, error: "Fee not found" });
+      }
+
+      // Verify user has access
+      const user = await storage.getUser(userId);
+      if (!user || user.clubId !== fee.clubId || !user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      const assignments = await storage.getFeeAssignmentsByFeeId(feeId);
+
+      // Enrich with player and team info
+      const enrichedAssignments = await Promise.all(
+        assignments.map(async (assignment) => {
+          const player = await storage.getPlayer(assignment.playerId);
+          const team = await storage.getTeam(assignment.teamId);
+          return {
+            ...assignment,
+            playerName: player?.name || "Unknown",
+            teamName: team?.name || "Unknown",
+          };
+        })
+      );
+
+      res.json({ success: true, assignments: enrichedAssignments });
+    } catch (error) {
+      console.error("Get fee assignments error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch assignments" });
+    }
+  });
+
+  // ============================================
+  // Payment Routes (Parents)
+  // ============================================
+
+  // POST /api/payments/checkout - Create a checkout session for a fee assignment
+  app.post("/api/payments/checkout", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      // Check if payment provider is configured
+      if (!isPaymentProviderConfigured()) {
+        return res.status(503).json({ 
+          success: false, 
+          error: "Payment system not configured. Please contact administrator." 
+        });
+      }
+
+      const { feeAssignmentId } = req.body;
+      if (!feeAssignmentId) {
+        return res.status(400).json({ success: false, error: "Fee assignment ID required" });
+      }
+
+      // Get the fee assignment
+      const assignment = await storage.getFeeAssignment(feeAssignmentId);
+      if (!assignment) {
+        return res.status(404).json({ success: false, error: "Fee assignment not found" });
+      }
+
+      // Check if already paid
+      if (assignment.status === "paid") {
+        return res.status(400).json({ success: false, error: "This fee has already been paid" });
+      }
+
+      // Verify the user is the parent of this player
+      const player = await storage.getPlayer(assignment.playerId);
+      if (!player || player.parentId !== userId) {
+        return res.status(403).json({ success: false, error: "You can only pay fees for your own children" });
+      }
+
+      // Get user email
+      const user = await storage.getUser(userId);
+      if (!user || !user.email) {
+        return res.status(400).json({ success: false, error: "User email required for payment" });
+      }
+
+      // Get the fee details
+      const fee = await storage.getFee(assignment.feeId);
+      if (!fee) {
+        return res.status(404).json({ success: false, error: "Fee not found" });
+      }
+
+      // Calculate amount to pay (remaining balance)
+      const amountToPay = assignment.amountDue - assignment.amountPaid;
+      if (amountToPay <= 0) {
+        return res.status(400).json({ success: false, error: "No amount due" });
+      }
+
+      // Build URLs
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const successUrl = `${baseUrl}/payment-success?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${baseUrl}/payments`;
+
+      // Create checkout session using payment provider adapter
+      const paymentProvider = getPaymentProvider();
+      const checkoutResult = await paymentProvider.createCheckoutSession({
+        amount: amountToPay,
+        currency: fee.currency || "gbp",
+        description: `${fee.name} - ${player.name}`,
+        customerEmail: user.email,
+        metadata: {
+          feeAssignmentId: assignment.id,
+          feeId: fee.id,
+          playerId: player.id,
+          userId: userId,
+        },
+        successUrl,
+        cancelUrl,
+      });
+
+      // Create pending payment record
+      const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await storage.createPayment({
+        id: paymentId,
+        feeAssignmentId: assignment.id,
+        amount: amountToPay,
+        provider: getPaymentProviderType(),
+        providerSessionId: checkoutResult.sessionId,
+        status: "pending",
+        paidByUserId: userId,
+      });
+
+      res.json({ 
+        success: true, 
+        checkoutUrl: checkoutResult.checkoutUrl,
+        sessionId: checkoutResult.sessionId 
+      });
+    } catch (error) {
+      console.error("Create checkout error:", error);
+      res.status(500).json({ success: false, error: "Failed to create checkout session" });
+    }
+  });
+
+  // ============================================
+  // Webhook Routes (Payment Provider Callbacks)
+  // ============================================
+
+  // POST /api/webhooks/stripe - Handle Stripe webhook events
+  // Note: This route needs raw body - must be registered before body parsers in index.ts
+  app.post("/api/webhooks/stripe", async (req: any, res) => {
+    try {
+      const signature = req.headers["stripe-signature"];
+      if (!signature) {
+        return res.status(400).json({ error: "Missing stripe-signature header" });
+      }
+
+      // Get raw body - Express should provide this if configured correctly
+      const rawBody = req.rawBody || req.body;
+      if (!rawBody) {
+        return res.status(400).json({ error: "Missing request body" });
+      }
+
+      // Parse webhook using payment provider
+      const paymentProvider = getPaymentProvider();
+      const event = await paymentProvider.parseWebhook(rawBody, signature);
+
+      console.log(`Received webhook event: ${event.type}`, event.metadata);
+
+      // Find the payment by session ID
+      const payment = await storage.getPaymentByProviderSessionId(event.sessionId);
+      if (!payment) {
+        console.log(`Payment not found for session: ${event.sessionId}`);
+        // Return 200 to acknowledge receipt (Stripe will retry otherwise)
+        return res.json({ received: true, message: "Payment not found" });
+      }
+
+      if (event.type === "payment.succeeded") {
+        // Update payment status
+        await storage.updatePayment(payment.id, {
+          status: "succeeded",
+          providerPaymentId: event.paymentId || null,
+          receiptUrl: event.receiptUrl || null,
+        });
+
+        // Update fee assignment
+        const assignment = await storage.getFeeAssignment(payment.feeAssignmentId);
+        if (assignment) {
+          const newAmountPaid = assignment.amountPaid + payment.amount;
+          const newStatus = newAmountPaid >= assignment.amountDue ? "paid" : "partial";
+
+          await storage.updateFeeAssignment(assignment.id, {
+            amountPaid: newAmountPaid,
+            status: newStatus,
+            paidAt: newStatus === "paid" ? new Date() : null,
+          });
+        }
+
+        console.log(`Payment ${payment.id} succeeded`);
+      } else if (event.type === "payment.failed") {
+        await storage.updatePayment(payment.id, {
+          status: "failed",
+        });
+        console.log(`Payment ${payment.id} failed`);
+      } else if (event.type === "payment.refunded") {
+        await storage.updatePayment(payment.id, {
+          status: "refunded",
+        });
+
+        // Update fee assignment back to pending
+        const assignment = await storage.getFeeAssignment(payment.feeAssignmentId);
+        if (assignment) {
+          const newAmountPaid = Math.max(0, assignment.amountPaid - event.amount);
+          await storage.updateFeeAssignment(assignment.id, {
+            amountPaid: newAmountPaid,
+            status: newAmountPaid > 0 ? "partial" : "pending",
+            paidAt: null,
+          });
+        }
+        console.log(`Payment ${payment.id} refunded`);
+      }
+
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error("Webhook error:", error.message);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // GET /api/payments/outstanding - Get parent's outstanding fees
+  app.get("/api/payments/outstanding", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      // Get user's children (players)
+      const players = await storage.getPlayersByParentId(userId);
+      if (players.length === 0) {
+        return res.json({ success: true, outstanding: [], totalAmount: 0 });
+      }
+
+      const playerIds = players.map(p => p.id);
+
+      // Get all fee assignments for these players
+      const assignments = await storage.getFeeAssignmentsByPlayerIds(playerIds);
+
+      // Filter to only outstanding (pending, overdue, partial)
+      const outstandingAssignments = assignments.filter(
+        a => a.status === "pending" || a.status === "overdue" || a.status === "partial"
+      );
+
+      // Enrich with fee and player details
+      const enrichedOutstanding = await Promise.all(
+        outstandingAssignments.map(async (assignment) => {
+          const fee = await storage.getFee(assignment.feeId);
+          const player = players.find(p => p.id === assignment.playerId);
+          const team = await storage.getTeam(assignment.teamId);
+
+          return {
+            ...assignment,
+            feeName: fee?.name || "Unknown Fee",
+            feeDescription: fee?.description,
+            feeCategory: fee?.category,
+            dueDate: fee?.dueDate,
+            playerName: player?.name || "Unknown",
+            teamName: team?.name || "Unknown",
+            amountRemaining: assignment.amountDue - assignment.amountPaid,
+          };
+        })
+      );
+
+      // Calculate total outstanding
+      const totalAmount = enrichedOutstanding.reduce(
+        (sum, a) => sum + (a.amountDue - a.amountPaid), 
+        0
+      );
+
+      res.json({ 
+        success: true, 
+        outstanding: enrichedOutstanding,
+        totalAmount,
+        count: enrichedOutstanding.length
+      });
+    } catch (error) {
+      console.error("Get outstanding payments error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch outstanding payments" });
+    }
+  });
+
+  // GET /api/payments/history - Get parent's payment history
+  app.get("/api/payments/history", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      // Get all payments made by this user
+      const payments = await storage.getPaymentsByUserId(userId);
+
+      // Enrich with fee and player details
+      const enrichedPayments = await Promise.all(
+        payments.map(async (payment) => {
+          const assignment = await storage.getFeeAssignment(payment.feeAssignmentId);
+          let feeName = "Unknown Fee";
+          let playerName = "Unknown";
+
+          if (assignment) {
+            const fee = await storage.getFee(assignment.feeId);
+            const player = await storage.getPlayer(assignment.playerId);
+            feeName = fee?.name || "Unknown Fee";
+            playerName = player?.name || "Unknown";
+          }
+
+          return {
+            ...payment,
+            feeName,
+            playerName,
+            // Format amount for display (pence to pounds)
+            displayAmount: (payment.amount / 100).toFixed(2),
+          };
+        })
+      );
+
+      // Sort by date, most recent first
+      enrichedPayments.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      res.json({ 
+        success: true, 
+        payments: enrichedPayments,
+        count: enrichedPayments.length
+      });
+    } catch (error) {
+      console.error("Get payment history error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch payment history" });
+    }
+  });
+
+  // ============================================
+  // Export Routes (Club Managers)
+  // ============================================
+
+  // GET /api/fees/export - Export fee assignments as CSV
+  app.get("/api/fees/export", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !user.clubId || !user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      // Get all fees for this club
+      const fees = await storage.getFeesByClubId(user.clubId);
+
+      // Build CSV rows
+      const rows: string[] = [];
+      rows.push("Player,Team,Fee,Amount (£),Status,Paid Date,Created Date");
+
+      for (const fee of fees) {
+        const assignments = await storage.getFeeAssignmentsByFeeId(fee.id);
+
+        for (const assignment of assignments) {
+          const player = await storage.getPlayer(assignment.playerId);
+          const team = await storage.getTeam(assignment.teamId);
+
+          const playerName = (player?.name || "Unknown").replace(/,/g, ";");
+          const teamName = (team?.name || "Unknown").replace(/,/g, ";");
+          const feeName = fee.name.replace(/,/g, ";");
+          const amount = (assignment.amountDue / 100).toFixed(2);
+          const status = assignment.status;
+          const paidDate = assignment.paidAt 
+            ? new Date(assignment.paidAt).toISOString().split("T")[0] 
+            : "";
+          const createdDate = new Date(assignment.createdAt).toISOString().split("T")[0];
+
+          rows.push(`${playerName},${teamName},${feeName},${amount},${status},${paidDate},${createdDate}`);
+        }
+      }
+
+      const csv = rows.join("\n");
+      const filename = `fee-export-${new Date().toISOString().split("T")[0]}.csv`;
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(csv);
+    } catch (error) {
+      console.error("Export fees error:", error);
+      res.status(500).json({ success: false, error: "Failed to export fees" });
     }
   });
 

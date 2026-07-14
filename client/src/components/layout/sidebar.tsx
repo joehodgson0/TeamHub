@@ -10,12 +10,16 @@ import {
   Baby,
   Megaphone,
   Settings,
+  PoundSterling,
+  Receipt,
 } from "lucide-react";
 
 const navigationItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["coach", "parent"] },
   { path: "/team", label: "Team", icon: Users, roles: ["coach"] },
   { path: "/events", label: "Events", icon: Calendar, roles: ["coach", "parent"] },
+  { path: "/fees", label: "Fees", icon: PoundSterling, roles: ["coach"] },
+  { path: "/payments", label: "Payments", icon: Receipt, roles: ["parent"] },
   { path: "/dependents", label: "Dependents", icon: Baby, roles: ["parent"] },
   { path: "/posts", label: "Posts", icon: Megaphone, roles: ["coach", "parent"] },
   { path: "/settings", label: "Settings", icon: Settings, roles: ["coach", "parent"] },

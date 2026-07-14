@@ -55,7 +55,7 @@ app.use(cors({
     if (!origin) {
       return callback(null, true);
     }
-    
+
     // Check if origin is in allowlist or matches domain patterns
     if (
       allowedOrigins.includes(origin) ||
@@ -72,8 +72,11 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'stripe-signature']
 }));
+
+// Raw body handling for Stripe webhooks (must be before express.json())
+app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -83,7 +86,8 @@ app.use(cookieParser());
 const csrfProtection = csrf({ cookie: true });
 app.use((req, res, next) => {
   // Skip CSRF for mobile app requests (typically identified by specific headers or absence of origin)
-  if (!req.get('origin') || req.get('x-requested-with') === 'com.myapp.mobile') {
+  // Also skip CSRF for webhook endpoints
+  if (!req.get('origin') || req.get('x-requested-with') === 'com.myapp.mobile' || req.path.startsWith('/api/webhooks/')) {
     return next();
   }
   csrfProtection(req, res, next);

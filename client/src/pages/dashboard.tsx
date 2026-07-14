@@ -3,6 +3,7 @@ import UpcomingFixturesWidget from "@/components/dashboard/upcoming-fixtures-wid
 import TeamStatsWidget from "@/components/dashboard/team-stats-widget";
 import MatchResultsWidget from "@/components/dashboard/match-results-widget";
 import TeamPostsWidget from "@/components/dashboard/team-posts-widget";
+import FeesWidget from "@/components/dashboard/fees-widget";
 
 export default function Dashboard() {
 
@@ -15,6 +16,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <UpcomingEventsWidget />
         <UpcomingFixturesWidget />
+        <FeesWidget />
         <TeamStatsWidget />
         <MatchResultsWidget />
         <TeamPostsWidget />

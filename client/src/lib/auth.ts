@@ -8,6 +8,20 @@ export interface AuthState {
   isLoading: boolean;
 }
 
+// Helper to fetch CSRF token
+async function getCsrfToken(): Promise<string> {
+  try {
+    const response = await fetch("/api/csrf-token", {
+      credentials: "include",
+    });
+    const data = await response.json();
+    return data.csrfToken || "";
+  } catch (error) {
+    console.error("Failed to fetch CSRF token:", error);
+    return "";
+  }
+}
+
 export class AuthManager {
   private currentUser: User | null = null;
   private listeners: Array<(state: AuthState) => void> = [];
@@ -52,21 +66,25 @@ export class AuthManager {
 
   async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
     try {
+      const csrfToken = await getCsrfToken();
       const response = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({ email, password }),
         credentials: "include",
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success && result.user) {
         this.currentUser = result.user;
         storage.setCurrentUser(result.user.id);
         this.notifyListeners();
       }
-      
+
       return result;
     } catch (error) {
       console.error("Login error:", error);
@@ -76,13 +94,17 @@ export class AuthManager {
 
   async register(email: string, password: string): Promise<{ success: boolean; error?: string; userId?: string }> {
     try {
+      const csrfToken = await getCsrfToken();
       const response = await fetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({ email, password }),
         credentials: "include",
       });
-      
+
       const result = await response.json();
       return result;
     } catch (error) {
@@ -93,15 +115,19 @@ export class AuthManager {
 
   async updateUserRoles(userId: string, roles: Array<"coach" | "parent">): Promise<{ success: boolean; error?: string }> {
     try {
+      const csrfToken = await getCsrfToken();
       const response = await fetch("/api/auth/update-roles", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({ userId, roles }),
         credentials: "include",
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success && result.user) {
         // Update current user if it's the same user
         if (this.currentUser?.id === userId) {
@@ -110,7 +136,7 @@ export class AuthManager {
         }
         return { success: true };
       }
-      
+
       return { success: false, error: result.error || "Failed to update roles" };
     } catch (error) {
       console.error("Update roles error:", error);

@@ -14,6 +14,9 @@ import Dashboard from "@/pages/dashboard";
 import Club from "@/pages/club";
 import Team from "@/pages/team";
 import Events from "@/pages/events";
+import Fees from "@/pages/fees";
+import Payments from "@/pages/payments";
+import PaymentSuccess from "@/pages/payment-success";
 import Dependents from "@/pages/dependents";
 import Posts from "@/pages/posts";
 import Settings from "@/pages/settings";
@@ -56,6 +59,9 @@ function Router() {
         <Route path="/club" component={Club} />
         <Route path="/team" component={Team} />
         <Route path="/events" component={Events} />
+        <Route path="/fees" component={Fees} />
+        <Route path="/payments" component={Payments} />
+        <Route path="/payment-success" component={PaymentSuccess} />
         <Route path="/dependents" component={Dependents} />
         <Route path="/posts" component={Posts} />
         <Route path="/settings" component={Settings} />

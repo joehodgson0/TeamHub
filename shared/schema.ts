@@ -241,6 +241,115 @@ export const matchResults = pgTable("match_results", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Fee category type
+export const feeCategoryEnum = z.enum(["subscription", "kit", "tournament", "social", "other"]);
+export type FeeCategory = z.infer<typeof feeCategoryEnum>;
+
+// Fee status type
+export const feeAssignmentStatusEnum = z.enum(["pending", "paid", "overdue", "partial", "cancelled"]);
+export type FeeAssignmentStatus = z.infer<typeof feeAssignmentStatusEnum>;
+
+// Payment status type
+export const paymentStatusEnum = z.enum(["pending", "succeeded", "failed", "refunded"]);
+export type PaymentStatus = z.infer<typeof paymentStatusEnum>;
+
+// Payment provider type
+export const paymentProviderEnum = z.enum(["stripe", "sumup", "manual"]);
+export type PaymentProvider = z.infer<typeof paymentProviderEnum>;
+
+// Fee schema - Zod validation
+export const feeSchema = z.object({
+  id: z.string(),
+  clubId: z.string(),
+  name: z.string().min(1, "Fee name is required"),
+  description: z.string().optional(),
+  amount: z.number().int().positive("Amount must be positive"), // In pence
+  currency: z.string().default("gbp"),
+  dueDate: z.date(),
+  category: feeCategoryEnum,
+  isRecurring: z.boolean().default(false),
+  createdBy: z.string(),
+  createdAt: z.date().default(() => new Date()),
+});
+
+export const createFeeSchema = feeSchema.pick({
+  name: true,
+  description: true,
+  amount: true,
+  dueDate: true,
+  category: true,
+  isRecurring: true,
+});
+
+// Fee assignment schema - Zod validation
+export const feeAssignmentSchema = z.object({
+  id: z.string(),
+  feeId: z.string(),
+  playerId: z.string(),
+  teamId: z.string(),
+  status: feeAssignmentStatusEnum.default("pending"),
+  amountDue: z.number().int().positive(),
+  amountPaid: z.number().int().default(0),
+  paidAt: z.date().nullable().optional(),
+  createdAt: z.date().default(() => new Date()),
+});
+
+// Payment schema - Zod validation
+export const paymentSchema = z.object({
+  id: z.string(),
+  feeAssignmentId: z.string(),
+  amount: z.number().int().positive(),
+  provider: paymentProviderEnum,
+  providerSessionId: z.string(),
+  providerPaymentId: z.string().nullable().optional(),
+  status: paymentStatusEnum.default("pending"),
+  paidByUserId: z.string(),
+  receiptUrl: z.string().nullable().optional(),
+  createdAt: z.date().default(() => new Date()),
+});
+
+// Fees table - Drizzle definition
+export const fees = pgTable("fees", {
+  id: varchar("id").primaryKey(),
+  clubId: varchar("club_id").notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  amount: integer("amount").notNull(), // In pence (e.g., 2000 = £20.00)
+  currency: varchar("currency", { length: 3 }).notNull().default("gbp"),
+  dueDate: timestamp("due_date").notNull(),
+  category: varchar("category").notNull(), // subscription, kit, tournament, social, other
+  isRecurring: boolean("is_recurring").notNull().default(false),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Fee assignments table - Links fees to players
+export const feeAssignments = pgTable("fee_assignments", {
+  id: varchar("id").primaryKey(),
+  feeId: varchar("fee_id").notNull(),
+  playerId: varchar("player_id").notNull(),
+  teamId: varchar("team_id").notNull(),
+  status: varchar("status").notNull().default("pending"), // pending, paid, overdue, partial, cancelled
+  amountDue: integer("amount_due").notNull(),
+  amountPaid: integer("amount_paid").notNull().default(0),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Payments table - Individual payment transactions
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey(),
+  feeAssignmentId: varchar("fee_assignment_id").notNull(),
+  amount: integer("amount").notNull(), // In pence
+  provider: varchar("provider").notNull(), // stripe, sumup, manual
+  providerSessionId: varchar("provider_session_id").notNull(),
+  providerPaymentId: varchar("provider_payment_id"),
+  status: varchar("status").notNull().default("pending"), // pending, succeeded, failed, refunded
+  paidByUserId: varchar("paid_by_user_id").notNull(),
+  receiptUrl: varchar("receipt_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true });
 export const insertClubSchema = createInsertSchema(clubs).omit({ createdAt: true });
@@ -249,6 +358,9 @@ export const insertPlayerSchema = createInsertSchema(players).omit({ createdAt: 
 export const insertEventSchema = createInsertSchema(events).omit({ createdAt: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ createdAt: true });
 export const insertMatchResultSchema = createInsertSchema(matchResults).omit({ createdAt: true });
+export const insertFeeSchema = createInsertSchema(fees).omit({ createdAt: true });
+export const insertFeeAssignmentSchema = createInsertSchema(feeAssignments).omit({ createdAt: true });
+export const insertPaymentSchema = createInsertSchema(payments).omit({ createdAt: true });
 
 // Type exports for Replit Auth
 export type User = typeof users.$inferSelect;
@@ -270,6 +382,12 @@ export type Post = z.infer<typeof postSchema>;
 export type CreatePost = z.infer<typeof createPostSchema>;
 export type MatchResult = typeof matchResults.$inferSelect;
 
+// Fee types
+export type Fee = typeof fees.$inferSelect;
+export type CreateFee = z.infer<typeof createFeeSchema>;
+export type FeeAssignment = typeof feeAssignments.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
+
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertClub = z.infer<typeof insertClubSchema>;
@@ -280,3 +398,6 @@ export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type InsertFixture = InsertEvent;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type InsertMatchResult = z.infer<typeof insertMatchResultSchema>;
+export type InsertFee = z.infer<typeof insertFeeSchema>;
+export type InsertFeeAssignment = z.infer<typeof insertFeeAssignmentSchema>;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
