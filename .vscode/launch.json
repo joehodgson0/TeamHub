@@ -2,10 +2,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Server (tsx)",
+            "name": "TeamHub Web Server",
             "type": "node",
             "request": "launch",
-            "runtimeExecutable": "tsx",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["tsx"],
             "program": "${workspaceFolder}/server/index.ts",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
@@ -16,9 +17,30 @@
             ],
             "env": {
                 "NODE_ENV": "development",
-                "DATABASE_URL": "${env:DATABASE_URL}",
-                "SESSION_SECRET": "${env:SESSION_SECRET}"
-            }
+                "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/teamhub",
+                "SESSION_SECRET": "password",
+                "PORT": "5000"
+            },
+            "sourceMaps": true,
+            "restart": true
+        },
+        {
+            "name": "TeamHub (with .env.local)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["tsx"],
+            "program": "${workspaceFolder}/server/index.ts",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "skipFiles": [
+                "<node_internals>/**",
+                "${workspaceFolder}/node_modules/**"
+            ],
+            "envFile": "${workspaceFolder}/.env.local",
+            "sourceMaps": true,
+            "restart": true
         }
     ]
 }

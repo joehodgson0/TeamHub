@@ -47,7 +47,8 @@ function Router() {
     );
   }
 
-  if (user && user.roles?.length === 0) {
+  // Show role selection if user has no roles (undefined, null, or empty array)
+  if (user && (!user.roles || user.roles.length === 0)) {
     return <RoleSelection />;
   }
 

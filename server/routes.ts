@@ -58,30 +58,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/login', async (req, res) => {
     try {
       const { email, password } = req.body;
-      
+      console.log('Login attempt for email:', email);
+
       if (!email || !password) {
         return res.status(400).json({ success: false, error: 'Email and password required' });
       }
-      
+
       // Find user
       const user = await storage.getUserByEmail(email);
-      if (!user || !user.password) {
-        return res.status(401).json({ success: false, error: 'Invalid email or password' });
+      console.log('User found:', user ? 'yes' : 'no');
+
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'No account found with this email address' });
       }
-      
+
+      if (!user.password) {
+        return res.status(401).json({ success: false, error: 'This account uses a different sign-in method' });
+      }
+
       // Check password
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
-        return res.status(401).json({ success: false, error: 'Invalid email or password' });
+        return res.status(401).json({ success: false, error: 'Incorrect password' });
       }
-      
+
       // Create session
       req.session.userId = user.id;
-      
+
       res.json({ success: true, user: { ...user, password: undefined } });
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({ success: false, error: 'Failed to login' });
+      res.status(500).json({ success: false, error: 'Database connection error. Please try again.' });
     }
   });
   

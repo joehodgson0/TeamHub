@@ -82,19 +82,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// CSRF protection for non-GET requests (excluding mobile which uses tokens)
+// CSRF protection for state-changing requests
 const csrfProtection = csrf({ cookie: true });
 app.use((req, res, next) => {
-  // Skip CSRF for mobile app requests (typically identified by specific headers or absence of origin)
-  // Also skip CSRF for webhook endpoints
-  if (!req.get('origin') || req.get('x-requested-with') === 'com.myapp.mobile' || req.path.startsWith('/api/webhooks/')) {
+  // Skip CSRF entirely for these cases:
+  // 1. Mobile app requests (no origin or specific header)
+  // 2. Webhook endpoints
+  // 3. Auth endpoints (login/register/logout) - they establish the session
+  if (!req.get('origin') || 
+      req.get('x-requested-with') === 'com.myapp.mobile' || 
+      req.path.startsWith('/api/webhooks/') ||
+      req.path.startsWith('/api/auth/')) {
     return next();
   }
   csrfProtection(req, res, next);
 });
 
-// Provide CSRF token to frontend
-app.get('/api/csrf-token', (req, res) => {
+// Provide CSRF token to frontend (must be after csrfProtection middleware)
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
   res.json({ csrfToken: (req as any).csrfToken() });
 });
 

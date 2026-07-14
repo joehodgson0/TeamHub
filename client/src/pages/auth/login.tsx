@@ -34,54 +34,60 @@ export default function Login() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           email: formData.email,
           password: formData.password
         }),
       });
-      
+
       const result = await response.json();
 
-      if (result.success) {
+      if (!response.ok || !result.success) {
         toast({
-          title: "Success",
-          description: "Logged in successfully!"
+          title: "Login Failed",
+          description: result.error || "Invalid email or password",
+          variant: "destructive"
         });
-        
-        // Force refetch of session user data before navigating
-        await queryClient.invalidateQueries({ queryKey: ["/api/auth/user-session"] });
-        
-        // Wait for the auth state to actually update instead of using fixed delay
-        let attempts = 0;
-        const maxAttempts = 20; // 2 seconds max wait
-        
-        while (attempts < maxAttempts) {
-          const authQueryData = queryClient.getQueryData(["/api/auth/user-session"]);
-          if (authQueryData) {
-            // Auth state has been updated, safe to navigate
-            break;
-          }
-          // Wait 100ms and try again
-          await new Promise(resolve => setTimeout(resolve, 100));
-          attempts++;
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Logged in successfully!"
+      });
+
+      // Force refetch of session user data before navigating
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user-session"] });
+
+      // Wait for the auth state to actually update instead of using fixed delay
+      let attempts = 0;
+      const maxAttempts = 20; // 2 seconds max wait
+
+      while (attempts < maxAttempts) {
+        const authQueryData = queryClient.getQueryData(["/api/auth/user-session"]);
+        if (authQueryData) {
+          // Auth state has been updated, safe to navigate
+          break;
         }
-        
-        // Check if user needs to select roles or associate with a club
-        const user = result.user;
-        if (!user.roles || user.roles.length === 0) {
-          navigate("/role-selection");
-        } else if (!user.clubId) {
-          navigate("/team");
-        } else {
-          navigate("/dashboard");
-        }
+        // Wait 100ms and try again
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      // Check if user needs to select roles or associate with a club
+      const user = result.user;
+      if (!user.roles || user.roles.length === 0) {
+        navigate("/role-selection");
+      } else if (!user.clubId) {
+        navigate("/team");
       } else {
-        throw new Error(result.error || 'Login failed');
+        navigate("/dashboard");
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to login",
+        title: "Connection Error",
+        description: "Unable to connect to server. Please try again.",
         variant: "destructive"
       });
     } finally {
