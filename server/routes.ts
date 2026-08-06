@@ -315,6 +315,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: list all clubs
+  app.get("/api/clubs", async (req: any, res) => {
+    try {
+      const userId = req.session?.userId || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+      const user = await storage.getUser(userId);
+      if (!user?.roles?.includes("admin")) {
+        return res.status(403).json({ success: false, error: "Forbidden" });
+      }
+      const allClubs = await storage.getClubs();
+      res.json({ success: true, clubs: allClubs });
+    } catch (error) {
+      console.error("Get clubs error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch clubs" });
+    }
+  });
+
+  // Admin: create a new club with an auto-generated unique code
+  app.post("/api/clubs", async (req: any, res) => {
+    try {
+      const userId = req.session?.userId || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+      const user = await storage.getUser(userId);
+      if (!user?.roles?.includes("admin")) {
+        return res.status(403).json({ success: false, error: "Forbidden" });
+      }
+      const { name, established } = req.body;
+      if (!name?.trim()) {
+        return res.status(400).json({ success: false, error: "Club name is required" });
+      }
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let code: string;
+      do {
+        code = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+      } while (await storage.getClubByCode(code));
+
+      const clubId = `club_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const club = await storage.createClub({
+        id: clubId,
+        name: name.trim(),
+        code,
+        established: established?.trim() || undefined,
+        totalTeams: 0,
+        totalPlayers: 0,
+      });
+      res.json({ success: true, club });
+    } catch (error) {
+      console.error("Create club error:", error);
+      res.status(500).json({ success: false, error: "Failed to create club" });
+    }
+  });
+
   app.get("/api/clubs/:id", async (req, res) => {
     try {
       const { id } = req.params;

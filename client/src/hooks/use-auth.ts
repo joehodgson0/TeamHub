@@ -85,6 +85,7 @@ export function useAuth() {
     associateWithClub,
     logout,
     // Helper method to check if user has a specific role
-    hasRole: (role: "coach" | "parent") => user?.roles?.includes(role) || false,
+    hasRole: (role: "coach" | "parent" | "admin") => user?.roles?.includes(role) || false,
+    isAdmin: user?.roles?.includes("admin") || false,
   };
 }

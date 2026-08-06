@@ -7,14 +7,33 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Fetches and caches the CSRF token for the current page session
+let csrfTokenCache: string | null = null;
+async function getCsrfToken(): Promise<string> {
+  if (csrfTokenCache) return csrfTokenCache;
+  try {
+    const res = await fetch("/api/csrf-token", { credentials: "include" });
+    const data = await res.json();
+    csrfTokenCache = data.csrfToken || "";
+    return csrfTokenCache;
+  } catch {
+    return "";
+  }
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const isMutating = method !== "GET" && method !== "HEAD";
+  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+  if (isMutating) {
+    headers["X-CSRF-Token"] = await getCsrfToken();
+  }
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });

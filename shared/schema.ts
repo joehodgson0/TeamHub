@@ -21,7 +21,7 @@ export const userSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   profileImageUrl: z.string().optional(),
-  roles: z.array(z.enum(["coach", "parent"])).default([]),
+  roles: z.array(z.enum(["coach", "parent", "admin"])).default([]),
   clubId: z.string().optional(),
   teamIds: z.array(z.string()).default([]),
   createdAt: z.date().default(() => new Date()),
@@ -46,6 +46,12 @@ export const clubSchema = z.object({
 export const clubAssociationSchema = z.object({
   clubCode: z.string().length(8, "Club code must be 8 characters"),
 });
+
+export const createClubSchema = z.object({
+  name: z.string().min(1, "Club name is required"),
+  established: z.string().optional(),
+});
+export type CreateClub = z.infer<typeof createClubSchema>;
 
 // Team schema  
 export const teamSchema = z.object({
@@ -233,7 +239,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"), // For Replit Auth or traditional registration
   lastName: varchar("last_name"), // For Replit Auth or traditional registration
   profileImageUrl: varchar("profile_image_url"), // For Replit Auth
-  roles: json("roles").$type<("coach" | "parent")[]>().notNull().default([]),
+  roles: json("roles").$type<("coach" | "parent" | "admin")[]>().notNull().default([]),
   clubId: varchar("club_id"),
   teamIds: json("team_ids").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),

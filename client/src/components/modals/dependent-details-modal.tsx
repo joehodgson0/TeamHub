@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { dependentDetailsSchema, type DependentDetails, updateDependentSchema, type UpdateDependent, type Player } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -112,10 +112,7 @@ export default function DependentDetailsModal({ open, onOpenChange, player, onSu
     try {
       if (isEditMode && player) {
         // Update existing player
-        const response = await fetch(`/api/players/${player.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const response = await apiRequest("PUT", `/api/players/${player.id}`, {
             firstName: data.firstName,
             lastName: data.lastName,
             dateOfBirth: data.dateOfBirth,
@@ -138,8 +135,6 @@ export default function DependentDetailsModal({ open, onOpenChange, player, onSu
             doctorPhone: data.doctorPhone,
             doctorAddress: data.doctorAddress,
             emergencyContacts: data.emergencyContacts,
-          }),
-          credentials: "include",
         });
         const result = await response.json();
         if (result.success) {
@@ -152,16 +147,11 @@ export default function DependentDetailsModal({ open, onOpenChange, player, onSu
         }
       } else {
         // Create new player via the existing /api/players route, then update with full details
-        const createResponse = await fetch("/api/players", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const createResponse = await apiRequest("POST", "/api/players", {
             name: `${data.firstName} ${data.lastName}`,
             dateOfBirth: data.dateOfBirth,
             teamCode: data.teamCode,
             parentId: user.id,
-          }),
-          credentials: "include",
         });
         const createResult = await createResponse.json();
         if (!createResult.success) {
@@ -172,10 +162,7 @@ export default function DependentDetailsModal({ open, onOpenChange, player, onSu
 
         // Now update with full details
         const newPlayerId = createResult.player.id;
-        await fetch(`/api/players/${newPlayerId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        await apiRequest("PUT", `/api/players/${newPlayerId}`, {
             firstName: data.firstName,
             lastName: data.lastName,
             faNumber: data.faNumber,
@@ -197,8 +184,6 @@ export default function DependentDetailsModal({ open, onOpenChange, player, onSu
             doctorPhone: data.doctorPhone,
             doctorAddress: data.doctorAddress,
             emergencyContacts: data.emergencyContacts,
-          }),
-          credentials: "include",
         });
 
         toast({ title: "Dependent Added", description: `${data.firstName} ${data.lastName} has been added to ${createResult.team}.` });
@@ -217,12 +202,12 @@ export default function DependentDetailsModal({ open, onOpenChange, player, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-2xl p-0">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>{isEditMode ? "Edit Dependent Details" : "Add Dependent"}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 pb-6">
+        <ScrollArea className="h-[calc(90vh-5rem)] px-6 pb-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
 
