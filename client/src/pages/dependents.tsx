@@ -4,19 +4,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CheckCircle } from "lucide-react";
-import { format } from "date-fns";
+import { Plus, Pencil } from "lucide-react";
 import AddPlayerModal from "@/components/modals/add-player-modal";
+import DependentDetailsModal from "@/components/modals/dependent-details-modal";
 import type { Player, Team } from "@shared/schema";
 
 export default function Dependents() {
   const { user, hasRole } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editPlayer, setEditPlayer] = useState<Player | null>(null);
 
   const canAddPlayer = hasRole("parent");
 
   // Fetch players from database API
-  const { data: playersData, isLoading: playersLoading } = useQuery<{ success: boolean; players: Player[] }>({
+  const { data: playersData, isLoading: playersLoading, refetch: refetchPlayers } = useQuery<{ success: boolean; players: Player[] }>({
     queryKey: ['/api/players/parent', user?.id],
     enabled: Boolean(user && canAddPlayer),
   });
@@ -45,12 +46,6 @@ export default function Dependents() {
       return age - 1;
     }
     return age;
-  };
-
-  const getRecentActivity = (playerId: string) => {
-    // For now, return empty array since fixtures need to be migrated to API too
-    // TODO: Add fixtures API endpoint
-    return [];
   };
 
   return (
@@ -114,12 +109,12 @@ export default function Dependents() {
                       className="flex items-center space-x-3 p-4 bg-muted/50 rounded-lg"
                       data-testid={`player-card-${player.id}`}
                     >
-                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-primary font-semibold">
                           {player.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                         </span>
                       </div>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <h4 className="font-medium" data-testid={`player-name-${player.id}`}>
                           {player.name}
                         </h4>
@@ -130,21 +125,50 @@ export default function Dependents() {
                           <span>•</span>
                           <span data-testid={`player-age-${player.id}`}>Age {age}</span>
                         </div>
+                        {/* Profile completion indicator */}
+                        {!player.consentPhotograph && (
+                          <Badge variant="outline" className="mt-1 text-xs text-amber-600 border-amber-300">
+                            Details incomplete
+                          </Badge>
+                        )}
                       </div>
+                      {canAddPlayer && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-shrink-0"
+                          onClick={() => setEditPlayer(player)}
+                          data-testid={`button-edit-player-${player.id}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                          <span className="sr-only">Edit details</span>
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </CardContent>
           </Card>
-
         </div>
       )}
 
-      <AddPlayerModal
+      {/* Add dependent – uses full details form */}
+      <DependentDetailsModal
         open={showAddModal}
         onOpenChange={setShowAddModal}
+        onSuccess={() => refetchPlayers()}
       />
+
+      {/* Edit dependent details */}
+      {editPlayer && (
+        <DependentDetailsModal
+          open={Boolean(editPlayer)}
+          onOpenChange={(open) => { if (!open) setEditPlayer(null); }}
+          player={editPlayer}
+          onSuccess={() => refetchPlayers()}
+        />
+      )}
     </div>
   );
 }

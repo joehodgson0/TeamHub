@@ -20,6 +20,7 @@ import PaymentSuccess from "@/pages/payment-success";
 import Dependents from "@/pages/dependents";
 import Posts from "@/pages/posts";
 import Settings from "@/pages/settings";
+import AddDependent from "@/pages/add-dependent";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -50,6 +51,11 @@ function Router() {
   // Show role selection if user has no roles (undefined, null, or empty array)
   if (user && (!user.roles || user.roles.length === 0)) {
     return <RoleSelection />;
+  }
+
+  // New parent registration flow – shown without the main app shell
+  if (window.location.pathname === "/add-dependent") {
+    return <AddDependent />;
   }
 
   return (

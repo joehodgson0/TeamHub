@@ -33,6 +33,7 @@ export interface IStorage {
   getPlayersByTeamId(teamId: string): Promise<Player[]>;
   getPlayersByParentId(parentId: string): Promise<Player[]>;
   createPlayer(insertPlayer: InsertPlayer): Promise<Player>;
+  updatePlayer(id: string, updates: Partial<Player>): Promise<Player | undefined>;
   deletePlayersByParentId(parentId: string): Promise<boolean>;
 
   // Event methods
@@ -279,6 +280,15 @@ export class DatabaseStorage implements IStorage {
       .values(insertPlayer)
       .returning();
     return player as Player;
+  }
+
+  async updatePlayer(id: string, updates: Partial<Player>): Promise<Player | undefined> {
+    const [player] = await db
+      .update(players)
+      .set(updates)
+      .where(eq(players.id, id))
+      .returning();
+    return player || undefined;
   }
 
   // Event methods

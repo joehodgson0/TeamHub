@@ -45,7 +45,12 @@ export default function RoleSelection() {
           title: "Welcome to TeamHub!",
           description: "Your account has been set up successfully.",
         });
-        setLocation("/");
+        // If parent was selected, take them to the dependent registration form
+        if (data.roles.includes("parent")) {
+          setLocation("/add-dependent");
+        } else {
+          setLocation("/");
+        }
       } else {
         toast({
           variant: "destructive",

@@ -649,6 +649,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/players/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({ success: false, error: "Player ID required" });
+      }
+
+      const existing = await storage.getPlayer(id);
+      if (!existing) {
+        return res.status(404).json({ success: false, error: "Player not found" });
+      }
+
+      const {
+        firstName, lastName, dateOfBirth,
+        faNumber, streetAddress1, streetAddress2, streetAddress3, streetAddress4,
+        townCity, countyRegion, postCode, country,
+        consentPhotograph, consentSocialMedia, consentMedical,
+        additionalRequirements, declaredLearningDisability, additionalInformation,
+        doctorName, doctorPhone, doctorAddress, emergencyContacts,
+      } = req.body;
+
+      const updates: any = {};
+      if (firstName !== undefined) updates.firstName = firstName;
+      if (lastName !== undefined) updates.lastName = lastName;
+      if (firstName && lastName) updates.name = `${firstName} ${lastName}`;
+      else if (firstName) updates.name = firstName;
+      if (dateOfBirth) updates.dateOfBirth = new Date(dateOfBirth);
+      if (faNumber !== undefined) updates.faNumber = faNumber;
+      if (streetAddress1 !== undefined) updates.streetAddress1 = streetAddress1;
+      if (streetAddress2 !== undefined) updates.streetAddress2 = streetAddress2;
+      if (streetAddress3 !== undefined) updates.streetAddress3 = streetAddress3;
+      if (streetAddress4 !== undefined) updates.streetAddress4 = streetAddress4;
+      if (townCity !== undefined) updates.townCity = townCity;
+      if (countyRegion !== undefined) updates.countyRegion = countyRegion;
+      if (postCode !== undefined) updates.postCode = postCode;
+      if (country !== undefined) updates.country = country;
+      if (consentPhotograph !== undefined) updates.consentPhotograph = consentPhotograph;
+      if (consentSocialMedia !== undefined) updates.consentSocialMedia = consentSocialMedia;
+      if (consentMedical !== undefined) updates.consentMedical = consentMedical;
+      if (additionalRequirements !== undefined) updates.additionalRequirements = additionalRequirements;
+      if (declaredLearningDisability !== undefined) updates.declaredLearningDisability = declaredLearningDisability;
+      if (additionalInformation !== undefined) updates.additionalInformation = additionalInformation;
+      if (doctorName !== undefined) updates.doctorName = doctorName;
+      if (doctorPhone !== undefined) updates.doctorPhone = doctorPhone;
+      if (doctorAddress !== undefined) updates.doctorAddress = doctorAddress;
+      if (emergencyContacts !== undefined) updates.emergencyContacts = emergencyContacts;
+
+      const updated = await storage.updatePlayer(id, updates);
+      res.json({ success: true, player: updated });
+    } catch (error) {
+      console.error("Update player error:", error);
+      res.status(500).json({ success: false, error: "Failed to update player" });
+    }
+  });
+
   app.get("/api/players/parent/:parentId", async (req, res) => {
     try {
       const { parentId } = req.params;

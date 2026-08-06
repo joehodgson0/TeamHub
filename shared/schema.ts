@@ -70,6 +70,17 @@ export const teamAssociationSchema = z.object({
   teamCode: z.string().length(8, "Team code must be 8 characters"),
 });
 
+// Emergency contact schema
+export const emergencyContactSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  mobilePhone: z.string().min(1, "Mobile phone is required"),
+  homePhone: z.string().optional(),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+});
+
+export type EmergencyContact = z.infer<typeof emergencyContactSchema>;
+
 // Player schema
 export const playerSchema = z.object({
   id: z.string(),
@@ -80,6 +91,28 @@ export const playerSchema = z.object({
   attendance: z.number().default(0),
   totalEvents: z.number().default(0),
   createdAt: z.date().default(() => new Date()),
+  // Extended fields
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  faNumber: z.string().optional(),
+  streetAddress1: z.string().optional(),
+  streetAddress2: z.string().optional(),
+  streetAddress3: z.string().optional(),
+  streetAddress4: z.string().optional(),
+  townCity: z.string().optional(),
+  countyRegion: z.string().optional(),
+  postCode: z.string().optional(),
+  country: z.string().optional(),
+  consentPhotograph: z.string().optional(),
+  consentSocialMedia: z.string().optional(),
+  consentMedical: z.string().optional(),
+  additionalRequirements: z.string().optional(),
+  declaredLearningDisability: z.string().optional(),
+  additionalInformation: z.string().optional(),
+  doctorName: z.string().optional(),
+  doctorPhone: z.string().optional(),
+  doctorAddress: z.string().optional(),
+  emergencyContacts: z.array(emergencyContactSchema).optional(),
 });
 
 export const addPlayerSchema = playerSchema.pick({
@@ -88,6 +121,49 @@ export const addPlayerSchema = playerSchema.pick({
 }).extend({
   teamCode: z.string().length(8, "Team code must be 8 characters"),
 });
+
+// Dependent details form schema (used during registration and for editing)
+export const dependentDetailsSchema = z.object({
+  // Basic
+  teamCode: z.string().length(8, "Team code must be 8 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  faNumber: z.string().optional(),
+  // Address
+  streetAddress1: z.string().optional(),
+  streetAddress2: z.string().optional(),
+  streetAddress3: z.string().optional(),
+  streetAddress4: z.string().optional(),
+  townCity: z.string().min(1, "Town/City is required"),
+  countyRegion: z.string().min(1, "County/Region is required"),
+  postCode: z.string().min(1, "Post code is required"),
+  country: z.string().min(1, "Country is required"),
+  // Consents
+  consentPhotograph: z.string().min(1, "Please select an option"),
+  consentSocialMedia: z.string().min(1, "Please select an option"),
+  consentMedical: z.string().min(1, "Please select an option"),
+  // Medical/Additional
+  additionalRequirements: z.string().optional(),
+  declaredLearningDisability: z.string().optional(),
+  additionalInformation: z.string().optional(),
+  // Doctor
+  doctorName: z.string().optional(),
+  doctorPhone: z.string().optional(),
+  doctorAddress: z.string().optional(),
+  // Emergency contacts
+  emergencyContacts: z.array(emergencyContactSchema).min(1, "At least one emergency contact is required"),
+});
+
+export type DependentDetails = z.infer<typeof dependentDetailsSchema>;
+
+// Update dependent schema (no teamCode required for updates)
+export const updateDependentSchema = dependentDetailsSchema.omit({ teamCode: true }).partial().extend({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
+export type UpdateDependent = z.infer<typeof updateDependentSchema>;
 
 // Event schema
 export const eventSchema = z.object({
@@ -196,6 +272,28 @@ export const players = pgTable("players", {
   attendance: integer("attendance").notNull().default(0),
   totalEvents: integer("total_events").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // Extended profile fields
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  faNumber: varchar("fa_number"),
+  streetAddress1: varchar("street_address_1"),
+  streetAddress2: varchar("street_address_2"),
+  streetAddress3: varchar("street_address_3"),
+  streetAddress4: varchar("street_address_4"),
+  townCity: varchar("town_city"),
+  countyRegion: varchar("county_region"),
+  postCode: varchar("post_code"),
+  country: varchar("country"),
+  consentPhotograph: varchar("consent_photograph"),
+  consentSocialMedia: varchar("consent_social_media"),
+  consentMedical: varchar("consent_medical"),
+  additionalRequirements: text("additional_requirements"),
+  declaredLearningDisability: text("declared_learning_disability"),
+  additionalInformation: text("additional_information"),
+  doctorName: varchar("doctor_name"),
+  doctorPhone: varchar("doctor_phone"),
+  doctorAddress: varchar("doctor_address"),
+  emergencyContacts: json("emergency_contacts").$type<EmergencyContact[]>(),
 });
 
 export const events = pgTable("events", {
@@ -371,7 +469,7 @@ export type ClubAssociation = z.infer<typeof clubAssociationSchema>;
 export type Team = z.infer<typeof teamSchema>;
 export type CreateTeam = z.infer<typeof createTeamSchema>;
 export type TeamAssociation = z.infer<typeof teamAssociationSchema>;
-export type Player = z.infer<typeof playerSchema>;
+export type Player = typeof players.$inferSelect;
 export type AddPlayer = z.infer<typeof addPlayerSchema>;
 export type Event = z.infer<typeof eventSchema>;
 export type CreateEvent = z.infer<typeof createEventSchema>;
