@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createTeamSchema, type CreateTeam, type Team } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,14 +57,9 @@ export default function EditTeamModal({ open, onOpenChange, team }: EditTeamModa
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/teams/${team.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response = await apiRequest("PUT", `/api/teams/${team.id}`, {
           name: data.name,
           ageGroup: data.ageGroup,
-        }),
-        credentials: "include",
       });
       
       const result = await response.json();
@@ -79,7 +74,7 @@ export default function EditTeamModal({ open, onOpenChange, team }: EditTeamModa
         onOpenChange(false);
         
         // Invalidate and refetch teams query
-        queryClient.invalidateQueries({
+        queryClient.refetchQueries({
           queryKey: ['/api/teams/club', user.clubId]
         });
       } else {

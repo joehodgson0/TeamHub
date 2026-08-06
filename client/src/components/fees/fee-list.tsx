@@ -64,9 +64,7 @@ export default function FeeList({ fees, isLoading, onAssign, onViewAssignments, 
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (feeId: string) => {
-      return apiRequest(`/api/fees/${feeId}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/fees/${feeId}`);
     },
     onSuccess: () => {
       toast({

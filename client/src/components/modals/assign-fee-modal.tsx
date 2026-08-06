@@ -62,12 +62,8 @@ export default function AssignFeeModal({ open, onOpenChange, fee, onSuccess }: A
   // Assign mutation
   const assignMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/fees/${fee.id}/assign`, {
-        method: "POST",
-        body: JSON.stringify({
-          teamIds: selectedTeamIds,
-        }),
-      });
+      const res = await apiRequest("POST", `/api/fees/${fee.id}/assign`, { teamIds: selectedTeamIds });
+      return res.json();
     },
     onSuccess: (data: any) => {
       toast({

@@ -88,16 +88,13 @@ export default function CreateFeeModal({ open, onOpenChange, onSuccess }: Create
       // Convert amount from pounds to pence
       const amountInPence = Math.round(parseFloat(data.amount) * 100);
 
-      return apiRequest("/api/fees", {
-        method: "POST",
-        body: JSON.stringify({
+      return apiRequest("POST", "/api/fees", {
           name: data.name,
           description: data.description || undefined,
           amount: amountInPence,
           dueDate: data.dueDate.toISOString(),
           category: data.category,
           isRecurring: data.isRecurring,
-        }),
       });
     },
     onSuccess: () => {

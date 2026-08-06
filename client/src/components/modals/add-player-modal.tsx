@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { addPlayerSchema, type AddPlayer } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -42,16 +42,11 @@ export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalPro
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/players", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response = await apiRequest("POST", "/api/players", {
           name: data.name,
           dateOfBirth: data.dateOfBirth,
           teamCode: data.teamCode,
           parentId: user.id,
-        }),
-        credentials: "include",
       });
       
       const result = await response.json();

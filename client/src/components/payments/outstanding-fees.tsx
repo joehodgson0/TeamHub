@@ -43,10 +43,8 @@ export default function OutstandingFees() {
   // Checkout mutation
   const checkoutMutation = useMutation({
     mutationFn: async (feeAssignmentId: string) => {
-      return apiRequest("/api/payments/checkout", {
-        method: "POST",
-        body: JSON.stringify({ feeAssignmentId }),
-      });
+      const res = await apiRequest("POST", "/api/payments/checkout", { feeAssignmentId });
+      return res.json();
     },
     onSuccess: (data: any) => {
       // Redirect to Stripe checkout
