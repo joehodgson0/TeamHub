@@ -325,7 +325,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ success: false, error: "Forbidden" });
       }
       const allClubs = await storage.getClubs();
-      res.json({ success: true, clubs: allClubs });
+      // Compute live counts rather than trusting stale stored counters
+      const enriched = await Promise.all(
+        allClubs.map(async (club) => {
+          const clubTeams = await storage.getTeamsByClubId(club.id);
+          const totalPlayers = clubTeams.reduce((sum, t) => sum + (t.playerIds?.length ?? 0), 0);
+          return { ...club, totalTeams: clubTeams.length, totalPlayers };
+        })
+      );
+      res.json({ success: true, clubs: enriched });
     } catch (error) {
       console.error("Get clubs error:", error);
       res.status(500).json({ success: false, error: "Failed to fetch clubs" });
