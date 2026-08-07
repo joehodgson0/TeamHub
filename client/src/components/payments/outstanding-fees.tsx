@@ -1,12 +1,12 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { format, isPast } from "date-fns";
 import { CreditCard, Calendar, User, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import MockPaymentModal from "@/components/modals/mock-payment-modal";
 
 interface OutstandingFee {
   id: string;
@@ -33,32 +33,11 @@ interface OutstandingResponse {
 }
 
 export default function OutstandingFees() {
-  const { toast } = useToast();
+  const [payingFor, setPayingFor] = useState<OutstandingFee | null>(null);
 
   // Fetch outstanding fees
   const { data, isLoading, refetch } = useQuery<OutstandingResponse>({
     queryKey: ["/api/payments/outstanding"],
-  });
-
-  // Checkout mutation
-  const checkoutMutation = useMutation({
-    mutationFn: async (feeAssignmentId: string) => {
-      const res = await apiRequest("POST", "/api/payments/checkout", { feeAssignmentId });
-      return res.json();
-    },
-    onSuccess: (data: any) => {
-      // Redirect to Stripe checkout
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Payment Error",
-        description: error.message || "Failed to start payment. Please try again.",
-        variant: "destructive",
-      });
-    },
   });
 
   const formatAmount = (amount: number) => {
@@ -173,18 +152,26 @@ export default function OutstandingFees() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button 
-                className="w-full" 
-                onClick={() => checkoutMutation.mutate(fee.id)}
-                disabled={checkoutMutation.isPending}
+              <Button
+                className="w-full"
+                onClick={() => setPayingFor(fee)}
+                data-testid={`button-pay-${fee.id}`}
               >
                 <CreditCard className="h-4 w-4 mr-2" />
-                {checkoutMutation.isPending ? "Processing..." : "Pay Now"}
+                Pay Now
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
+
+      <MockPaymentModal
+        open={!!payingFor}
+        onOpenChange={(open) => !open && setPayingFor(null)}
+        feeAssignmentId={payingFor?.id ?? null}
+        feeName={payingFor?.feeName}
+        amount={payingFor?.amountRemaining}
+      />
     </div>
   );
 }

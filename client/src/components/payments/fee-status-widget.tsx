@@ -1,11 +1,11 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { CheckCircle2, AlertTriangle, CreditCard, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import MockPaymentModal from "@/components/modals/mock-payment-modal";
 
 interface NextPayment {
   feeAssignmentId: string;
@@ -25,30 +25,13 @@ interface ChildStatus {
 
 /** Parent-facing widget: shows each child as up-to-date, or with their next payment due/overdue. */
 export default function FeeStatusWidget() {
-  const { toast } = useToast();
+  const [payingFor, setPayingFor] = useState<NextPayment | null>(null);
 
   const { data, isLoading } = useQuery<{ success: boolean; statuses: ChildStatus[] }>({
     queryKey: ["/api/fees/my-status"],
   });
 
   const statuses = data?.statuses || [];
-
-  const checkoutMutation = useMutation({
-    mutationFn: async (feeAssignmentId: string) => {
-      const res = await apiRequest("POST", "/api/payments/checkout", { feeAssignmentId });
-      return res.json();
-    },
-    onSuccess: (result: any) => {
-      if (result.checkoutUrl) {
-        window.location.href = result.checkoutUrl;
-      } else {
-        toast({ variant: "destructive", title: "Error", description: result.error || "Failed to start payment" });
-      }
-    },
-    onError: (error: any) => {
-      toast({ variant: "destructive", title: "Payment Error", description: error.message || "Failed to start payment" });
-    },
-  });
 
   if (isLoading) {
     return (
@@ -97,8 +80,7 @@ export default function FeeStatusWidget() {
             <CardContent>
               <Button
                 size="sm"
-                onClick={() => checkoutMutation.mutate(child.nextPayment!.feeAssignmentId)}
-                disabled={checkoutMutation.isPending}
+                onClick={() => setPayingFor(child.nextPayment)}
                 data-testid={`button-pay-${child.playerId}`}
               >
                 <CreditCard className="h-4 w-4 mr-2" />
@@ -108,6 +90,15 @@ export default function FeeStatusWidget() {
           )}
         </Card>
       ))}
+
+      <MockPaymentModal
+        open={!!payingFor}
+        onOpenChange={(open) => !open && setPayingFor(null)}
+        feeAssignmentId={payingFor?.feeAssignmentId ?? null}
+        feeName={payingFor?.feeName}
+        amount={payingFor?.amount}
+      />
     </div>
   );
 }
+

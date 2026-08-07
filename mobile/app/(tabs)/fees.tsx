@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
 
 interface ChildStatus {
@@ -42,13 +42,19 @@ function ParentFeeStatus({ userId }: { userId: string }) {
   const statuses: ChildStatus[] = data?.statuses || [];
 
   const pay = async (feeAssignmentId: string) => {
-    const result = await apiRequest('/api/payments/checkout', {
-      method: 'POST',
-      body: JSON.stringify({ feeAssignmentId }),
-    });
-    if (result.checkoutUrl) {
-      // Web checkout link - open in browser via Linking on a real device build
-      console.log('Checkout URL:', result.checkoutUrl);
+    try {
+      const result = await apiRequest('/api/payments/mock-pay', {
+        method: 'POST',
+        body: JSON.stringify({ feeAssignmentId }),
+      });
+      if (result.success) {
+        Alert.alert('Payment made', 'Payment successful (mocked - no real card charged).');
+        queryClient.invalidateQueries({ queryKey: ['/api/fees/my-status'] });
+      } else {
+        Alert.alert('Payment failed', result.error || 'Please try again.');
+      }
+    } catch (error: any) {
+      Alert.alert('Payment failed', error.message || 'Please try again.');
     }
   };
 

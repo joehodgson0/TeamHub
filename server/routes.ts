@@ -2166,6 +2166,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/payments/mock-pay - Mocked card payment (no real payment gateway call yet).
+  // Records a successful payment immediately so the full fee/enrollment flow can be tested end-to-end.
+  app.post("/api/payments/mock-pay", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const { feeAssignmentId } = req.body;
+      if (!feeAssignmentId) {
+        return res.status(400).json({ success: false, error: "Fee assignment ID required" });
+      }
+
+      const assignment = await storage.getFeeAssignment(feeAssignmentId);
+      if (!assignment) {
+        return res.status(404).json({ success: false, error: "Fee assignment not found" });
+      }
+      if (assignment.status === "paid") {
+        return res.status(400).json({ success: false, error: "This fee has already been paid" });
+      }
+
+      const player = await storage.getPlayer(assignment.playerId);
+      if (!player || player.parentId !== userId) {
+        return res.status(403).json({ success: false, error: "You can only pay fees for your own children" });
+      }
+
+      const amountToPay = assignment.amountDue - assignment.amountPaid;
+      if (amountToPay <= 0) {
+        return res.status(400).json({ success: false, error: "No amount due" });
+      }
+
+      const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const payment = await storage.createPayment({
+        id: paymentId,
+        feeAssignmentId: assignment.id,
+        amount: amountToPay,
+        provider: "manual",
+        providerSessionId: `mock_${paymentId}`,
+        providerPaymentId: `mock_${paymentId}`,
+        status: "succeeded",
+        paidByUserId: userId,
+        receiptUrl: null,
+      });
+
+      const newAmountPaid = assignment.amountPaid + amountToPay;
+      const updatedAssignment = await storage.updateFeeAssignment(assignment.id, {
+        amountPaid: newAmountPaid,
+        status: newAmountPaid >= assignment.amountDue ? "paid" : "partial",
+        paidAt: newAmountPaid >= assignment.amountDue ? new Date() : null,
+      });
+
+      res.json({ success: true, payment, assignment: updatedAssignment });
+    } catch (error) {
+      console.error("Mock payment error:", error);
+      res.status(500).json({ success: false, error: "Failed to process payment" });
+    }
+  });
+
   // ============================================
   // Webhook Routes (Payment Provider Callbacks)
   // ============================================
@@ -2563,6 +2622,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
   // Fee Enrollment Routes (Parents choose a season plan; Admins can enroll on their behalf)
   // ============================================
+
+  // GET /api/fees/enrollment-preview - Preview the installment schedule before enrolling
+  app.get("/api/fees/enrollment-preview", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const { playerId, season, paymentOption } = req.query as { playerId?: string; season?: string; paymentOption?: string };
+      if (!playerId || !season || !paymentOption) {
+        return res.status(400).json({ success: false, error: "playerId, season and paymentOption are required" });
+      }
+      if (paymentOption !== "full" && paymentOption !== "installments") {
+        return res.status(400).json({ success: false, error: "paymentOption must be 'full' or 'installments'" });
+      }
+
+      const player = await storage.getPlayer(playerId);
+      if (!player) return res.status(404).json({ success: false, error: "Player not found" });
+
+      const team = await storage.getTeam(player.teamId);
+      if (!team) return res.status(404).json({ success: false, error: "Team not found" });
+
+      const isOwnChild = player.parentId === userId;
+      const isAdminForClub = await isClubAdmin(userId, team.clubId);
+      if (!isOwnChild && !isAdminForClub) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      const schedule = await storage.getFeeSchedule(team.clubId, season);
+      if (!schedule) {
+        return res.status(400).json({ success: false, error: `No fee schedule configured for season ${season}` });
+      }
+
+      const parent = await storage.getUser(player.parentId);
+      const parentIsCoach = parent?.roles?.includes("coach") || false;
+      const feeType = determineFeeType(parentIsCoach, team.midWeekTraining);
+      const { totalAmount, installments } = buildInstallmentPlan(schedule, feeType, paymentOption, season);
+
+      res.json({ success: true, feeType, totalAmount, installments });
+    } catch (error) {
+      console.error("Enrollment preview error:", error);
+      res.status(500).json({ success: false, error: "Failed to build enrollment preview" });
+    }
+  });
 
   // POST /api/fees/enroll - Enroll a player in a season fee plan and generate their fee assignments
   app.post("/api/fees/enroll", async (req: any, res) => {
