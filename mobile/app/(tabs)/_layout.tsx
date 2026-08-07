@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { memo, useCallback, useMemo } from 'react';
-import { LayoutDashboard, Baby, Calendar, MessageSquare, Settings } from 'lucide-react-native';
+import { LayoutDashboard, Baby, Calendar, MessageSquare, Settings, PoundSterling } from 'lucide-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useUser } from '@/context/UserContext';
 
@@ -19,6 +19,9 @@ const EventsIcon = memo(({ color, size }: { color: string; size: number }) => (
 ));
 const PostsIcon = memo(({ color, size }: { color: string; size: number }) => (
   <MessageSquare size={size} color={color} />
+));
+const FeesIcon = memo(({ color, size }: { color: string; size: number }) => (
+  <PoundSterling size={size} color={color} />
 ));
 const SettingsIcon = memo(({ color, size }: { color: string; size: number }) => (
   <Settings size={size} color={color} />
@@ -50,6 +53,9 @@ function TabsLayout() {
   ), []);
   const renderPostsIcon = useCallback(({ color, size }: { color: string; size: number }) => (
     <PostsIcon color={color} size={size} />
+  ), []);
+  const renderFeesIcon = useCallback(({ color, size }: { color: string; size: number }) => (
+    <FeesIcon color={color} size={size} />
   ), []);
   const renderSettingsIcon = useCallback(({ color, size }: { color: string; size: number }) => (
     <SettingsIcon color={color} size={size} />
@@ -102,6 +108,15 @@ function TabsLayout() {
           tabBarLabel: 'Posts',
           tabBarIcon: renderPostsIcon,
           lazy: false,
+        }}
+      />
+      <Tabs.Screen
+        name="fees"
+        options={{
+          title: 'Fees',
+          tabBarLabel: 'Fees',
+          tabBarIcon: renderFeesIcon,
+          lazy: true,
         }}
       />
       <Tabs.Screen

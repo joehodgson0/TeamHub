@@ -64,6 +64,8 @@ export const teamSchema = z.object({
   wins: z.number().default(0),
   draws: z.number().default(0),
   losses: z.number().default(0),
+  // Whether this team trains mid-week (affects the season fee charged to parents)
+  midWeekTraining: z.boolean().default(false),
   createdAt: z.date().default(() => new Date()),
 });
 
@@ -266,6 +268,7 @@ export const teams = pgTable("teams", {
   wins: integer("wins").notNull().default(0),
   draws: integer("draws").notNull().default(0),
   losses: integer("losses").notNull().default(0),
+  midWeekTraining: boolean("mid_week_training").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -412,6 +415,61 @@ export const paymentSchema = z.object({
   createdAt: z.date().default(() => new Date()),
 });
 
+// Season fee "type" - which default rate a player/parent is charged
+export const feeTypeEnum = z.enum(["coach", "no_midweek", "midweek"]);
+export type FeeType = z.infer<typeof feeTypeEnum>;
+
+// How the season fee is paid
+export const paymentOptionEnum = z.enum(["full", "installments"]);
+export type PaymentOption = z.infer<typeof paymentOptionEnum>;
+
+// Fee schedule schema - Zod validation (per club, per season defaults)
+export const feeScheduleSchema = z.object({
+  id: z.string(),
+  clubId: z.string(),
+  season: z.string().regex(/^\d{4}\/\d{2}$/, "Season must be in the format 2026/27"),
+  coachFee: z.number().int().nonnegative().default(6000),
+  noMidweekFee: z.number().int().nonnegative().default(25000),
+  midweekFee: z.number().int().nonnegative().default(35000),
+  fullPaymentDiscountPercent: z.number().int().min(0).max(100).default(10),
+  installmentCount: z.number().int().positive().default(10),
+  createdBy: z.string(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
+});
+
+export const upsertFeeScheduleSchema = feeScheduleSchema.pick({
+  season: true,
+  coachFee: true,
+  noMidweekFee: true,
+  midweekFee: true,
+  fullPaymentDiscountPercent: true,
+  installmentCount: true,
+});
+export type UpsertFeeSchedule = z.infer<typeof upsertFeeScheduleSchema>;
+
+// Fee enrollment schema - Zod validation (a player's chosen plan for a season)
+export const feeEnrollmentSchema = z.object({
+  id: z.string(),
+  clubId: z.string(),
+  season: z.string(),
+  playerId: z.string(),
+  teamId: z.string(),
+  parentUserId: z.string(),
+  feeType: feeTypeEnum,
+  paymentOption: paymentOptionEnum,
+  totalAmount: z.number().int().nonnegative(),
+  status: z.enum(["active", "cancelled"]).default("active"),
+  createdAt: z.date().default(() => new Date()),
+});
+
+export const createFeeEnrollmentSchema = z.object({
+  playerId: z.string(),
+  season: z.string(),
+  paymentOption: paymentOptionEnum,
+});
+export type CreateFeeEnrollment = z.infer<typeof createFeeEnrollmentSchema>;
+
 // Fees table - Drizzle definition
 export const fees = pgTable("fees", {
   id: varchar("id").primaryKey(),
@@ -437,6 +495,42 @@ export const feeAssignments = pgTable("fee_assignments", {
   amountDue: integer("amount_due").notNull(),
   amountPaid: integer("amount_paid").notNull().default(0),
   paidAt: timestamp("paid_at"),
+  // Season fee plan tracking (populated when generated from a fee enrollment)
+  season: varchar("season"),
+  enrollmentId: varchar("enrollment_id"),
+  installmentNumber: integer("installment_number"),
+  lastReminderSentAt: timestamp("last_reminder_sent_at"),
+  reminderCount: integer("reminder_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Fee schedules table - Per-season default fee amounts set by club admins
+export const feeSchedules = pgTable("fee_schedules", {
+  id: varchar("id").primaryKey(),
+  clubId: varchar("club_id").notNull(),
+  season: varchar("season").notNull(), // e.g. "2026/27"
+  coachFee: integer("coach_fee").notNull().default(6000), // £60.00 - parent who is also a coach
+  noMidweekFee: integer("no_midweek_fee").notNull().default(25000), // £250.00 - team without mid-week training
+  midweekFee: integer("midweek_fee").notNull().default(35000), // £350.00 - team with mid-week training
+  fullPaymentDiscountPercent: integer("full_payment_discount_percent").notNull().default(10),
+  installmentCount: integer("installment_count").notNull().default(10), // total "units" spread over the season
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Fee enrollments table - A player's chosen fee plan for a season
+export const feeEnrollments = pgTable("fee_enrollments", {
+  id: varchar("id").primaryKey(),
+  clubId: varchar("club_id").notNull(),
+  season: varchar("season").notNull(),
+  playerId: varchar("player_id").notNull(),
+  teamId: varchar("team_id").notNull(),
+  parentUserId: varchar("parent_user_id").notNull(),
+  feeType: varchar("fee_type").notNull(), // coach, no_midweek, midweek
+  paymentOption: varchar("payment_option").notNull(), // full, installments
+  totalAmount: integer("total_amount").notNull(),
+  status: varchar("status").notNull().default("active"), // active, cancelled
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -465,6 +559,8 @@ export const insertMatchResultSchema = createInsertSchema(matchResults).omit({ c
 export const insertFeeSchema = createInsertSchema(fees).omit({ createdAt: true });
 export const insertFeeAssignmentSchema = createInsertSchema(feeAssignments).omit({ createdAt: true });
 export const insertPaymentSchema = createInsertSchema(payments).omit({ createdAt: true });
+export const insertFeeScheduleSchema = createInsertSchema(feeSchedules).omit({ createdAt: true, updatedAt: true });
+export const insertFeeEnrollmentSchema = createInsertSchema(feeEnrollments).omit({ createdAt: true });
 
 // Type exports for Replit Auth
 export type User = typeof users.$inferSelect;
@@ -491,6 +587,8 @@ export type Fee = typeof fees.$inferSelect;
 export type CreateFee = z.infer<typeof createFeeSchema>;
 export type FeeAssignment = typeof feeAssignments.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type FeeSchedule = typeof feeSchedules.$inferSelect;
+export type FeeEnrollment = typeof feeEnrollments.$inferSelect;
 
 // Insert types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -505,3 +603,5 @@ export type InsertMatchResult = z.infer<typeof insertMatchResultSchema>;
 export type InsertFee = z.infer<typeof insertFeeSchema>;
 export type InsertFeeAssignment = z.infer<typeof insertFeeAssignmentSchema>;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type InsertFeeSchedule = z.infer<typeof insertFeeScheduleSchema>;
+export type InsertFeeEnrollment = z.infer<typeof insertFeeEnrollmentSchema>;

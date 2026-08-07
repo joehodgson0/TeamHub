@@ -4,6 +4,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import csrf from "csurf";
 import { registerRoutes } from "./routes";
+import { startFeeReminderService } from "./services/feeReminderService";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -232,6 +233,9 @@ function setupProductionBuild() {
     
     const server = await registerRoutes(app);
     console.log('[startup] Routes registered successfully');
+
+    startFeeReminderService();
+    console.log('[startup] Fee reminder background service started');
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

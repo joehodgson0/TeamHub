@@ -7,7 +7,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  roles?: ('coach' | 'parent')[];
+  roles?: ('coach' | 'parent' | 'admin')[];
   clubId?: string;
   teamIds?: string[];
 }
@@ -16,9 +16,10 @@ interface UserContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  hasRole: (role: 'coach' | 'parent') => boolean;
+  hasRole: (role: 'coach' | 'parent' | 'admin') => boolean;
   isCoach: boolean;
   isParent: boolean;
+  isAdmin: boolean;
   logout: () => Promise<void>;
   updateUserRoles: (userId: string, roles: ('coach' | 'parent')[]) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -133,9 +134,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     user,
     isAuthenticated: !!user,
     isLoading,
-    hasRole: (role: 'coach' | 'parent') => user?.roles?.includes(role) ?? false,
+    hasRole: (role: 'coach' | 'parent' | 'admin') => user?.roles?.includes(role) ?? false,
     isCoach: user?.roles?.includes('coach') ?? false,
     isParent: user?.roles?.includes('parent') ?? false,
+    isAdmin: user?.roles?.includes('admin') ?? false,
     logout,
     updateUserRoles,
     refreshUser,

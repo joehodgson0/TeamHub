@@ -1,6 +1,6 @@
-import { users, clubs, teams, players, events, posts, matchResults, fees, feeAssignments, payments, type User, type UpsertUser, type Club, type Team, type Player, type Event, type Post, type MatchResult, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertMatchResult, type Fee, type InsertFee, type FeeAssignment, type InsertFeeAssignment, type Payment, type InsertPayment } from "@shared/schema";
+import { users, clubs, teams, players, events, posts, matchResults, fees, feeAssignments, payments, feeSchedules, feeEnrollments, type User, type UpsertUser, type Club, type Team, type Player, type Event, type Post, type MatchResult, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertMatchResult, type Fee, type InsertFee, type FeeAssignment, type InsertFeeAssignment, type Payment, type InsertPayment, type FeeSchedule, type InsertFeeSchedule, type FeeEnrollment, type InsertFeeEnrollment } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt, inArray } from "drizzle-orm";
+import { eq, and, gt, inArray, or, isNull, lt, lte } from "drizzle-orm";
 
 export interface IStorage {
   // User methods for Replit Auth - MANDATORY
@@ -96,6 +96,24 @@ export interface IStorage {
   getPaymentByProviderSessionId(providerSessionId: string): Promise<Payment | undefined>;
   createPayment(insertPayment: InsertPayment): Promise<Payment>;
   updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined>;
+
+  // Fee schedule methods (per club, per season defaults)
+  getFeeSchedule(clubId: string, season: string): Promise<FeeSchedule | undefined>;
+  getFeeSchedulesByClubId(clubId: string): Promise<FeeSchedule[]>;
+  upsertFeeSchedule(insertFeeSchedule: InsertFeeSchedule): Promise<FeeSchedule>;
+
+  // Fee enrollment methods (a player's chosen plan for a season)
+  getFeeEnrollment(id: string): Promise<FeeEnrollment | undefined>;
+  getFeeEnrollmentByPlayerAndSeason(playerId: string, season: string): Promise<FeeEnrollment | undefined>;
+  getFeeEnrollmentsByPlayerId(playerId: string): Promise<FeeEnrollment[]>;
+  getFeeEnrollmentsByClubAndSeason(clubId: string, season: string): Promise<FeeEnrollment[]>;
+  getFeeEnrollmentsByTeamId(teamId: string): Promise<FeeEnrollment[]>;
+  createFeeEnrollment(insertFeeEnrollment: InsertFeeEnrollment): Promise<FeeEnrollment>;
+  updateFeeEnrollment(id: string, updates: Partial<FeeEnrollment>): Promise<FeeEnrollment | undefined>;
+
+  // Reminder service support
+  getFeeAssignmentsDueForReminder(reminderIntervalDays: number): Promise<FeeAssignment[]>;
+  getOverdueFeeAssignments(asOf: Date): Promise<FeeAssignment[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -689,6 +707,111 @@ export class DatabaseStorage implements IStorage {
       .where(eq(payments.id, id))
       .returning();
     return payment;
+  }
+
+  // Fee schedule methods
+  async getFeeSchedule(clubId: string, season: string): Promise<FeeSchedule | undefined> {
+    const [schedule] = await db
+      .select()
+      .from(feeSchedules)
+      .where(and(eq(feeSchedules.clubId, clubId), eq(feeSchedules.season, season)));
+    return schedule;
+  }
+
+  async getFeeSchedulesByClubId(clubId: string): Promise<FeeSchedule[]> {
+    return db.select().from(feeSchedules).where(eq(feeSchedules.clubId, clubId));
+  }
+
+  async upsertFeeSchedule(insertFeeSchedule: InsertFeeSchedule): Promise<FeeSchedule> {
+    const existing = await this.getFeeSchedule(insertFeeSchedule.clubId, insertFeeSchedule.season);
+    if (existing) {
+      const [updated] = await db
+        .update(feeSchedules)
+        .set({ ...insertFeeSchedule, updatedAt: new Date() })
+        .where(eq(feeSchedules.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(feeSchedules).values(insertFeeSchedule).returning();
+    return created;
+  }
+
+  // Fee enrollment methods
+  async getFeeEnrollment(id: string): Promise<FeeEnrollment | undefined> {
+    const [enrollment] = await db.select().from(feeEnrollments).where(eq(feeEnrollments.id, id));
+    return enrollment;
+  }
+
+  async getFeeEnrollmentByPlayerAndSeason(playerId: string, season: string): Promise<FeeEnrollment | undefined> {
+    const [enrollment] = await db
+      .select()
+      .from(feeEnrollments)
+      .where(and(eq(feeEnrollments.playerId, playerId), eq(feeEnrollments.season, season)));
+    return enrollment;
+  }
+
+  async getFeeEnrollmentsByPlayerId(playerId: string): Promise<FeeEnrollment[]> {
+    return db.select().from(feeEnrollments).where(eq(feeEnrollments.playerId, playerId));
+  }
+
+  async getFeeEnrollmentsByClubAndSeason(clubId: string, season: string): Promise<FeeEnrollment[]> {
+    return db
+      .select()
+      .from(feeEnrollments)
+      .where(and(eq(feeEnrollments.clubId, clubId), eq(feeEnrollments.season, season)));
+  }
+
+  async getFeeEnrollmentsByTeamId(teamId: string): Promise<FeeEnrollment[]> {
+    return db.select().from(feeEnrollments).where(eq(feeEnrollments.teamId, teamId));
+  }
+
+  async createFeeEnrollment(insertFeeEnrollment: InsertFeeEnrollment): Promise<FeeEnrollment> {
+    const [enrollment] = await db.insert(feeEnrollments).values(insertFeeEnrollment).returning();
+    return enrollment;
+  }
+
+  async updateFeeEnrollment(id: string, updates: Partial<FeeEnrollment>): Promise<FeeEnrollment | undefined> {
+    const [enrollment] = await db
+      .update(feeEnrollments)
+      .set(updates)
+      .where(eq(feeEnrollments.id, id))
+      .returning();
+    return enrollment;
+  }
+
+  // Reminder service support: assignments not yet paid, due soon/overdue, not reminded recently
+  async getFeeAssignmentsDueForReminder(reminderIntervalDays: number): Promise<FeeAssignment[]> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - reminderIntervalDays);
+
+    return db
+      .select()
+      .from(feeAssignments)
+      .where(
+        and(
+          inArray(feeAssignments.status, ["pending", "overdue", "partial"]),
+          or(isNull(feeAssignments.lastReminderSentAt), lt(feeAssignments.lastReminderSentAt, cutoff))
+        )
+      );
+  }
+
+  async getOverdueFeeAssignments(asOf: Date): Promise<FeeAssignment[]> {
+    const dueAssignments = await db
+      .select({ id: fees.id, dueDate: fees.dueDate })
+      .from(fees)
+      .where(lte(fees.dueDate, asOf));
+    const overdueFeeIds = dueAssignments.map((f) => f.id);
+    if (overdueFeeIds.length === 0) return [];
+
+    return db
+      .select()
+      .from(feeAssignments)
+      .where(
+        and(
+          inArray(feeAssignments.feeId, overdueFeeIds),
+          inArray(feeAssignments.status, ["pending", "partial"])
+        )
+      );
   }
 }
 

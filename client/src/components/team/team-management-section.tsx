@@ -2,14 +2,17 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { clubAssociationSchema, type ClubAssociation, type Team } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle } from "lucide-react";
 import CreateTeamModal from "@/components/modals/create-team-modal";
@@ -105,6 +108,24 @@ export default function TeamManagementSection() {
     const teamPlayers = playersData?.players || [];
     const playerCount = teamPlayers.length;
     const totalGames = (team.wins || 0) + (team.draws || 0) + (team.losses || 0);
+    const { toast: toastLocal } = useToast();
+
+    const midWeekMutation = useMutation({
+      mutationFn: async (midWeekTraining: boolean) => {
+        const res = await apiRequest("PATCH", `/api/teams/${team.id}/mid-week-training`, { midWeekTraining });
+        return res.json();
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['/api/teams/club', team.clubId] });
+      },
+      onError: () => {
+        toastLocal({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to update mid-week training setting.",
+        });
+      },
+    });
 
     return (
       <div
@@ -138,6 +159,26 @@ export default function TeamManagementSection() {
             <p className="text-xs text-muted-foreground mt-1" data-testid={`team-code-${team.id}`}>
               Code: {team.code || 'Unknown'}
             </p>
+            <div className="flex items-center space-x-2 mt-2">
+              {isCoach ? (
+                <>
+                  <Switch
+                    id={`mid-week-${team.id}`}
+                    checked={!!team.midWeekTraining}
+                    onCheckedChange={(checked) => midWeekMutation.mutate(checked)}
+                    disabled={midWeekMutation.isPending}
+                    data-testid={`switch-mid-week-${team.id}`}
+                  />
+                  <Label htmlFor={`mid-week-${team.id}`} className="text-xs text-muted-foreground">
+                    Mid-week training (affects season fees)
+                  </Label>
+                </>
+              ) : (
+                team.midWeekTraining && (
+                  <Badge variant="secondary" className="text-xs">Mid-week training</Badge>
+                )
+              )}
+            </div>
           </div>
           <div className="flex items-center space-x-2">
             {isCoach && (

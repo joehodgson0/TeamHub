@@ -2,10 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
-import { insertMatchResultSchema, createFeeSchema } from "@shared/schema";
+import { insertMatchResultSchema, createFeeSchema, upsertFeeScheduleSchema, createFeeEnrollmentSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import bcrypt from "bcryptjs";
 import { getPaymentProvider, isPaymentProviderConfigured, getPaymentProviderType } from "./payments";
+import { buildInstallmentPlan, determineFeeType } from "./services/feeCalculator";
+import { sendReminderForAssignment, runFeeReminderSweepNow } from "./services/feeReminderService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth - referenced from javascript_log_in_with_replit blueprint
@@ -2416,6 +2418,413 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Export fees error:", error);
       res.status(500).json({ success: false, error: "Failed to export fees" });
+    }
+  });
+
+  // ============================================
+  // Season Fee Schedule Routes (Admins Only)
+  // ============================================
+
+  const isClubAdmin = async (userId: string, clubId: string): Promise<boolean> => {
+    const user = await storage.getUser(userId);
+    return !!user && user.clubId === clubId && (user.roles?.includes("admin") || false);
+  };
+
+  // GET /api/fee-schedules - List all season fee schedules for the admin's club
+  app.get("/api/fee-schedules", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const user = await storage.getUser(userId);
+      if (!user?.clubId) return res.status(400).json({ success: false, error: "User not associated with a club" });
+      if (!user.roles?.includes("admin")) return res.status(403).json({ success: false, error: "Admin access required" });
+
+      const schedules = await storage.getFeeSchedulesByClubId(user.clubId);
+      res.json({ success: true, schedules });
+    } catch (error) {
+      console.error("Get fee schedules error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch fee schedules" });
+    }
+  });
+
+  // POST /api/fee-schedules - Create or update (upsert) a season's fee schedule
+  app.post("/api/fee-schedules", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const user = await storage.getUser(userId);
+      if (!user?.clubId) return res.status(400).json({ success: false, error: "User not associated with a club" });
+      if (!user.roles?.includes("admin")) return res.status(403).json({ success: false, error: "Admin access required" });
+
+      const validated = upsertFeeScheduleSchema.parse(req.body);
+      const existing = await storage.getFeeSchedule(user.clubId, validated.season);
+      const scheduleId = existing?.id || `feesched_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const schedule = await storage.upsertFeeSchedule({
+        id: scheduleId,
+        clubId: user.clubId,
+        season: validated.season,
+        coachFee: validated.coachFee,
+        noMidweekFee: validated.noMidweekFee,
+        midweekFee: validated.midweekFee,
+        fullPaymentDiscountPercent: validated.fullPaymentDiscountPercent,
+        installmentCount: validated.installmentCount,
+        createdBy: existing?.createdBy || userId,
+      });
+
+      res.json({ success: true, schedule });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, error: error.errors });
+      }
+      console.error("Upsert fee schedule error:", error);
+      res.status(500).json({ success: false, error: "Failed to save fee schedule" });
+    }
+  });
+
+  // GET /api/fee-schedules/:season/overview - Admin view of every enrolled player's status for a season
+  app.get("/api/fee-schedules/:season/overview", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const user = await storage.getUser(userId);
+      if (!user?.clubId) return res.status(400).json({ success: false, error: "User not associated with a club" });
+      if (!user.roles?.includes("admin")) return res.status(403).json({ success: false, error: "Admin access required" });
+
+      const { season } = req.params;
+      const enrollments = await storage.getFeeEnrollmentsByClubAndSeason(user.clubId, season);
+
+      const overview = await Promise.all(enrollments.map(async (enrollment) => {
+        const [player, team, assignments] = await Promise.all([
+          storage.getPlayer(enrollment.playerId),
+          storage.getTeam(enrollment.teamId),
+          storage.getFeeAssignmentsByPlayerId(enrollment.playerId),
+        ]);
+        const enrollmentAssignments = assignments.filter(a => a.enrollmentId === enrollment.id);
+        const outstanding = enrollmentAssignments.filter(a => a.status !== "paid" && a.status !== "cancelled");
+        const overdue = enrollmentAssignments.filter(a => a.status === "overdue");
+
+        return {
+          enrollmentId: enrollment.id,
+          playerId: enrollment.playerId,
+          playerName: player?.name || "Unknown",
+          teamId: enrollment.teamId,
+          teamName: team?.name || "Unknown",
+          feeType: enrollment.feeType,
+          paymentOption: enrollment.paymentOption,
+          totalAmount: enrollment.totalAmount,
+          amountPaid: enrollmentAssignments.reduce((sum, a) => sum + a.amountPaid, 0),
+          upToDate: outstanding.length === 0,
+          overdueCount: overdue.length,
+        };
+      }));
+
+      res.json({ success: true, season, overview });
+    } catch (error) {
+      console.error("Get fee schedule overview error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch season overview" });
+    }
+  });
+
+  // ============================================
+  // Team Mid-Week Training Flag (Coaches/Admins)
+  // ============================================
+
+  // PATCH /api/teams/:teamId/mid-week-training - Toggle whether a team trains mid-week
+  app.patch("/api/teams/:teamId/mid-week-training", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const { teamId } = req.params;
+      const { midWeekTraining } = req.body;
+      if (typeof midWeekTraining !== "boolean") {
+        return res.status(400).json({ success: false, error: "midWeekTraining must be a boolean" });
+      }
+
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ success: false, error: "Team not found" });
+
+      const user = await storage.getUser(userId);
+      const canManage = !!user && user.clubId === team.clubId && (user.roles?.includes("coach") || user.roles?.includes("admin"));
+      if (!canManage) return res.status(403).json({ success: false, error: "Access denied" });
+
+      const updatedTeam = await storage.updateTeam(teamId, { midWeekTraining });
+      res.json({ success: true, team: updatedTeam });
+    } catch (error) {
+      console.error("Update mid-week training error:", error);
+      res.status(500).json({ success: false, error: "Failed to update team" });
+    }
+  });
+
+  // ============================================
+  // Fee Enrollment Routes (Parents choose a season plan; Admins can enroll on their behalf)
+  // ============================================
+
+  // POST /api/fees/enroll - Enroll a player in a season fee plan and generate their fee assignments
+  app.post("/api/fees/enroll", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const validated = createFeeEnrollmentSchema.parse(req.body);
+      const player = await storage.getPlayer(validated.playerId);
+      if (!player) return res.status(404).json({ success: false, error: "Player not found" });
+
+      const team = await storage.getTeam(player.teamId);
+      if (!team) return res.status(404).json({ success: false, error: "Team not found" });
+
+      const user = await storage.getUser(userId);
+      const isOwnChild = player.parentId === userId;
+      const isAdminForClub = await isClubAdmin(userId, team.clubId);
+      if (!isOwnChild && !isAdminForClub) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      const schedule = await storage.getFeeSchedule(team.clubId, validated.season);
+      if (!schedule) {
+        return res.status(400).json({ success: false, error: `No fee schedule configured for season ${validated.season}` });
+      }
+
+      const existingEnrollment = await storage.getFeeEnrollmentByPlayerAndSeason(player.id, validated.season);
+      if (existingEnrollment) {
+        return res.status(400).json({ success: false, error: "Player is already enrolled for this season" });
+      }
+
+      const parent = await storage.getUser(player.parentId);
+      const parentIsCoach = parent?.roles?.includes("coach") || false;
+      const feeType = determineFeeType(parentIsCoach, team.midWeekTraining);
+      const { totalAmount, installments } = buildInstallmentPlan(schedule, feeType, validated.paymentOption, validated.season);
+
+      const enrollment = await storage.createFeeEnrollment({
+        id: `feeenr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        clubId: team.clubId,
+        season: validated.season,
+        playerId: player.id,
+        teamId: team.id,
+        parentUserId: player.parentId,
+        feeType,
+        paymentOption: validated.paymentOption,
+        totalAmount,
+        status: "active",
+      });
+
+      // Create one Fee + FeeAssignment per installment (or a single Fee for full payment)
+      const createdAssignments = [];
+      const clubFees = await storage.getFeesByClubId(team.clubId);
+      for (const item of installments) {
+        const feeName = validated.paymentOption === "full"
+          ? `${validated.season} Season Fees (Paid in Full)`
+          : `${validated.season} Season Fees - Installment ${item.installmentNumber}`;
+
+        let fee = clubFees.find(
+          f => f.name === feeName && new Date(f.dueDate).getTime() === item.dueDate.getTime()
+        );
+        if (!fee) {
+          fee = await storage.createFee({
+            id: `fee_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            clubId: team.clubId,
+            name: feeName,
+            description: `Auto-generated season fee (${feeType.replace("_", " ")})`,
+            amount: item.amount,
+            currency: "gbp",
+            dueDate: item.dueDate,
+            category: "subscription",
+            isRecurring: validated.paymentOption === "installments",
+            createdBy: userId,
+          });
+          clubFees.push(fee);
+        }
+
+        const assignment = await storage.createFeeAssignment({
+          id: `fa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          feeId: fee.id,
+          playerId: player.id,
+          teamId: team.id,
+          status: "pending",
+          amountDue: item.amount,
+          amountPaid: 0,
+          season: validated.season,
+          enrollmentId: enrollment.id,
+          installmentNumber: item.installmentNumber,
+        });
+        createdAssignments.push(assignment);
+      }
+
+      res.json({ success: true, enrollment, assignments: createdAssignments });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, error: error.errors });
+      }
+      console.error("Enroll fee error:", error);
+      res.status(500).json({ success: false, error: "Failed to enroll player in fee plan" });
+    }
+  });
+
+  // GET /api/fees/my-enrollments - Parent view: which children are enrolled for a given season
+  app.get("/api/fees/my-enrollments", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const season = (req.query.season as string) || "";
+      if (!season) return res.status(400).json({ success: false, error: "season query param required" });
+
+      const players = await storage.getPlayersByParentId(userId);
+      const results = await Promise.all(players.map(async (player) => {
+        const [team, enrollment] = await Promise.all([
+          storage.getTeam(player.teamId),
+          storage.getFeeEnrollmentByPlayerAndSeason(player.id, season),
+        ]);
+        return {
+          playerId: player.id,
+          playerName: player.name,
+          teamId: player.teamId,
+          teamName: team?.name || "Unknown",
+          enrolled: !!enrollment,
+          enrollment: enrollment || null,
+        };
+      }));
+
+      res.json({ success: true, season, players: results });
+    } catch (error) {
+      console.error("Get my enrollments error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch enrollment status" });
+    }
+  });
+
+  // GET /api/fees/my-status - Parent view: is each child up to date, or is a payment due/overdue?
+  app.get("/api/fees/my-status", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const players = await storage.getPlayersByParentId(userId);
+
+      const statuses = await Promise.all(players.map(async (player) => {
+        const assignments = await storage.getFeeAssignmentsByPlayerId(player.id);
+        const enriched = await Promise.all(assignments.map(async (a) => {
+          const fee = await storage.getFee(a.feeId);
+          return { ...a, dueDate: fee?.dueDate ?? null, feeName: fee?.name ?? "Unknown" };
+        }));
+
+        const outstanding = enriched
+          .filter(a => (a.status === "pending" || a.status === "overdue" || a.status === "partial") && a.dueDate)
+          .sort((a, b) => new Date(a.dueDate as any).getTime() - new Date(b.dueDate as any).getTime());
+
+        const next = outstanding[0];
+
+        return {
+          playerId: player.id,
+          playerName: player.name,
+          upToDate: !next,
+          nextPayment: next ? {
+            feeAssignmentId: next.id,
+            feeName: next.feeName,
+            amount: next.amountDue - next.amountPaid,
+            dueDate: next.dueDate,
+            isOverdue: next.status === "overdue",
+          } : null,
+          outstandingCount: outstanding.length,
+        };
+      }));
+
+      res.json({ success: true, statuses });
+    } catch (error) {
+      console.error("Get fee status error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch fee status" });
+    }
+  });
+
+  // GET /api/fees/team-status/:teamId - Coach view: who on the team is up to date and who isn't
+  app.get("/api/fees/team-status/:teamId", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const { teamId } = req.params;
+      const team = await storage.getTeam(teamId);
+      if (!team) return res.status(404).json({ success: false, error: "Team not found" });
+
+      const user = await storage.getUser(userId);
+      const canView = !!user && user.clubId === team.clubId && (user.roles?.includes("coach") || user.roles?.includes("admin"));
+      if (!canView) return res.status(403).json({ success: false, error: "Access denied" });
+
+      const players = await storage.getPlayersByTeamId(teamId);
+      const statuses = await Promise.all(players.map(async (player) => {
+        const assignments = await storage.getFeeAssignmentsByPlayerId(player.id);
+        const outstanding = assignments.filter(a => a.status === "pending" || a.status === "overdue" || a.status === "partial");
+        const overdueCount = assignments.filter(a => a.status === "overdue").length;
+        return {
+          playerId: player.id,
+          playerName: player.name,
+          upToDate: outstanding.length === 0,
+          outstandingCount: outstanding.length,
+          overdueCount,
+        };
+      }));
+
+      res.json({
+        success: true,
+        team: { id: team.id, name: team.name, midWeekTraining: team.midWeekTraining },
+        statuses,
+      });
+    } catch (error) {
+      console.error("Get team fee status error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch team fee status" });
+    }
+  });
+
+  // ============================================
+  // Reminder / Chaser Email Routes (Admins Only)
+  // ============================================
+
+  // POST /api/fees/assignments/:id/remind - Manually send a chaser email for one fee assignment
+  app.post("/api/fees/assignments/:id/remind", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const user = await storage.getUser(userId);
+      if (!user?.roles?.includes("admin")) return res.status(403).json({ success: false, error: "Admin access required" });
+
+      const { id } = req.params;
+      const assignment = await storage.getFeeAssignment(id);
+      if (!assignment) return res.status(404).json({ success: false, error: "Fee assignment not found" });
+
+      const team = await storage.getTeam(assignment.teamId);
+      if (!team || team.clubId !== user.clubId) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+
+      const result = await sendReminderForAssignment(id);
+      if (!result.success) {
+        return res.status(400).json({ success: false, error: result.error || "Failed to send reminder" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Send reminder error:", error);
+      res.status(500).json({ success: false, error: "Failed to send reminder" });
+    }
+  });
+
+  // POST /api/fees/reminders/run-now - Admin-triggered run of the background reminder sweep (for testing)
+  app.post("/api/fees/reminders/run-now", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const user = await storage.getUser(userId);
+      if (!user?.roles?.includes("admin")) return res.status(403).json({ success: false, error: "Admin access required" });
+
+      const result = await runFeeReminderSweepNow();
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error("Run reminder sweep error:", error);
+      res.status(500).json({ success: false, error: "Failed to run reminder sweep" });
     }
   });
 
