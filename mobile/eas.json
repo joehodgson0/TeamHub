@@ -28,7 +28,7 @@
   "submit": {
     "production": {
       "android": {
-        "serviceAccountKeyPath": "../teamhub-494016-6bfcb34c7a2b_1786440016223.json",
+        "serviceAccountKeyPath": "../teamhub-494016-68b02d200e81.json",
         "track": "internal"
       }
     }

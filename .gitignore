@@ -12,3 +12,6 @@ mobile/.expo
 mobile/dist
 mobile/web-build
 mobile/.metro-health-check*
+# Google Play service account keys - never commit
+teamhub-494016-*.json
+attached_assets/teamhub-494016-*.json
