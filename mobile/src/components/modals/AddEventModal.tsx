@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -17,7 +17,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { invalidateEventData } from '@/lib/queryKeys';
 import { API_BASE_URL } from '@/lib/config';
 import { Checkbox } from '@/components/ui/Checkbox';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 interface AddEventModalProps {
   visible: boolean;
@@ -49,9 +49,9 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   const [selectedTeamId, setSelectedTeamId] = useState('');
   
   // Date/Time picker state - date and time are always picked as two separate native steps
-  const [activePicker, setActivePicker] = useState<{ field: 'start' | 'end'; mode: 'date' | 'time' } | null>(null);
-  // iOS spinner fires onChange continuously while scrolling, so its value is staged until "Done" is pressed
-  const [iosTempDate, setIosTempDate] = useState<Date>(new Date());
+  const [activePicker, setActivePicker] = useState<{ field: 'start' | 'end'; step: 'date' | 'time' } | null>(null);
+  // Holds the next step to open once the current picker has fully closed (avoids racing the close animation)
+  const pendingNextStepRef = useRef<{ field: 'start' | 'end'; step: 'date' | 'time' } | null>(null);
 
   // Populate form when editing, reset when not
   useEffect(() => {
@@ -172,49 +172,49 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       return;
     }
 
-    setIosTempDate(dateToShow);
-    setActivePicker({ field: dateTimeType, mode: 'date' });
+    setActivePicker({ field: dateTimeType, step: 'date' });
   };
 
-  // Handles both the date and time steps, merging the selection into the existing Date
-  const handlePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+  // Merges the confirmed date (or time) into the field being edited, then queues the next step
+  const handlePickerConfirm = (selected: Date) => {
     const current = activePicker;
     if (!current) return;
-
-    // Android's native dialogs are one-shot and dismiss themselves
-    if (Platform.OS === 'android') setActivePicker(null);
-
-    if (event.type === 'dismissed' || !selected) {
-      if (Platform.OS !== 'android') setActivePicker(null);
-      return;
-    }
 
     const base = current.field === 'start' ? startDateTime : endDateTime;
     const merged = new Date(base);
 
-    if (current.mode === 'date') {
+    if (current.step === 'date') {
       merged.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
-      if (current.field === 'start') setStartDateTime(merged); else setEndDateTime(merged);
-      // Chain into the time step ourselves instead of relying on a combined "datetime" mode
-      setIosTempDate(merged);
-      setActivePicker({ field: current.field, mode: 'time' });
-      return;
+    } else {
+      merged.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
     }
 
-    merged.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
     if (current.field === 'start') {
       setStartDateTime(merged);
       // Keep end time 2 hours after start, unless it's already further ahead
-      setEndDateTime(prev => (prev > merged ? prev : new Date(merged.getTime() + 2 * 60 * 60 * 1000)));
+      if (current.step === 'time') {
+        setEndDateTime(prev => (prev > merged ? prev : new Date(merged.getTime() + 2 * 60 * 60 * 1000)));
+      }
     } else {
       setEndDateTime(merged);
     }
+
+    // Queue the time step after the date step closes instead of relying on a combined "datetime" mode
+    pendingNextStepRef.current = current.step === 'date' ? { field: current.field, step: 'time' } : null;
     setActivePicker(null);
   };
 
-  // iOS spinner has no built-in confirm button, so "Done" applies the staged value explicitly
-  const confirmIosPicker = () => {
-    handlePickerChange({ type: 'set' } as DateTimePickerEvent, iosTempDate);
+  const handlePickerCancel = () => {
+    pendingNextStepRef.current = null;
+    setActivePicker(null);
+  };
+
+  // Only open the next step once the previous picker has fully closed, avoiding the close-animation race
+  const handlePickerHide = () => {
+    if (pendingNextStepRef.current) {
+      setActivePicker(pendingNextStepRef.current);
+      pendingNextStepRef.current = null;
+    }
   };
 
   const formatDateTime = (date: Date) => {
@@ -507,42 +507,16 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Android's date/time dialogs are native and self-dismissing, so render inline */}
-      {activePicker && Platform.OS === 'android' && (
-        <DateTimePicker
-          value={activePicker.field === 'start' ? startDateTime : endDateTime}
-          mode={activePicker.mode}
-          display="default"
-          minimumDate={activePicker.field === 'end' ? startDateTime : undefined}
-          onChange={handlePickerChange}
-        />
-      )}
-
-      {/* iOS spinner has no native container, so it's wrapped in its own overlay with Cancel/Done */}
-      {activePicker && Platform.OS === 'ios' && (
-        <View style={styles.iosPickerOverlay}>
-          <View style={styles.iosPickerSheet}>
-            <View style={styles.iosPickerHeader}>
-              <TouchableOpacity onPress={() => setActivePicker(null)}>
-                <Text style={styles.iosPickerCancel}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={styles.iosPickerTitle}>
-                {activePicker.mode === 'date' ? 'Select Date' : 'Select Time'}
-              </Text>
-              <TouchableOpacity onPress={confirmIosPicker}>
-                <Text style={styles.iosPickerDone}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            <DateTimePicker
-              value={iosTempDate}
-              mode={activePicker.mode}
-              display="spinner"
-              minimumDate={activePicker.field === 'end' ? startDateTime : undefined}
-              onChange={(_event, selected) => selected && setIosTempDate(selected)}
-            />
-          </View>
-        </View>
-      )}
+      <DateTimePickerModal
+        isVisible={!!activePicker}
+        mode={activePicker?.step || 'date'}
+        date={activePicker ? (activePicker.field === 'start' ? startDateTime : endDateTime) : new Date()}
+        minimumDate={activePicker?.field === 'end' ? startDateTime : undefined}
+        display={activePicker?.step === 'date' && Platform.OS === 'ios' ? 'inline' : undefined}
+        onConfirm={handlePickerConfirm}
+        onCancel={handlePickerCancel}
+        onHide={handlePickerHide}
+      />
     </Modal>
   );
 }
@@ -718,42 +692,6 @@ const styles = StyleSheet.create({
   changeText: {
     color: '#007AFF',
     fontSize: 14,
-    fontWeight: '600',
-  },
-  iosPickerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  iosPickerSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  iosPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  iosPickerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  iosPickerCancel: {
-    fontSize: 16,
-    color: '#666',
-  },
-  iosPickerDone: {
-    fontSize: 16,
-    color: '#007AFF',
     fontWeight: '600',
   },
 });
