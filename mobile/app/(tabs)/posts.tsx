@@ -361,21 +361,31 @@ function Posts() {
       <Modal
         visible={showCreateModal}
         animationType="slide"
-        transparent={true}
+        presentationStyle="pageSheet"
         onRequestClose={() => setShowCreateModal(false)}
       >
         <KeyboardAvoidingView
+          style={styles.pageContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
+          keyboardVerticalOffset={0}
         >
-          <View style={styles.modalContent}>
+          <View style={styles.pageHeader}>
+            <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+              <Text style={styles.pageCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.pageHeaderTitle}>Create Post</Text>
+            <TouchableOpacity onPress={handleCreatePost} disabled={createPostMutation.isPending}>
+              <Text style={[styles.pageSaveText, createPostMutation.isPending && styles.pageSaveTextDisabled]}>
+                {createPostMutation.isPending ? 'Creating...' : 'Create'}
+              </Text>
+            </TouchableOpacity>
+          </View>
             <ScrollView 
               ref={createScrollRef}
+              style={styles.pageContent}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.modalTitle}>Create Post</Text>
-
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Type</Text>
                 <View style={styles.typeButtons}>
@@ -518,25 +528,7 @@ function Posts() {
                 />
               </View>
 
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setShowCreateModal(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.submitButton]}
-                  onPress={handleCreatePost}
-                  disabled={createPostMutation.isPending}
-                >
-                  <Text style={styles.submitButtonText}>
-                    {createPostMutation.isPending ? 'Creating...' : 'Create Post'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </ScrollView>
-          </View>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -544,32 +536,36 @@ function Posts() {
       <Modal
         visible={showEditModal}
         animationType="slide"
-        transparent={true}
+        presentationStyle="pageSheet"
         onRequestClose={() => setShowEditModal(false)}
       >
         <KeyboardAvoidingView
+          style={styles.pageContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
+          keyboardVerticalOffset={0}
         >
-          <View style={styles.modalContent}>
+          <View style={styles.pageHeader}>
+            <TouchableOpacity
+              onPress={() => {
+                setShowEditModal(false);
+                setFormData({ type: 'announcement', scope: 'team', teamId: '', title: '', content: '' });
+              }}
+            >
+              <Text style={styles.pageCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.pageHeaderTitle}>Edit Post</Text>
+            <TouchableOpacity onPress={handleUpdatePost} disabled={updatePostMutation.isPending}>
+              <Text style={[styles.pageSaveText, updatePostMutation.isPending && styles.pageSaveTextDisabled]}>
+                {updatePostMutation.isPending ? 'Updating...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </View>
             <ScrollView 
               ref={editScrollRef}
-              style={styles.modalScrollView}
+              style={styles.pageContent}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Post</Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowEditModal(false);
-                    setFormData({ type: 'announcement', scope: 'team', teamId: '', title: '', content: '' });
-                  }}
-                >
-                  <Text style={styles.closeButton}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Type</Text>
                 <View style={styles.radioGroup}>
@@ -675,28 +671,7 @@ function Posts() {
                 />
               </View>
 
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => {
-                    setShowEditModal(false);
-                    setFormData({ type: 'announcement', scope: 'team', teamId: '', title: '', content: '' });
-                  }}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.submitButton]}
-                  onPress={handleUpdatePost}
-                  disabled={updatePostMutation.isPending}
-                >
-                  <Text style={styles.submitButtonText}>
-                    {updatePostMutation.isPending ? 'Updating...' : 'Update Post'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </ScrollView>
-          </View>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -879,23 +854,37 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
   },
-  modalOverlay: {
+  pageContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 40,
-    maxHeight: '90%',
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  pageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  pageHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  pageCancelText: {
+    fontSize: 16,
+    color: '#007AFF',
+  },
+  pageSaveText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  pageSaveTextDisabled: {
+    color: '#999',
+  },
+  pageContent: {
+    flex: 1,
+    padding: 20,
   },
   inputGroup: {
     marginBottom: 16,
@@ -994,31 +983,6 @@ const styles = StyleSheet.create({
   },
   teamButtonTextActive: {
     color: '#007AFF',
-    fontWeight: '600',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
-  },
-  modalButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  cancelButtonText: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: '#007AFF',
-  },
-  submitButtonText: {
-    color: '#fff',
     fontWeight: '600',
   },
   deleteDialogOverlay: {
