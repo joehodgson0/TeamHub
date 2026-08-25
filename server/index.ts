@@ -270,7 +270,7 @@ function setupProductionBuild() {
     
     server.listen({
       port,
-      host: "127.0.0.1"
+      host: "0.0.0.0" // bind all interfaces so LAN devices (e.g. Expo Go on a phone) can reach it
     }, () => {
       log(`serving on port ${port}`);
       console.log(`[startup] ✅ Server successfully started in ${process.env.NODE_ENV} mode`);
