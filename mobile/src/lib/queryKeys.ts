@@ -8,7 +8,6 @@ export const queryKeys = {
   teamsByClub: (clubId?: string) => (clubId ? ['/api/teams/club', clubId] : ['/api/teams/club']),
   club: (clubId?: string) => (clubId ? ['/api/clubs', clubId] : ['/api/clubs']),
   eventsAll: ['/api/events/all-session'],
-  eventsUpcoming: ['/api/events/upcoming-session'],
   posts: ['/api/posts-session'],
   matchResults: ['/api/match-results-session'],
   matchResultByFixture: (fixtureId?: string) =>
@@ -26,7 +25,6 @@ export function invalidatePlayerData(opts: { userId?: string; clubId?: string; t
     queryClient.invalidateQueries({ queryKey: queryKeys.playersByTeam(teamId) }),
     queryClient.invalidateQueries({ queryKey: queryKeys.teamsByClub(clubId) }),
     queryClient.invalidateQueries({ queryKey: queryKeys.eventsAll }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.eventsUpcoming }),
     queryClient.invalidateQueries({ queryKey: queryKeys.posts }),
     queryClient.invalidateQueries({ queryKey: queryKeys.matchResults }),
     queryClient.invalidateQueries({ queryKey: queryKeys.feesMyStatus }),
@@ -43,10 +41,7 @@ export function invalidateTeamData(clubId?: string) {
 }
 
 export function invalidateEventData() {
-  return Promise.all([
-    queryClient.invalidateQueries({ queryKey: queryKeys.eventsAll }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.eventsUpcoming }),
-  ]);
+  return queryClient.invalidateQueries({ queryKey: queryKeys.eventsAll });
 }
 
 export function invalidatePostData() {
@@ -57,7 +52,6 @@ export function invalidateMatchResultData(fixtureId?: string) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.matchResultByFixture(fixtureId) }),
     queryClient.invalidateQueries({ queryKey: queryKeys.eventsAll }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.eventsUpcoming }),
     queryClient.invalidateQueries({ queryKey: queryKeys.matchResults }),
     queryClient.invalidateQueries({ queryKey: queryKeys.teamsByClub() }),
   ]);
@@ -70,8 +64,8 @@ export function invalidateFeeData(teamId?: string) {
   ]);
 }
 
-// Used by pull-to-refresh: invalidates every query, refetching whatever is
-// currently mounted so a manual refresh always brings the visible screen up to date.
+// Used by pull-to-refresh: force-refetches every cached query (mounted or not), so a manual
+// refresh always brings all data up to date instead of silently skipping inactive screens.
 export function refreshAllVisibleData() {
-  return queryClient.invalidateQueries();
+  return queryClient.invalidateQueries({ refetchType: 'all' });
 }

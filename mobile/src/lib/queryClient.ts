@@ -8,7 +8,8 @@ export const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 15, // 15 minutes - keep data in memory across all tab switches
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      refetchOnMount: false, // Never refetch on mount if data exists — use pull-to-refresh instead
+      // refetchOnMount left at its default (true): a query invalidated while its screen
+      // was unmounted must still refetch once mounted, otherwise it stays stale until gcTime evicts it.
       networkMode: 'always', // Never pause queries due to React Native network detection
       retry: 0, // Fail fast — don't retry, keeps the UI responsive on error
     },

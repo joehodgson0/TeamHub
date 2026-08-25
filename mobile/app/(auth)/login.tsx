@@ -12,9 +12,9 @@ const prefetchTabData = async (user: any) => {
   
   const prefetchPromises = [
     queryClient.prefetchQuery({
-      queryKey: ['/api/events/upcoming-session'],
+      queryKey: ['/api/events/all-session'],
       queryFn: async () => {
-        const response = await fetch(`${API_BASE_URL}/api/events/upcoming-session`, { credentials: 'include' });
+        const response = await fetch(`${API_BASE_URL}/api/events/all-session`, { credentials: 'include' });
         return response.json();
       },
       staleTime: 1000 * 60 * 5,

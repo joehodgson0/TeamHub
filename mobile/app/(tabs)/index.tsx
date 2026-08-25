@@ -25,12 +25,13 @@ function Dashboard() {
     setRefreshing(false);
   };
 
-  // Fetch upcoming events - load instantly from cache, fetch in background
+  // Fetch all events (same cache/key as the Events tab) - filtered down to "upcoming" below,
+  // so this widget and the Events tab always agree on what exists instead of drifting apart.
   const { data: eventsResponse } = useQuery({
-    queryKey: ["/api/events/upcoming-session"],
+    queryKey: ["/api/events/all-session"],
     queryFn: async () => {
       const response = await fetch(
-        `${API_BASE_URL}/api/events/upcoming-session`,
+        `${API_BASE_URL}/api/events/all-session`,
         {
           credentials: "include",
         },
@@ -114,24 +115,28 @@ function Dashboard() {
   // Memoize filtered events - prevents recalculation on every render
   const upcomingEvents = useMemo(() => {
     if (!eventsResponse?.events) return [];
+    const now = Date.now();
     let events = eventsResponse.events.filter(
-      (event: any) => event.type !== "match" && event.type !== "friendly",
+      (event: any) => event.type !== "match" && event.type !== "friendly" && new Date(event.startTime).getTime() >= now,
     );
     if (relevantTeamIds.size > 0) {
       events = events.filter((event: any) => relevantTeamIds.has(event.teamId));
     }
+    events.sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
     return events.slice(0, 3);
   }, [eventsResponse?.events, relevantTeamIds]);
 
   // Memoize filtered fixtures
   const upcomingFixtures = useMemo(() => {
     if (!eventsResponse?.events) return [];
+    const now = Date.now();
     let fixtures = eventsResponse.events.filter(
-      (event: any) => event.type === "match" || event.type === "friendly",
+      (event: any) => (event.type === "match" || event.type === "friendly") && new Date(event.startTime).getTime() >= now,
     );
     if (relevantTeamIds.size > 0) {
       fixtures = fixtures.filter((event: any) => relevantTeamIds.has(event.teamId));
     }
+    fixtures.sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
     return fixtures.slice(0, 3);
   }, [eventsResponse?.events, relevantTeamIds]);
 
