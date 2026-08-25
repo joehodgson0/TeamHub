@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
-import { queryClient } from '@/lib/queryClient';
+import { refreshAllVisibleData } from '@/lib/queryKeys';
 import CreateTeamModal from '@/components/modals/CreateTeamModal';
 
 export default function Teams() {
@@ -16,10 +16,7 @@ export default function Teams() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] }),
-      queryClient.invalidateQueries({ queryKey: ['/api/clubs', user?.clubId] }),
-    ]);
+    await refreshAllVisibleData();
     setRefreshing(false);
   };
 

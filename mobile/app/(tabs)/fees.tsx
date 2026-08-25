@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
+import { invalidateFeeData, refreshAllVisibleData } from '@/lib/queryKeys';
 import { useState } from 'react';
 
 interface ChildStatus {
@@ -49,7 +50,7 @@ function ParentFeeStatus({ userId }: { userId: string }) {
       });
       if (result.success) {
         Alert.alert('Payment made', 'Payment successful (mocked - no real card charged).');
-        queryClient.invalidateQueries({ queryKey: ['/api/fees/my-status'] });
+        invalidateFeeData();
       } else {
         Alert.alert('Payment failed', result.error || 'Please try again.');
       }
@@ -189,6 +190,13 @@ function AdminScheduleSummary({ clubId }: { clubId?: string }) {
 
 export default function Fees() {
   const { user, isAdmin, isCoach, isParent } = useUser();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshAllVisibleData();
+    setRefreshing(false);
+  };
 
   if (!isAdmin) {
     return (
@@ -203,7 +211,10 @@ export default function Fees() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <View style={styles.content}>
         <Text style={styles.title}>Fees & Payments</Text>
         <AdminScheduleSummary clubId={user?.clubId} />

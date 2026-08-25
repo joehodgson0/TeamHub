@@ -13,7 +13,7 @@ import {
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
-import { queryClient } from '@/lib/queryClient';
+import { invalidateEventData } from '@/lib/queryKeys';
 
 interface AvailabilityModalProps {
   visible: boolean;
@@ -67,8 +67,7 @@ export function AvailabilityModal({ visible, onClose, event }: AvailabilityModal
         ...prev,
         [playerId]: availability,
       }));
-      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+      invalidateEventData();
       Alert.alert('Success', 'Availability updated successfully');
     },
     onError: (error: any) => {

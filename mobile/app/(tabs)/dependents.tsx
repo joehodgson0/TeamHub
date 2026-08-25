@@ -2,13 +2,14 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput,
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
+import { invalidatePlayerData } from '@/lib/queryKeys';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 export default function Dependents() {
-  const { user } = useUser();
+  const { user, refreshUser } = useUser();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [formData, setFormData] = useState({
@@ -78,29 +79,15 @@ export default function Dependents() {
       
       return result;
     },
-    onSuccess: (result) => {
-      // Manually update user cache if clubId was set (first dependent)
-      if (result.clubId && user) {
-        const currentUser = queryClient.getQueryData(['/api/auth/user-session']);
-        if (currentUser) {
-          queryClient.setQueryData(['/api/auth/user-session'], {
-            ...currentUser,
-            user: {
-              ...(currentUser as any).user,
-              clubId: result.clubId,
-            }
-          });
-        }
+    onSuccess: async (result) => {
+      // Server assigns clubId on the parent's first dependent; refresh user context to pick it up
+      if (result.clubId && !user?.clubId) {
+        await refreshUser();
       }
-      
-      // Invalidate all relevant queries to reflect the new team association
-      queryClient.invalidateQueries({ queryKey: ['/api/players/parent', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user?.clubId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/match-results-session'] });
-      
+
+      // Refresh every screen that depends on player/team data (roster, counts, events, posts, fees)
+      await invalidatePlayerData({ userId: user?.id, clubId: user?.clubId || result.clubId, teamId: result.player?.teamId });
+
       setShowAddModal(false);
       // Reset form with Date object, not empty string
       setFormData({ 

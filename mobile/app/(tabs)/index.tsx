@@ -8,7 +8,7 @@ import {
 import { useState, useMemo, memo } from "react";
 import { useUser } from "@/context/UserContext";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { refreshAllVisibleData } from "@/lib/queryKeys";
 import { API_BASE_URL } from "@/lib/config";
 import { UpcomingEventsWidget } from "@/components/widgets/UpcomingEventsWidget";
 import { UpcomingFixturesWidget } from "@/components/widgets/UpcomingFixturesWidget";
@@ -21,11 +21,7 @@ function Dashboard() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming-session"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/match-results-session"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/posts-session"] }),
-    ]);
+    await refreshAllVisibleData();
     setRefreshing(false);
   };
 

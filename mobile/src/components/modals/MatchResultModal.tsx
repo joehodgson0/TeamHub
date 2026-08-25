@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { queryClient } from '@/lib/queryClient';
+import { invalidateMatchResultData } from '@/lib/queryKeys';
 import { API_BASE_URL } from '@/lib/config';
 
 interface MatchResultModalProps {
@@ -79,11 +79,7 @@ export function MatchResultModal({ visible, fixture, onClose }: MatchResultModal
     },
     onSuccess: (result) => {
       if (result.success) {
-        queryClient.invalidateQueries({ queryKey: ['/api/match-results/fixture', fixture.id] });
-        queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/match-results-session'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/teams/club'] });
+        invalidateMatchResultData(fixture.id);
         Alert.alert('Success', 'Match result saved successfully!');
         onClose();
       } else {

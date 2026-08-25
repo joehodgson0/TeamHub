@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
+import { invalidateEventData } from '@/lib/queryKeys';
 import { API_BASE_URL } from '@/lib/config';
 import { Checkbox } from '@/components/ui/Checkbox';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -120,8 +121,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+      invalidateEventData();
       Alert.alert('Success', 'Event created successfully');
       resetForm();
       onClose();
@@ -139,8 +139,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+      invalidateEventData();
       Alert.alert('Success', 'Event updated successfully');
       resetForm();
       onClose();

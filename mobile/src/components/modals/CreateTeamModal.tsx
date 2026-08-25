@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Modal, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
-import { queryClient } from '@/lib/queryClient';
+import { invalidateTeamData } from '@/lib/queryKeys';
 
 interface CreateTeamModalProps {
   visible: boolean;
@@ -50,7 +50,7 @@ export default function CreateTeamModal({ visible, onClose }: CreateTeamModalPro
         await refreshUser();
         
         // Refresh the teams list
-        queryClient.invalidateQueries({ queryKey: ['/api/teams/club', user.clubId] });
+        await invalidateTeamData(user.clubId);
         
         Alert.alert(
           'Team Created Successfully',

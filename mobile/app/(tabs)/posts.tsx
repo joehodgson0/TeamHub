@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput,
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
-import { queryClient } from '@/lib/queryClient';
+import { invalidatePostData, refreshAllVisibleData } from '@/lib/queryKeys';
 import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { Button } from '@/components/ui/Button';
 
@@ -27,7 +27,7 @@ function Posts() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
+    await refreshAllVisibleData();
     setRefreshing(false);
   };
 
@@ -110,7 +110,7 @@ function Posts() {
     },
     onSuccess: (result) => {
       if (result.success) {
-        queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
+        invalidatePostData();
         setShowCreateModal(false);
         setFormData({ type: 'announcement', scope: 'team', teamId: '', title: '', content: '' });
         Alert.alert('Success', 'Post created successfully!');
@@ -134,7 +134,7 @@ function Posts() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
+      invalidatePostData();
       Alert.alert('Success', 'Post deleted successfully!');
       setShowDeleteDialog(false);
       setSelectedPost(null);
@@ -157,7 +157,7 @@ function Posts() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/posts-session'] });
+      invalidatePostData();
       Alert.alert('Success', 'Post updated successfully!');
       setShowEditModal(false);
       setSelectedPost(null);

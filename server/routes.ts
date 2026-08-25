@@ -704,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         playerIds: updatedPlayerIds
       });
 
-      res.json({ success: true, player: newPlayer, team: team.name });
+      res.json({ success: true, player: newPlayer, team: team.name, clubId: team.clubId });
     } catch (error) {
       console.error("Create player error:", error);
       res.status(500).json({ success: false, error: "Failed to create player" });

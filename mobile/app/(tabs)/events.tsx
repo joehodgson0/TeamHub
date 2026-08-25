@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshCon
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
-import { queryClient } from '@/lib/queryClient';
+import { invalidateEventData, refreshAllVisibleData } from '@/lib/queryKeys';
 import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,7 +17,7 @@ function Events() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
+    await refreshAllVisibleData();
     setRefreshing(false);
   };
 
@@ -80,7 +80,7 @@ function Events() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
+      invalidateEventData();
       Alert.alert('Success', 'Event deleted successfully');
     },
     onError: () => {
@@ -102,7 +102,7 @@ function Events() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
+      invalidateEventData();
     },
     onError: (error: any) => {
       Alert.alert('Error', error?.message || 'Failed to update availability');
