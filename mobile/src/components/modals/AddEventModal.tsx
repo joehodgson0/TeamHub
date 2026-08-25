@@ -48,11 +48,9 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   const [friendly, setFriendly] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState('');
   
-  // Date/Time picker state for sequential flow
+  // Date/Time picker state
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const [editingDateTime, setEditingDateTime] = useState<'start' | 'end'>('start');
-  const [tempDate, setTempDate] = useState<Date>(() => new Date());
 
   // Populate form when editing, reset when not
   useEffect(() => {
@@ -161,72 +159,40 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     setFriendly(false);
     setSelectedTeamId(teams[0]?.id || '');
     setShowDateTimePicker(false);
-    setPickerMode('date');
     setEditingDateTime('start');
-    setTempDate(new Date());
   };
 
-  // Handle opening the date/time picker sequence
+  // Handle opening the date/time picker
   const openDateTimePicker = (dateTimeType: 'start' | 'end') => {
     const dateToShow = dateTimeType === 'start' ? startDateTime : endDateTime;
-    
+
     // Validate the date is a proper Date object and is valid
     if (!dateToShow || !(dateToShow instanceof Date) || isNaN(dateToShow.getTime())) {
       Alert.alert('Error', 'Unable to open date picker. Please refresh and try again.');
       return;
     }
-    
+
     setEditingDateTime(dateTimeType);
-    setPickerMode('date');
-    setTempDate(new Date(dateToShow.getTime())); // new instance to guarantee key change
     setShowDateTimePicker(true);
   };
 
-  // Handle date selection (then show time picker)
-  const handleDateConfirm = (selectedDate: Date) => {
-    // Preserve the time from the original datetime when changing the date
-    const originalDateTime = editingDateTime === 'start' ? startDateTime : endDateTime;
-    const combined = new Date(selectedDate);
-    combined.setHours(originalDateTime.getHours());
-    combined.setMinutes(originalDateTime.getMinutes());
-    combined.setSeconds(0);
-    combined.setMilliseconds(0);
-    
-    setTempDate(combined);
-    setShowDateTimePicker(false);
-    
-    // Delay to let the native picker fully dismiss before reopening in time mode
-    setTimeout(() => {
-      setPickerMode('time');
-      setShowDateTimePicker(true);
-    }, 300);
-  };
-
-  // Handle time selection (final step)
-  const handleTimeConfirm = (selectedTime: Date) => {
-    // Combine the date from tempDate with time from selectedTime
-    const combined = new Date(tempDate);
-    combined.setHours(selectedTime.getHours());
-    combined.setMinutes(selectedTime.getMinutes());
-    combined.setSeconds(0);
-    combined.setMilliseconds(0);
-
+  // Handle date+time selection in a single step
+  const handleDateTimeConfirm = (selectedDateTime: Date) => {
     if (editingDateTime === 'start') {
-      setStartDateTime(combined);
-      // Auto-update end time to be 2 hours later
-      setEndDateTime(new Date(combined.getTime() + 2 * 60 * 60 * 1000));
+      setStartDateTime(selectedDateTime);
+      // Keep end time 2 hours after start, unless it's already further ahead
+      setEndDateTime(prev =>
+        prev > selectedDateTime ? prev : new Date(selectedDateTime.getTime() + 2 * 60 * 60 * 1000)
+      );
     } else {
-      setEndDateTime(combined);
+      setEndDateTime(selectedDateTime);
     }
-
     setShowDateTimePicker(false);
-    setPickerMode('date'); // Reset for next time
   };
 
   // Handle cancel
   const handlePickerCancel = () => {
     setShowDateTimePicker(false);
-    setPickerMode('date'); // Reset for next time
   };
 
   const formatDateTime = (date: Date) => {
@@ -519,14 +485,12 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Sequential Date/Time Picker — key forces remount so native picker initializes with correct date */}
       <DateTimePickerModal
-        key={`${editingDateTime}-${pickerMode}-${tempDate.getTime()}`}
         isVisible={showDateTimePicker}
-        mode={pickerMode}
-        date={tempDate}
+        mode="datetime"
+        date={editingDateTime === 'start' ? startDateTime : endDateTime}
         minimumDate={editingDateTime === 'end' ? startDateTime : undefined}
-        onConfirm={pickerMode === 'date' ? handleDateConfirm : handleTimeConfirm}
+        onConfirm={handleDateTimeConfirm}
         onCancel={handlePickerCancel}
       />
     </Modal>
