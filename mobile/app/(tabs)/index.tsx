@@ -166,8 +166,7 @@ function Dashboard() {
           teamIds.includes(post.teamId)
         );
       });
-      const announcementPosts = parentPosts.filter((post: any) => post.type === "announcement");
-      filteredPosts.push(...announcementPosts);
+      filteredPosts.push(...parentPosts);
     } else if (user?.clubId) {
       const clubPosts = posts.filter((post: any) => 
         post.clubId === user?.clubId && !post.teamId
