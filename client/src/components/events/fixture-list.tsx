@@ -12,10 +12,29 @@ import EditFixtureModal from "@/components/modals/edit-fixture-modal";
 import MatchResultModal from "@/components/modals/match-result-modal";
 import type { Fixture } from "@shared/schema";
 
-function PlayerAvailabilityBreakdown({ fixture }: { fixture: any }) {
+function PlayerAvailabilityBreakdown({ fixture, canManage }: { fixture: any; canManage: boolean }) {
+  const { toast } = useToast();
   const { data: playersResponse, isLoading } = useQuery<{ success: boolean; players: any[] }>({
     queryKey: ['/api/players/team', fixture.teamId],
     enabled: !!fixture.teamId,
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: async ({ playerId, status, kind }: { playerId: string; status: string; kind: "availability" | "attendance" }) => {
+      const response = await fetch(`/api/events/${fixture.id}/${kind}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ playerId, [kind]: status }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
+    },
+    onError: (error: Error) => toast({ variant: "destructive", title: "Update failed", description: error.message }),
   });
 
   if (isLoading) {
@@ -24,6 +43,7 @@ function PlayerAvailabilityBreakdown({ fixture }: { fixture: any }) {
 
   const players = playersResponse?.players || [];
   if (players.length === 0) return null;
+  const hasStarted = new Date() >= new Date(fixture.startTime);
 
   const groups = {
     available: players.filter((player) => fixture.availability?.[player.id] === "available"),
@@ -49,6 +69,51 @@ function PlayerAvailabilityBreakdown({ fixture }: { fixture: any }) {
         <p className="text-xs font-semibold text-amber-800">Awaiting response ({groups.pending.length})</p>
         <p className="mt-1 text-xs text-amber-700">{renderNames(groups.pending)}</p>
       </div>
+      {canManage && (
+        <div className="sm:col-span-3 mt-1 space-y-2">
+          <p className="text-sm font-semibold">
+            {hasStarted ? "Verify actual attendance" : "Set player availability"}
+          </p>
+          {players.map((player) => {
+            const status = hasStarted
+              ? fixture.attendance?.[player.id]
+              : fixture.availability?.[player.id] || "pending";
+            return (
+              <div key={player.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-2">
+                <span className="text-sm font-medium">{player.name}</span>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant={status === (hasStarted ? "attended" : "available") ? "default" : "outline"}
+                    className="h-7 px-2 text-xs"
+                    disabled={updateStatus.isPending}
+                    onClick={() => updateStatus.mutate({
+                      playerId: player.id,
+                      status: hasStarted ? "attended" : "available",
+                      kind: hasStarted ? "attendance" : "availability",
+                    })}
+                  >
+                    {hasStarted ? "Attended" : "Available"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={status === (hasStarted ? "absent" : "unavailable") ? "destructive" : "outline"}
+                    className="h-7 px-2 text-xs"
+                    disabled={updateStatus.isPending}
+                    onClick={() => updateStatus.mutate({
+                      playerId: player.id,
+                      status: hasStarted ? "absent" : "unavailable",
+                      kind: hasStarted ? "attendance" : "availability",
+                    })}
+                  >
+                    {hasStarted ? "Absent" : "Not available"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -103,6 +168,7 @@ export default function FixtureList() {
       return result;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events/upcoming-session'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       toast({
@@ -128,7 +194,7 @@ export default function FixtureList() {
 
   // Fetch upcoming events
   const { data: eventsResponse } = useQuery<{ success: boolean; events: any[] }>({
-    queryKey: ['/api/events/upcoming-session'],
+    queryKey: ['/api/events/all-session'],
     enabled: !!user,
   });
   
@@ -142,12 +208,6 @@ export default function FixtureList() {
   const { data: playersResponse } = useQuery<{ success: boolean; players: any[] }>({
     queryKey: ['/api/players/parent', user?.id],
     enabled: !!user && hasRole('parent'),
-  });
-
-  // Fetch match results to exclude fixtures with results
-  const { data: matchResultsResponse } = useQuery<{ success: boolean; matchResults: any[] }>({
-    queryKey: ['/api/match-results-session'],
-    enabled: !!user,
   });
 
   const getFixtures = () => {
@@ -182,20 +242,6 @@ export default function FixtureList() {
 
     // Show all event types (match, tournament, training, social)
     // No filtering by type - show everything
-
-    // Filter out match/tournament fixtures that already have match results
-    if (matchResultsResponse?.matchResults) {
-      const fixturesWithResults = new Set(
-        matchResultsResponse.matchResults.map((result: any) => result.fixtureId)
-      );
-      events = events.filter(event => {
-        // Only exclude matches/tournaments with results, keep all other event types
-        if (event.type === "match" || event.type === "tournament") {
-          return !fixturesWithResults.has(event.id);
-        }
-        return true;
-      });
-    }
 
     return events;
   };
@@ -274,7 +320,7 @@ export default function FixtureList() {
     <>
       <Card data-testid="card-fixtures">
         <CardHeader>
-          <CardTitle>Upcoming Events & Fixtures</CardTitle>
+          <CardTitle>Events & Fixtures</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -387,10 +433,10 @@ export default function FixtureList() {
                         )}
                       </div>
 
-                      <PlayerAvailabilityBreakdown fixture={fixture} />
+                      <PlayerAvailabilityBreakdown fixture={fixture} canManage={canManageFixture(fixture)} />
                       
                       {/* Parent availability controls */}
-                      {isParent && playersResponse?.players && (
+                      {isParent && new Date() < fixture.startTime && playersResponse?.players && (
                         <div className="space-y-2 mt-3">
                           {playersResponse.players
                             .filter(player => player.teamId === fixture.teamId)

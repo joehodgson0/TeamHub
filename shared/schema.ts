@@ -192,6 +192,7 @@ export const eventSchema = z.object({
     outcome: z.enum(["W", "L", "D"]),
   }).optional(),
   availability: z.record(z.string(), z.enum(["available", "unavailable", "pending"])).default({}),
+  attendance: z.record(z.string(), z.enum(["attended", "absent"])).default({}),
   createdAt: z.date().default(() => new Date()),
 });
 
@@ -334,6 +335,7 @@ export const events = pgTable("events", {
   homeAway: varchar("home_away"),
   result: json("result").$type<{homeScore: number; awayScore: number; outcome: "W" | "L" | "D"}>(),
   availability: json("availability").$type<Record<string, "available" | "unavailable" | "pending">>().notNull().default({}),
+  attendance: json("attendance").$type<Record<string, "attended" | "absent">>().notNull().default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

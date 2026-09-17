@@ -1,1 +1,2 @@
 - [Resend connector behavior](resend-connector.md) — send-only connector credentials can deliver email but cannot inspect domains; default connector routing may work without an explicit host variable.
+- [Event availability and attendance](event-status-model.md) — planned availability and verified turnout are separate records with different roles and timing.

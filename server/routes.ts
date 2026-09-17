@@ -1068,6 +1068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startTime: new Date(eventData.startTime),
         endTime: new Date(eventData.endTime),
         availability: eventData.availability || {},
+        attendance: eventData.attendance || {},
         createdAt: new Date()
       });
 
@@ -1127,7 +1128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/events/:eventId/availability", async (req, res) => {
+  app.put("/api/events/:eventId/availability", async (req: any, res) => {
     try {
       const { eventId } = req.params;
       const { playerId, availability } = req.body;
@@ -1145,6 +1146,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ success: false, error: "Event not found" });
       }
 
+      const userId = req.session?.userId || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const [user, player] = await Promise.all([
+        storage.getUser(userId),
+        storage.getPlayer(playerId),
+      ]);
+      if (!user || !player || player.teamId !== event.teamId) {
+        return res.status(403).json({ success: false, error: "You cannot update this player" });
+      }
+
+      const isTeamCoach = user.roles?.includes("coach") && user.teamIds?.includes(event.teamId);
+      const isPlayerParent = user.roles?.includes("parent") && player.parentId === user.id;
+      if (!isTeamCoach && !isPlayerParent) {
+        return res.status(403).json({ success: false, error: "You cannot update this player's availability" });
+      }
+
+      if (new Date() >= new Date(event.startTime)) {
+        return res.status(400).json({ success: false, error: "Availability can only be changed before the event starts" });
+      }
+
       // Update the availability
       const updatedAvailability = {
         ...event.availability,
@@ -1157,6 +1181,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Update availability error:", error);
       res.status(500).json({ success: false, error: "Failed to update availability" });
+    }
+  });
+
+  app.put("/api/events/:eventId/attendance", async (req: any, res) => {
+    try {
+      const { eventId } = req.params;
+      const { playerId, attendance } = req.body;
+
+      if (!playerId || !["attended", "absent"].includes(attendance)) {
+        return res.status(400).json({ success: false, error: "Player ID and valid attendance status required" });
+      }
+
+      const userId = req.session?.userId || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const [event, user, player] = await Promise.all([
+        storage.getEvent(eventId),
+        storage.getUser(userId),
+        storage.getPlayer(playerId),
+      ]);
+      if (!event) {
+        return res.status(404).json({ success: false, error: "Event not found" });
+      }
+      if (!user || !player || player.teamId !== event.teamId) {
+        return res.status(403).json({ success: false, error: "You cannot update this player" });
+      }
+      if (!user.roles?.includes("coach") || !user.teamIds?.includes(event.teamId)) {
+        return res.status(403).json({ success: false, error: "Only this team's coaches can verify attendance" });
+      }
+      if (new Date() < new Date(event.startTime)) {
+        return res.status(400).json({ success: false, error: "Attendance can only be verified once the event starts" });
+      }
+
+      const updatedAttendance = {
+        ...(event.attendance || {}),
+        [playerId]: attendance,
+      };
+      await storage.updateEvent(eventId, { attendance: updatedAttendance });
+      res.json({ success: true, message: "Attendance updated successfully" });
+    } catch (error) {
+      console.error("Update attendance error:", error);
+      res.status(500).json({ success: false, error: "Failed to update attendance" });
     }
   });
 

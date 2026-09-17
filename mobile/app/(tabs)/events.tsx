@@ -8,7 +8,13 @@ import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
 import { MaterialIcons } from '@expo/vector-icons';
 
-const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({ event }: { event: any }) {
+const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
+  event,
+  canManage,
+}: {
+  event: any;
+  canManage: boolean;
+}) {
   const { data: playersResponse, isLoading } = useQuery({
     queryKey: ['/api/players/team', event.teamId],
     queryFn: async () => {
@@ -21,12 +27,28 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({ ev
     enabled: !!event.teamId,
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ playerId, status, kind }: { playerId: string; status: string; kind: 'availability' | 'attendance' }) => {
+      const response = await fetch(`${API_BASE_URL}/api/events/${event.id}/${kind}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ playerId, [kind]: status }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Update failed');
+    },
+    onSuccess: () => invalidateEventData(),
+    onError: (error: Error) => Alert.alert('Update failed', error.message),
+  });
+
   if (isLoading) {
     return <Text style={styles.availabilityLoading}>Loading player availability...</Text>;
   }
 
   const players = playersResponse?.players || [];
   if (players.length === 0) return null;
+  const hasStarted = new Date() >= new Date(event.startTime);
 
   const available = players.filter((player: any) => event.availability?.[player.id] === 'available');
   const unavailable = players.filter((player: any) => event.availability?.[player.id] === 'unavailable');
@@ -58,6 +80,53 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({ ev
         </Text>
         <Text style={[styles.availabilityNames, styles.pendingNames]}>{names(pending)}</Text>
       </View>
+      {canManage && (
+        <View style={styles.coachStatusSection}>
+          <Text style={styles.coachStatusTitle}>
+            {hasStarted ? 'Verify actual attendance' : 'Set player availability'}
+          </Text>
+          {players.map((player: any) => {
+            const status = hasStarted
+              ? event.attendance?.[player.id]
+              : event.availability?.[player.id] || 'pending';
+            const positiveStatus = hasStarted ? 'attended' : 'available';
+            const negativeStatus = hasStarted ? 'absent' : 'unavailable';
+            return (
+              <View key={player.id} style={styles.coachPlayerRow}>
+                <Text style={styles.coachPlayerName}>{player.name}</Text>
+                <View style={styles.availabilityButtons}>
+                  <TouchableOpacity
+                    style={[styles.coachStatusButton, status === positiveStatus && styles.availableBtnActive]}
+                    disabled={updateStatusMutation.isPending}
+                    onPress={() => updateStatusMutation.mutate({
+                      playerId: player.id,
+                      status: positiveStatus,
+                      kind: hasStarted ? 'attendance' : 'availability',
+                    })}
+                  >
+                    <Text style={[styles.coachStatusButtonText, status === positiveStatus && styles.availableBtnTextActive]}>
+                      {hasStarted ? 'Attended' : 'Available'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.coachStatusButton, status === negativeStatus && styles.unavailableBtnActive]}
+                    disabled={updateStatusMutation.isPending}
+                    onPress={() => updateStatusMutation.mutate({
+                      playerId: player.id,
+                      status: negativeStatus,
+                      kind: hasStarted ? 'attendance' : 'availability',
+                    })}
+                  >
+                    <Text style={[styles.coachStatusButtonText, status === negativeStatus && styles.unavailableBtnTextActive]}>
+                      {hasStarted ? 'Absent' : 'Not available'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 });
@@ -111,18 +180,6 @@ function Events() {
     enabled: !!user?.id,
   });
 
-  // Fetch match results to filter out fixtures that already have results - load instantly from cache
-  const { data: matchResultsResponse } = useQuery({
-    queryKey: ['/api/match-results-session'],
-    queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/match-results-session`, {
-        credentials: 'include',
-      });
-      return response.json();
-    },
-    enabled: !!user,
-  });
-
   const deleteEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
       const response = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
@@ -166,19 +223,8 @@ function Events() {
   // Memoize filtered events - prevent recalculation on every render
   const events = useMemo(() => {
     const allEvents = eventsResponse?.events || [];
-    if (!matchResultsResponse?.matchResults) return allEvents;
-    
-    const fixturesWithResults = new Set(
-      matchResultsResponse.matchResults.map((result: any) => result.fixtureId)
-    );
-    
-    return allEvents.filter((event: any) => {
-      if (event.type === 'match' || event.type === 'tournament') {
-        return !fixturesWithResults.has(event.id);
-      }
-      return true;
-    });
-  }, [eventsResponse?.events, matchResultsResponse?.matchResults]);
+    return allEvents;
+  }, [eventsResponse?.events]);
 
   // Memoize teams array
   const teams = useMemo(() => teamsResponse?.teams || [], [teamsResponse?.teams]);
@@ -383,9 +429,9 @@ function Events() {
                   </TouchableOpacity>
                 )}
 
-                <EventAvailabilityBreakdown event={event} />
+                <EventAvailabilityBreakdown event={event} canManage={canManageEvent(event)} />
 
-                {getUserPlayersForEvent(event).length > 0 && !isEventCompleted(event) && (
+                {getUserPlayersForEvent(event).length > 0 && new Date() < new Date(event.startTime) && (
                   <View style={styles.availabilitySection}>
                     <Text style={styles.availabilitySectionTitle}>Mark Player Availability:</Text>
                     {getUserPlayersForEvent(event).map((player: any) => {
@@ -692,6 +738,45 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+  },
+  coachStatusSection: {
+    marginTop: 4,
+    gap: 8,
+  },
+  coachStatusTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    marginTop: 4,
+  },
+  coachPlayerRow: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 8,
+  },
+  coachPlayerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  coachStatusButton: {
+    flex: 1,
+    minHeight: 34,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coachStatusButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   availabilitySectionTitle: {
     fontSize: 13,
