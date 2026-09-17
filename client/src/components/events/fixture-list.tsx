@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,14 +21,12 @@ function PlayerAvailabilityBreakdown({ fixture, canManage }: { fixture: any; can
 
   const updateStatus = useMutation({
     mutationFn: async ({ playerId, status, kind }: { playerId: string; status: string; kind: "availability" | "attendance" }) => {
-      const response = await fetch(`/api/events/${fixture.id}/${kind}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ playerId, [kind]: status }),
+      const response = await apiRequest("PUT", `/api/events/${fixture.id}/${kind}`, {
+        playerId,
+        [kind]: status,
       });
       const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error);
+      if (!result.success) throw new Error(result.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/events/all-session'] });
@@ -157,11 +155,9 @@ export default function FixtureList() {
 
   const updateAvailabilityMutation = useMutation({
     mutationFn: async ({ eventId, playerId, availability }: { eventId: string; playerId: string; availability: string }) => {
-      const response = await fetch(`/api/events/${eventId}/availability`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ playerId, availability }),
+      const response = await apiRequest("PUT", `/api/events/${eventId}/availability`, {
+        playerId,
+        availability,
       });
       const result = await response.json();
       if (!result.success) throw new Error(result.error);

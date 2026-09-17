@@ -31,7 +31,10 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
     mutationFn: async ({ playerId, status, kind }: { playerId: string; status: string; kind: 'availability' | 'attendance' }) => {
       const response = await fetch(`${API_BASE_URL}/api/events/${event.id}/${kind}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'com.myapp.mobile',
+        },
         credentials: 'include',
         body: JSON.stringify({ playerId, [kind]: status }),
       });
@@ -205,6 +208,7 @@ function Events() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'com.myapp.mobile',
         },
         credentials: 'include',
         body: JSON.stringify({ playerId, availability }),
