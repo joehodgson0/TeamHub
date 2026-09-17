@@ -9,6 +9,8 @@ import Landing from "@/pages/landing";
 import RoleSelection from "@/pages/auth/role-selection";
 import Register from "@/pages/auth/register";
 import Login from "@/pages/auth/login";
+import ForgotPassword from "@/pages/auth/forgot-password";
+import ResetPassword from "@/pages/auth/reset-password";
 import AppLayout from "@/components/layout/app-layout";
 import Dashboard from "@/pages/dashboard";
 import Club from "@/pages/club";
@@ -43,6 +45,8 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/register" component={Register} />
         <Route path="/login" component={Login} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/reset-password" component={ResetPassword} />
         <Route component={Landing} />
       </Switch>
     );

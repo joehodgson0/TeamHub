@@ -1,9 +1,8 @@
 /**
  * Email Provider Factory
  *
- * Uses the Resend provider when RESEND_API_KEY is set, otherwise
- * falls back to logging emails to the console (safe default for
- * development and for clubs that haven't configured email yet).
+ * Uses Resend through the attached Replit connector (preferred) or
+ * RESEND_API_KEY. Falls back to console output for local development.
  */
 
 import type { IEmailProvider } from "./types";
@@ -17,7 +16,7 @@ export function getEmailProvider(): IEmailProvider {
     return providerInstance;
   }
 
-  if (process.env.RESEND_API_KEY) {
+  if (process.env.REPL_ID || process.env.REPLIT_CONNECTORS_HOSTNAME || process.env.RESEND_API_KEY) {
     providerInstance = new ResendEmailProvider();
   } else {
     providerInstance = new ConsoleEmailProvider();

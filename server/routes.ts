@@ -8,6 +8,23 @@ import bcrypt from "bcryptjs";
 import { getPaymentProvider, isPaymentProviderConfigured, getPaymentProviderType } from "./payments";
 import { buildInstallmentPlan, determineFeeType } from "./services/feeCalculator";
 import { sendReminderForAssignment, runFeeReminderSweepNow } from "./services/feeReminderService";
+import { requestPasswordReset, resetPassword } from "./services/passwordResetService";
+
+const passwordResetRequests = new Map<string, { count: number; resetAt: number }>();
+const PASSWORD_RESET_WINDOW_MS = 15 * 60 * 1000;
+const PASSWORD_RESET_MAX_REQUESTS = 5;
+
+function canRequestPasswordReset(key: string): boolean {
+  const now = Date.now();
+  const current = passwordResetRequests.get(key);
+  if (!current || current.resetAt <= now) {
+    passwordResetRequests.set(key, { count: 1, resetAt: now + PASSWORD_RESET_WINDOW_MS });
+    return true;
+  }
+  if (current.count >= PASSWORD_RESET_MAX_REQUESTS) return false;
+  current.count += 1;
+  return true;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth - referenced from javascript_log_in_with_replit blueprint
@@ -91,6 +108,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ success: false, error: 'Database connection error. Please try again.' });
+    }
+  });
+
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    const genericMessage = "If an account exists for that email, a password reset link has been sent.";
+    try {
+      const parsed = z.object({ email: z.string().email().max(320) }).safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ success: false, error: "Enter a valid email address" });
+      }
+
+      const key = `${req.ip}:${parsed.data.email.trim().toLowerCase()}`;
+      if (!canRequestPasswordReset(key)) {
+        return res.status(429).json({ success: false, error: "Too many requests. Please try again later." });
+      }
+
+      await requestPasswordReset(parsed.data.email);
+      return res.json({ success: true, message: genericMessage });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      // Keep the response generic so provider or account state is not disclosed.
+      return res.json({ success: true, message: genericMessage });
+    }
+  });
+
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const parsed = z.object({
+        token: z.string().min(64).max(128),
+        password: z.string().min(8).max(128),
+      }).safeParse(req.body);
+
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: "Use a valid reset link and a password of at least 8 characters.",
+        });
+      }
+
+      const changed = await resetPassword(parsed.data.token, parsed.data.password);
+      if (!changed) {
+        return res.status(400).json({
+          success: false,
+          error: "This reset link is invalid, expired, or has already been used.",
+        });
+      }
+
+      return res.json({ success: true, message: "Your password has been reset. You can now sign in." });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      return res.status(500).json({ success: false, error: "Unable to reset password. Please try again." });
     }
   });
   

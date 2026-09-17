@@ -1,40 +1,44 @@
 import type { IEmailProvider, SendEmailParams, SendEmailResult } from "./types";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 
 /**
- * Resend email provider - sends real email via the Resend HTTP API.
- * Only used when RESEND_API_KEY is set; otherwise the console
- * provider is used instead. No extra npm dependency required since
- * it uses the global fetch API (Node 18+).
+ * Uses the attached Replit Resend connector when available, with a direct
+ * API-key fallback for environments outside Replit.
  */
 export class ResendEmailProvider implements IEmailProvider {
   name = "resend";
-  private apiKey: string;
   private fromAddress: string;
 
   constructor() {
-    this.apiKey = process.env.RESEND_API_KEY || "";
-    this.fromAddress = process.env.EMAIL_FROM_ADDRESS || "TeamHub <noreply@teamhub.app>";
-    if (!this.apiKey) {
-      throw new Error("RESEND_API_KEY is required to use the Resend email provider");
+    this.fromAddress = process.env.EMAIL_FROM_ADDRESS || "TeamHub <onboarding@resend.dev>";
+    if (!process.env.REPL_ID && !process.env.REPLIT_CONNECTORS_HOSTNAME && !process.env.RESEND_API_KEY) {
+      throw new Error("A Resend connector or RESEND_API_KEY is required");
     }
   }
 
   async sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
     try {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: this.fromAddress,
-          to: [params.to],
-          subject: params.subject,
-          text: params.text,
-          html: params.html,
-        }),
-      });
+      const payload = {
+        from: this.fromAddress,
+        to: [params.to],
+        subject: params.subject,
+        text: params.text,
+        html: params.html,
+      };
+
+      const response = process.env.REPL_ID || process.env.REPLIT_CONNECTORS_HOSTNAME
+        ? await new ReplitConnectors().proxy("resend", "/emails", {
+            method: "POST",
+            body: payload,
+          })
+        : await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
 
       if (!response.ok) {
         const errorBody = await response.text();

@@ -130,6 +130,11 @@ export default function Login() {
                 onChange={handleChange}
                 data-testid="input-password"
               />
+              <div className="text-right">
+                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
             </div>
 
             <Button 

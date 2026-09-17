@@ -174,6 +174,12 @@ export default function Login() {
               secureTextEntry
               placeholder="••••••••"
             />
+            <Text
+              style={styles.forgotLink}
+              onPress={() => router.push('/(auth)/forgot-password')}
+            >
+              Forgot password?
+            </Text>
           </View>
 
           <Button
@@ -186,7 +192,7 @@ export default function Login() {
             style={styles.link}
             onPress={() => router.push('/(auth)/register')}
           >
-            Don't have an account? Create one
+            Don’t have an account? Create one
           </Text>
 
           <TouchableOpacity
@@ -240,6 +246,11 @@ const styles = StyleSheet.create({
   },
   link: {
     textAlign: 'center',
+    color: '#007AFF',
+    fontSize: 14,
+  },
+  forgotLink: {
+    textAlign: 'right',
     color: '#007AFF',
     fontSize: 14,
   },

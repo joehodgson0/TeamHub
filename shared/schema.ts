@@ -248,6 +248,21 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
+  {
+    tokenHash: varchar("token_hash", { length: 64 }).primaryKey(),
+    userId: varchar("user_id").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    usedAt: timestamp("used_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("IDX_password_reset_user").on(table.userId),
+    index("IDX_password_reset_expiry").on(table.expiresAt),
+  ],
+);
+
 export const clubs = pgTable("clubs", {
   id: varchar("id").primaryKey(),
   name: varchar("name").notNull(),
