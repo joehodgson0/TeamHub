@@ -36,6 +36,10 @@ const allowedOrigins = [
   // Web app origins
   'https://82e7b365-1a35-4433-9dd4-e760ea332ce1-00-1atx8t3ayfoav.picard.replit.dev',
   process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
+  'https://teamhubuk.net',
+  'https://www.teamhubuk.net',
+  'http://teamhubuk.net',
+  'http://www.teamhubuk.net',
   
   // Expo/mobile development origins
   'exp://localhost:8081',

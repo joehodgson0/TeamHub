@@ -63,4 +63,4 @@ integrations = ["javascript_database:1.0.0", "javascript_log_in_with_replit:1.0.
 [userenv]
 
 [userenv.production]
-APP_URL = "https://team-hub-uk.replit.app"
+APP_URL = "https://teamhubuk.net"
