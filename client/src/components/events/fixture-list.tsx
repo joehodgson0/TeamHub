@@ -12,6 +12,47 @@ import EditFixtureModal from "@/components/modals/edit-fixture-modal";
 import MatchResultModal from "@/components/modals/match-result-modal";
 import type { Fixture } from "@shared/schema";
 
+function PlayerAvailabilityBreakdown({ fixture }: { fixture: any }) {
+  const { data: playersResponse, isLoading } = useQuery<{ success: boolean; players: any[] }>({
+    queryKey: ['/api/players/team', fixture.teamId],
+    enabled: !!fixture.teamId,
+  });
+
+  if (isLoading) {
+    return <p className="text-xs text-muted-foreground mt-2">Loading player availability...</p>;
+  }
+
+  const players = playersResponse?.players || [];
+  if (players.length === 0) return null;
+
+  const groups = {
+    available: players.filter((player) => fixture.availability?.[player.id] === "available"),
+    unavailable: players.filter((player) => fixture.availability?.[player.id] === "unavailable"),
+    pending: players.filter((player) => !fixture.availability?.[player.id] || fixture.availability[player.id] === "pending"),
+  };
+
+  const renderNames = (group: any[]) => group.length > 0
+    ? group.map((player) => player.name).join(", ")
+    : "None";
+
+  return (
+    <div className="grid gap-2 mt-3 sm:grid-cols-3" data-testid={`availability-breakdown-${fixture.id}`}>
+      <div className="rounded-md border border-green-200 bg-green-50 p-2">
+        <p className="text-xs font-semibold text-green-800">Available ({groups.available.length})</p>
+        <p className="mt-1 text-xs text-green-700">{renderNames(groups.available)}</p>
+      </div>
+      <div className="rounded-md border border-red-200 bg-red-50 p-2">
+        <p className="text-xs font-semibold text-red-800">Not available ({groups.unavailable.length})</p>
+        <p className="mt-1 text-xs text-red-700">{renderNames(groups.unavailable)}</p>
+      </div>
+      <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
+        <p className="text-xs font-semibold text-amber-800">Awaiting response ({groups.pending.length})</p>
+        <p className="mt-1 text-xs text-amber-700">{renderNames(groups.pending)}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function FixtureList() {
   const { user, hasRole } = useAuth();
   const { toast } = useToast();
@@ -345,10 +386,12 @@ export default function FixtureList() {
                           </Button>
                         )}
                       </div>
+
+                      <PlayerAvailabilityBreakdown fixture={fixture} />
                       
                       {/* Parent availability controls */}
                       {isParent && playersResponse?.players && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 mt-3">
                           {playersResponse.players
                             .filter(player => player.teamId === fixture.teamId)
                             .map(player => {

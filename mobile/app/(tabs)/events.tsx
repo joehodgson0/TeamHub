@@ -8,6 +8,60 @@ import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
 import { MaterialIcons } from '@expo/vector-icons';
 
+const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({ event }: { event: any }) {
+  const { data: playersResponse, isLoading } = useQuery({
+    queryKey: ['/api/players/team', event.teamId],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/players/team/${event.teamId}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to load team players');
+      return response.json();
+    },
+    enabled: !!event.teamId,
+  });
+
+  if (isLoading) {
+    return <Text style={styles.availabilityLoading}>Loading player availability...</Text>;
+  }
+
+  const players = playersResponse?.players || [];
+  if (players.length === 0) return null;
+
+  const available = players.filter((player: any) => event.availability?.[player.id] === 'available');
+  const unavailable = players.filter((player: any) => event.availability?.[player.id] === 'unavailable');
+  const pending = players.filter((player: any) =>
+    !event.availability?.[player.id] || event.availability[player.id] === 'pending'
+  );
+  const names = (group: any[]) => group.length > 0
+    ? group.map((player: any) => player.name).join(', ')
+    : 'None';
+
+  return (
+    <View style={styles.availabilityBreakdown}>
+      <Text style={styles.availabilityBreakdownTitle}>Player availability</Text>
+      <View style={[styles.availabilityGroup, styles.availableGroup]}>
+        <Text style={[styles.availabilityGroupLabel, styles.availableLabel]}>
+          Available ({available.length})
+        </Text>
+        <Text style={[styles.availabilityNames, styles.availableNames]}>{names(available)}</Text>
+      </View>
+      <View style={[styles.availabilityGroup, styles.unavailableGroup]}>
+        <Text style={[styles.availabilityGroupLabel, styles.unavailableLabel]}>
+          Not available ({unavailable.length})
+        </Text>
+        <Text style={[styles.availabilityNames, styles.unavailableNames]}>{names(unavailable)}</Text>
+      </View>
+      <View style={[styles.availabilityGroup, styles.pendingGroup]}>
+        <Text style={[styles.availabilityGroupLabel, styles.pendingLabel]}>
+          Awaiting response ({pending.length})
+        </Text>
+        <Text style={[styles.availabilityNames, styles.pendingNames]}>{names(pending)}</Text>
+      </View>
+    </View>
+  );
+});
+
 function Events() {
   const { user, hasRole } = useUser();
   const [showAddModal, setShowAddModal] = useState(false);
@@ -329,6 +383,8 @@ function Events() {
                   </TouchableOpacity>
                 )}
 
+                <EventAvailabilityBreakdown event={event} />
+
                 {getUserPlayersForEvent(event).length > 0 && !isEventCompleted(event) && (
                   <View style={styles.availabilitySection}>
                     <Text style={styles.availabilitySectionTitle}>Mark Player Availability:</Text>
@@ -564,6 +620,72 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  availabilityLoading: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    color: '#6B7280',
+    fontSize: 12,
+  },
+  availabilityBreakdown: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    gap: 8,
+  },
+  availabilityBreakdownTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  availabilityGroup: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  availableGroup: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  unavailableGroup: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  pendingGroup: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  availabilityGroupLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  availabilityNames: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  availableLabel: {
+    color: '#065F46',
+  },
+  availableNames: {
+    color: '#047857',
+  },
+  unavailableLabel: {
+    color: '#991B1B',
+  },
+  unavailableNames: {
+    color: '#B91C1C',
+  },
+  pendingLabel: {
+    color: '#92400E',
+  },
+  pendingNames: {
+    color: '#B45309',
   },
   availabilitySection: {
     marginTop: 12,
