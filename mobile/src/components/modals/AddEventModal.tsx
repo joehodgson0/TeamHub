@@ -18,6 +18,12 @@ import { invalidateEventData } from '@/lib/queryKeys';
 import { API_BASE_URL } from '@/lib/config';
 import { Checkbox } from '@/components/ui/Checkbox';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import {
+  addEventDuration,
+  DEFAULT_EVENT_DURATION_MINUTES,
+  EVENT_DURATION_OPTIONS,
+  getEventDurationPreset,
+} from '@shared/event-duration';
 
 interface AddEventModalProps {
   visible: boolean;
@@ -42,7 +48,8 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   const [opponent, setOpponent] = useState('');
   const [location, setLocation] = useState('');
   const [startDateTime, setStartDateTime] = useState<Date>(new Date());
-  const [endDateTime, setEndDateTime] = useState<Date>(new Date(Date.now() + 2 * 60 * 60 * 1000)); // 2 hours from now
+  const [endDateTime, setEndDateTime] = useState<Date>(() => addEventDuration(new Date(), DEFAULT_EVENT_DURATION_MINUTES));
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(DEFAULT_EVENT_DURATION_MINUTES);
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [homeAway, setHomeAway] = useState<string>('home');
   const [friendly, setFriendly] = useState(false);
@@ -66,10 +73,12 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
         const now = new Date();
         setStartDateTime(now);
-        setEndDateTime(new Date(now.getTime() + 2 * 60 * 60 * 1000));
+        setEndDateTime(addEventDuration(now, DEFAULT_EVENT_DURATION_MINUTES));
+        setDurationMinutes(DEFAULT_EVENT_DURATION_MINUTES);
       } else {
         setStartDateTime(startTime);
         setEndDateTime(endTime);
+        setDurationMinutes(getEventDurationPreset(startTime, endTime));
       }
       setAdditionalInfo(eventToEdit.additionalInfo || '');
       setHomeAway(eventToEdit.homeAway || 'home');
@@ -78,9 +87,9 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     } else if (visible && !eventToEdit) {
       // Reset to today's date when modal opens for creating new event
       const now = new Date();
-      const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
       setStartDateTime(now);
-      setEndDateTime(twoHoursLater);
+      setEndDateTime(addEventDuration(now, DEFAULT_EVENT_DURATION_MINUTES));
+      setDurationMinutes(DEFAULT_EVENT_DURATION_MINUTES);
     } else if (!visible) {
       // Reset form when modal is closed
       resetForm();
@@ -153,8 +162,10 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     setName('');
     setOpponent('');
     setLocation('');
-    setStartDateTime(new Date());
-    setEndDateTime(new Date(Date.now() + 2 * 60 * 60 * 1000));
+    const now = new Date();
+    setStartDateTime(now);
+    setEndDateTime(addEventDuration(now, DEFAULT_EVENT_DURATION_MINUTES));
+    setDurationMinutes(DEFAULT_EVENT_DURATION_MINUTES);
     setAdditionalInfo('');
     setHomeAway('home');
     setFriendly(false);
@@ -191,9 +202,8 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
 
     if (current.field === 'start') {
       setStartDateTime(merged);
-      // Keep end time 2 hours after start, unless it's already further ahead
-      if (current.step === 'time') {
-        setEndDateTime(prev => (prev > merged ? prev : new Date(merged.getTime() + 2 * 60 * 60 * 1000)));
+      if (durationMinutes !== null) {
+        setEndDateTime(addEventDuration(merged, durationMinutes));
       }
     } else {
       setEndDateTime(merged);
@@ -239,6 +249,10 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   };
 
   const handleSubmit = () => {
+    const resolvedEndDateTime = durationMinutes === null
+      ? endDateTime
+      : addEventDuration(startDateTime, durationMinutes);
+
     // Validation
     if (!selectedTeamId) {
       Alert.alert('Error', 'Please select a team');
@@ -248,7 +262,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       Alert.alert('Error', 'Please enter a location');
       return;
     }
-    if (endDateTime <= startDateTime) {
+    if (resolvedEndDateTime <= startDateTime) {
       Alert.alert('Error', 'End time must be after start time');
       return;
     }
@@ -266,7 +280,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       teamId: selectedTeamId,
       location: location.trim(),
       startTime: formatDateTime(startDateTime),
-      endTime: formatDateTime(endDateTime),
+      endTime: formatDateTime(resolvedEndDateTime),
       additionalInfo: additionalInfo.trim() || undefined,
     };
 
@@ -423,20 +437,71 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
             </TouchableOpacity>
           </View>
 
-          {/* End Date and Time */}
+          {/* Duration */}
           <View style={styles.section}>
-            <Text style={styles.label}>End Date & Time</Text>
-            <TouchableOpacity
-              style={styles.dateTimeButton}
-              onPress={() => openDateTimePicker('end')}
-            >
-              <View style={styles.dateTimeDisplay}>
-                <Text style={styles.dateText}>📅 {formatDisplayDate(endDateTime)}</Text>
-                <Text style={styles.timeText}>🕐 {formatDisplayTime(endDateTime)}</Text>
-              </View>
-              <Text style={styles.changeText}>Change</Text>
-            </TouchableOpacity>
+            <Text style={styles.label}>Duration</Text>
+            <View style={styles.durationButtonsContainer}>
+              {EVENT_DURATION_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.minutes}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: durationMinutes === option.minutes }}
+                  style={[
+                    styles.durationButton,
+                    durationMinutes === option.minutes && styles.durationButtonActive,
+                  ]}
+                  onPress={() => {
+                    setDurationMinutes(option.minutes);
+                    setEndDateTime(addEventDuration(startDateTime, option.minutes));
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.durationButtonText,
+                      durationMinutes === option.minutes && styles.durationButtonTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityState={{ selected: durationMinutes === null }}
+                style={[
+                  styles.durationButton,
+                  durationMinutes === null && styles.durationButtonActive,
+                ]}
+                onPress={() => setDurationMinutes(null)}
+              >
+                <Text
+                  style={[
+                    styles.durationButtonText,
+                    durationMinutes === null && styles.durationButtonTextActive,
+                  ]}
+                >
+                  Custom end time
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
+
+          {/* Custom End Date and Time */}
+          {durationMinutes === null && (
+            <View style={styles.section}>
+              <Text style={styles.label}>Custom End Date & Time</Text>
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => openDateTimePicker('end')}
+              >
+                <View style={styles.dateTimeDisplay}>
+                  <Text style={styles.dateText}>📅 {formatDisplayDate(endDateTime)}</Text>
+                  <Text style={styles.timeText}>🕐 {formatDisplayTime(endDateTime)}</Text>
+                </View>
+                <Text style={styles.changeText}>Change</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Home/Away (for match) */}
           {eventType === 'match' && (
@@ -597,6 +662,31 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   typeButtonTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  durationButtonsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  durationButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  durationButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  durationButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  durationButtonTextActive: {
     color: '#fff',
     fontWeight: '600',
   },

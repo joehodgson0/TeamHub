@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
+import { addEventDuration, DEFAULT_EVENT_DURATION_MINUTES, EVENT_DURATION_OPTIONS } from "@shared/event-duration";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +31,8 @@ const eventTypes = [
 export default function CreateFixtureModal({ open, onOpenChange }: CreateFixtureModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [duration, setDuration] = useState(String(DEFAULT_EVENT_DURATION_MINUTES));
+  const initialStartTime = new Date();
   
   // Fetch user's teams 
   const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
@@ -69,8 +72,8 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       name: "",
       opponent: "",
       location: "",
-      startTime: new Date(),
-      endTime: new Date(),
+      startTime: initialStartTime,
+      endTime: addEventDuration(initialStartTime, DEFAULT_EVENT_DURATION_MINUTES),
       additionalInfo: "",
       homeAway: "home",
     },
@@ -88,6 +91,15 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
       return;
     }
 
+    const endTime = duration === "custom"
+      ? data.endTime
+      : addEventDuration(data.startTime, Number(duration));
+
+    if (!(endTime instanceof Date) || !Number.isFinite(endTime.getTime()) || endTime <= data.startTime) {
+      form.setError("endTime", { message: "End time must be after start time." });
+      return;
+    }
+
     try {
       // Get manager's team from fetched teams
       const managerTeam = userTeams.length > 0 ? userTeams[0] : null;
@@ -99,7 +111,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         opponent: data.opponent || undefined,
         location: data.location,
         startTime: data.startTime,
-        endTime: data.endTime,
+        endTime,
         additionalInfo: data.additionalInfo || undefined,
         teamId: managerTeam?.id || user.id,
         homeAway: data.homeAway || undefined,
@@ -113,7 +125,19 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         description: `${data.name || 'Event'} has been scheduled.`,
       });
 
-      form.reset();
+      const nextStartTime = new Date();
+      form.reset({
+        type: "match",
+        friendly: false,
+        name: "",
+        opponent: "",
+        location: "",
+        startTime: nextStartTime,
+        endTime: addEventDuration(nextStartTime, DEFAULT_EVENT_DURATION_MINUTES),
+        additionalInfo: "",
+        homeAway: "home",
+      });
+      setDuration(String(DEFAULT_EVENT_DURATION_MINUTES));
       onOpenChange(false);
     } catch (error) {
       toast({
@@ -282,7 +306,13 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                           data-testid="input-start-time"
                           {...field}
                           value={field.value instanceof Date ? toLocal(field.value) : field.value}
-                          onChange={(e) => field.onChange(new Date(e.target.value))}
+                          onChange={(e) => {
+                            const startTime = new Date(e.target.value);
+                            field.onChange(startTime);
+                            if (duration !== "custom" && Number.isFinite(startTime.getTime())) {
+                              form.setValue("endTime", addEventDuration(startTime, Number(duration)));
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -291,6 +321,36 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                 }}
               />
 
+              <div className="space-y-2">
+                <label htmlFor="create-event-duration" className="text-sm font-medium leading-none">
+                  Duration
+                </label>
+                <Select
+                  value={duration}
+                  onValueChange={(value) => {
+                    setDuration(value);
+                    if (value !== "custom") {
+                      form.setValue("endTime", addEventDuration(form.getValues("startTime"), Number(value)));
+                      form.clearErrors("endTime");
+                    }
+                  }}
+                >
+                  <SelectTrigger id="create-event-duration" data-testid="select-duration">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_DURATION_OPTIONS.map((option) => (
+                      <SelectItem key={option.minutes} value={String(option.minutes)}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">Custom end time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {duration === "custom" && (
               <FormField
                 control={form.control}
                 name="endTime"
@@ -301,7 +361,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                   };
                   return (
                     <FormItem>
-                      <FormLabel>End Time</FormLabel>
+                      <FormLabel>Custom End Time</FormLabel>
                       <FormControl>
                         <Input
                           type="datetime-local"
@@ -316,7 +376,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                   );
                 }}
               />
-            </div>
+            )}
 
             <FormField
               control={form.control}

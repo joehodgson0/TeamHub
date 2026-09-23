@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
+import { addEventDuration, EVENT_DURATION_OPTIONS, getEventDurationPreset } from "@shared/event-duration";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -28,9 +29,16 @@ const eventTypes = [
   { value: "social", label: "Social Event" },
 ];
 
+function toLocalDateTime(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFixtureModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const initialDuration = getEventDurationPreset(fixture.startTime, fixture.endTime);
+  const [duration, setDuration] = useState(initialDuration === null ? "custom" : String(initialDuration));
   
   // Fetch user's teams 
   const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
@@ -77,6 +85,26 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
     },
   });
 
+  useEffect(() => {
+    if (!open) return;
+
+    const startTime = new Date(fixture.startTime instanceof Date ? fixture.startTime.getTime() : fixture.startTime);
+    const endTime = new Date(fixture.endTime instanceof Date ? fixture.endTime.getTime() : fixture.endTime);
+    const preset = getEventDurationPreset(startTime, endTime);
+    setDuration(preset === null ? "custom" : String(preset));
+    form.reset({
+      type: fixture.type,
+      friendly: fixture.friendly || false,
+      name: fixture.name || "",
+      opponent: fixture.opponent || "",
+      location: fixture.location,
+      startTime,
+      endTime,
+      additionalInfo: fixture.additionalInfo || "",
+      homeAway: fixture.homeAway || "home",
+    });
+  }, [fixture, form, open]);
+
 
   const onSubmit = async (data: CreateEvent & { homeAway: string }) => {
     if (!user) {
@@ -88,6 +116,15 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
       return;
     }
 
+    const endTime = duration === "custom"
+      ? data.endTime
+      : addEventDuration(data.startTime, Number(duration));
+
+    if (!(endTime instanceof Date) || !Number.isFinite(endTime.getTime()) || endTime <= data.startTime) {
+      form.setError("endTime", { message: "End time must be after start time." });
+      return;
+    }
+
     try {
       const eventData = {
         type: data.type,
@@ -96,7 +133,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
         opponent: data.opponent || undefined,
         location: data.location,
         startTime: data.startTime,
-        endTime: data.endTime,
+        endTime,
         additionalInfo: data.additionalInfo || undefined,
         homeAway: data.homeAway || undefined,
       };
@@ -243,8 +280,14 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
                         type="datetime-local"
                         data-testid="input-start-time"
                         {...field}
-                        value={field.value instanceof Date ? field.value.toISOString().slice(0, 16) : field.value}
-                        onChange={(e) => field.onChange(new Date(e.target.value))}
+                        value={field.value instanceof Date ? toLocalDateTime(field.value) : field.value}
+                        onChange={(e) => {
+                          const startTime = new Date(e.target.value);
+                          field.onChange(startTime);
+                          if (duration !== "custom" && Number.isFinite(startTime.getTime())) {
+                            form.setValue("endTime", addEventDuration(startTime, Number(duration)));
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -252,18 +295,48 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
                 )}
               />
 
+              <div className="space-y-2">
+                <label htmlFor="edit-event-duration" className="text-sm font-medium leading-none">
+                  Duration
+                </label>
+                <Select
+                  value={duration}
+                  onValueChange={(value) => {
+                    setDuration(value);
+                    if (value !== "custom") {
+                      form.setValue("endTime", addEventDuration(form.getValues("startTime"), Number(value)));
+                      form.clearErrors("endTime");
+                    }
+                  }}
+                >
+                  <SelectTrigger id="edit-event-duration" data-testid="select-duration">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_DURATION_OPTIONS.map((option) => (
+                      <SelectItem key={option.minutes} value={String(option.minutes)}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">Custom end time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {duration === "custom" && (
               <FormField
                 control={form.control}
                 name="endTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Time</FormLabel>
+                    <FormLabel>Custom End Time</FormLabel>
                     <FormControl>
                       <Input
                         type="datetime-local"
                         data-testid="input-end-time"
                         {...field}
-                        value={field.value instanceof Date ? field.value.toISOString().slice(0, 16) : field.value}
+                        value={field.value instanceof Date ? toLocalDateTime(field.value) : field.value}
                         onChange={(e) => field.onChange(new Date(e.target.value))}
                       />
                     </FormControl>
@@ -271,7 +344,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
                   </FormItem>
                 )}
               />
-            </div>
+            )}
 
             <FormField
               control={form.control}
