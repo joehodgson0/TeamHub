@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, varchar, text, timestamp, integer, json, serial, boolean, index, jsonb, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, timestamp, integer, json, serial, boolean, index, jsonb, primaryKey, check } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { sql } from 'drizzle-orm';
 
@@ -295,6 +295,26 @@ export const teams = pgTable("teams", {
   midWeekTraining: boolean("mid_week_training").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const teamInvitations = pgTable(
+  "team_invitations",
+  {
+    tokenHash: varchar("token_hash", { length: 64 }).primaryKey(),
+    teamId: varchar("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+    email: varchar("email").notNull(),
+    role: varchar("role").$type<"parent" | "coach">().notNull(),
+    invitedBy: varchar("invited_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at").notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("IDX_team_invitations_team").on(table.teamId),
+    index("IDX_team_invitations_email").on(table.email),
+    index("IDX_team_invitations_expiry").on(table.expiresAt),
+    check("team_invitations_role_check", sql`${table.role} in ('parent', 'coach')`),
+  ],
+);
 
 export const players = pgTable("players", {
   id: varchar("id").primaryKey(),

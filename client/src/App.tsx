@@ -24,6 +24,7 @@ import Posts from "@/pages/posts";
 import Settings from "@/pages/settings";
 import AddDependent from "@/pages/add-dependent";
 import NotFound from "@/pages/not-found";
+import TeamInvite from "@/pages/team-invite";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -47,9 +48,21 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/team-invite" component={TeamInvite} />
         <Route component={Landing} />
       </Switch>
     );
+  }
+
+  if (window.location.pathname === "/team-invite") {
+    return <TeamInvite />;
+  }
+
+  const pendingTeamInvite = localStorage.getItem("pendingTeamInvite");
+  if (isAuthenticated && pendingTeamInvite && window.location.pathname !== "/team-invite") {
+    localStorage.removeItem("pendingTeamInvite");
+    window.location.replace(`/team-invite?token=${encodeURIComponent(pendingTeamInvite)}`);
+    return null;
   }
 
   // Show role selection if user has no roles (undefined, null, or empty array)

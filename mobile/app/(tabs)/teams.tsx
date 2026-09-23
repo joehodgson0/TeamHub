@@ -17,6 +17,9 @@ export default function Teams() {
   const [guardianPlayer, setGuardianPlayer] = useState<any>(null);
   const [guardianRoster, setGuardianRoster] = useState<any[]>([]);
   const [guardianEmail, setGuardianEmail] = useState('');
+  const [inviteTeam, setInviteTeam] = useState<any>(null);
+  const [inviteRole, setInviteRole] = useState<'parent' | 'coach'>('parent');
+  const [inviteEmail, setInviteEmail] = useState('');
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -81,6 +84,19 @@ export default function Teams() {
       Alert.alert('Duplicate merged', 'Parents and activity now use one dependant record.');
     },
     onError: (error: Error) => Alert.alert('Unable to merge duplicate', error.message),
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: () => apiRequest(`/api/teams/${inviteTeam.id}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+    }),
+    onSuccess: () => {
+      Alert.alert('Invitation sent', `${inviteEmail.trim()} can join from the emailed link.`);
+      setInviteEmail('');
+      setInviteTeam(null);
+    },
+    onError: (error: Error) => Alert.alert('Unable to send invitation', error.message),
   });
 
   const duplicateCandidates = guardianPlayer ? guardianRoster.filter((candidate) =>
@@ -162,6 +178,21 @@ export default function Teams() {
         </View>
         
         <Text style={styles.teamCode}>Code: {team.code || 'Unknown'}</Text>
+
+        <View style={styles.inviteActions}>
+          <TouchableOpacity
+            style={styles.inviteButton}
+            onPress={() => { setInviteTeam(team); setInviteRole('parent'); }}
+          >
+            <Text style={styles.inviteButtonText}>Invite parent</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.inviteButton}
+            onPress={() => { setInviteTeam(team); setInviteRole('coach'); }}
+          >
+            <Text style={styles.inviteButtonText}>Invite coach</Text>
+          </TouchableOpacity>
+        </View>
 
         {teamPlayers.length > 0 && (
           <View style={styles.playersSection}>
@@ -300,6 +331,35 @@ export default function Teams() {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
       />
+      <Modal visible={Boolean(inviteTeam)} animationType="slide" transparent onRequestClose={() => setInviteTeam(null)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.guardianModal}>
+            <Text style={styles.modalTitle}>Invite {inviteRole === 'coach' ? 'coach' : 'parent'}</Text>
+            <Text style={styles.modalHelp}>
+              Email a secure link to join {inviteTeam?.name} without using a team code.
+            </Text>
+            <Text style={styles.label}>Email address</Text>
+            <TextInput
+              style={styles.input}
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+              placeholder={inviteRole === 'coach' ? 'coach@example.com' : 'parent@example.com'}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <TouchableOpacity
+              style={[styles.actionButton, (!inviteEmail.trim() || inviteMutation.isPending) && styles.joinButtonDisabled]}
+              disabled={!inviteEmail.trim() || inviteMutation.isPending}
+              onPress={() => inviteMutation.mutate()}
+            >
+              <Text style={styles.actionButtonText}>{inviteMutation.isPending ? 'Sending...' : 'Send invitation'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setInviteTeam(null)}>
+              <Text style={styles.closeButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
       <Modal visible={Boolean(guardianPlayer)} animationType="slide" transparent onRequestClose={() => setGuardianPlayer(null)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.guardianModal}>
@@ -534,6 +594,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 4,
+  },
+  inviteActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  inviteButton: {
+    flex: 1,
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  inviteButtonText: {
+    color: '#007AFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   playersSection: {
     marginTop: 12,

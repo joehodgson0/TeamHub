@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 
 export default function Register() {
+  const { invite } = useLocalSearchParams<{ invite?: string }>();
   const { refreshUser } = useUser();
   const [formData, setFormData] = useState({
     email: '',
@@ -53,6 +54,10 @@ export default function Register() {
         // Refresh user data in context after successful registration
         // The root layout will automatically navigate to role-selection
         await refreshUser();
+        if (typeof invite === 'string' && invite) {
+          router.replace({ pathname: '/team-invite', params: { token: invite } });
+          return;
+        }
       } else {
         Alert.alert('Error', result.error || 'Failed to register');
       }
@@ -140,7 +145,7 @@ export default function Register() {
 
           <Text
             style={styles.link}
-            onPress={() => router.push('/(auth)/login')}
+            onPress={() => router.push({ pathname: '/(auth)/login', params: typeof invite === 'string' ? { invite } : {} })}
           >
             Already have an account? Sign in
           </Text>

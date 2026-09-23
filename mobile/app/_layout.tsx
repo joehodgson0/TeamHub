@@ -14,8 +14,11 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inTabsGroup = segments[0] === '(tabs)';
+    const inTeamInvite = segments[0] === 'team-invite';
 
-    if (!isAuthenticated && !inAuthGroup) {
+    if (inTeamInvite) {
+      return;
+    } else if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/landing');
     } else if (isAuthenticated && !user?.roles?.length) {
       router.replace('/(auth)/role-selection');

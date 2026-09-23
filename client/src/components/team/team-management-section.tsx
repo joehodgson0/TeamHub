@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle, UserRoundCog } from "lucide-react";
+import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle, UserRoundCog, MailPlus } from "lucide-react";
 import CreateTeamModal from "@/components/modals/create-team-modal";
 import EditTeamModal from "@/components/modals/edit-team-modal";
 import ManageGuardiansDialog from "@/components/modals/manage-guardians-dialog";
@@ -112,6 +112,28 @@ export default function TeamManagementSection() {
     const playerCount = teamPlayers.length;
     const totalGames = (team.wins || 0) + (team.draws || 0) + (team.losses || 0);
     const { toast: toastLocal } = useToast();
+    const [parentInviteEmail, setParentInviteEmail] = useState("");
+    const [coachInviteEmail, setCoachInviteEmail] = useState("");
+
+    const inviteMutation = useMutation({
+      mutationFn: async ({ email, role }: { email: string; role: "parent" | "coach" }) => {
+        const response = await apiRequest("POST", `/api/teams/${team.id}/invitations`, { email, role });
+        return response.json();
+      },
+      onSuccess: (_result, variables) => {
+        if (variables.role === "parent") setParentInviteEmail("");
+        else setCoachInviteEmail("");
+        toastLocal({
+          title: "Invitation sent",
+          description: `${variables.email} can now join ${team.name} from the emailed link.`,
+        });
+      },
+      onError: (error: Error) => toastLocal({
+        variant: "destructive",
+        title: "Unable to send invitation",
+        description: error.message,
+      }),
+    });
 
     const midWeekMutation = useMutation({
       mutationFn: async (midWeekTraining: boolean) => {
@@ -199,6 +221,49 @@ export default function TeamManagementSection() {
             )}
           </div>
         </div>
+
+        {isCoach && (
+          <div className="rounded-md border bg-background/70 p-3 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <MailPlus className="h-4 w-4" />
+              Invite by email
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <Input
+                type="email"
+                value={parentInviteEmail}
+                onChange={(event) => setParentInviteEmail(event.target.value)}
+                placeholder="Parent email"
+                data-testid={`input-parent-invite-${team.id}`}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!parentInviteEmail.trim() || inviteMutation.isPending}
+                onClick={() => inviteMutation.mutate({ email: parentInviteEmail.trim(), role: "parent" })}
+              >
+                Invite parent
+              </Button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <Input
+                type="email"
+                value={coachInviteEmail}
+                onChange={(event) => setCoachInviteEmail(event.target.value)}
+                placeholder="Second coach email"
+                data-testid={`input-coach-invite-${team.id}`}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!coachInviteEmail.trim() || inviteMutation.isPending}
+                onClick={() => inviteMutation.mutate({ email: coachInviteEmail.trim(), role: "coach" })}
+              >
+                Invite coach
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Players List */}
         {playersLoading ? (

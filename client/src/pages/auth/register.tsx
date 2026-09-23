@@ -4,11 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
 export default function Register() {
   const [, navigate] = useLocation();
+  const search = useSearch();
+  const inviteToken = new URLSearchParams(search).get("invite");
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
@@ -90,7 +92,7 @@ export default function Register() {
           attempts++;
         }
         
-        navigate("/role-selection");
+        navigate(inviteToken ? `/team-invite?token=${encodeURIComponent(inviteToken)}` : "/role-selection");
       } else {
         throw new Error(result.error || 'Registration failed');
       }
@@ -190,7 +192,7 @@ export default function Register() {
             </Button>
             
             <div className="text-center">
-              <Link href="/login">
+              <Link href={inviteToken ? `/login?invite=${encodeURIComponent(inviteToken)}` : "/login"}>
                 <Button variant="link" className="p-0" data-testid="link-login">
                   Already have an account? Sign in
                 </Button>

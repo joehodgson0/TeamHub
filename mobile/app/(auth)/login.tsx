@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
@@ -55,6 +55,7 @@ const prefetchTabData = async (user: any) => {
 };
 
 export default function Login() {
+  const { invite } = useLocalSearchParams<{ invite?: string }>();
   const { refreshUser } = useUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -100,6 +101,10 @@ export default function Login() {
       if (result.success) {
         // Refresh user data in context after successful login
         await refreshUser();
+        if (typeof invite === 'string' && invite) {
+          router.replace({ pathname: '/team-invite', params: { token: invite } });
+          return;
+        }
         
         // Prefetch tab data in background - don't await
         // Tabs will load instantly with cached data, prefetch updates cache as it loads
@@ -190,7 +195,7 @@ export default function Login() {
 
           <Text
             style={styles.link}
-            onPress={() => router.push('/(auth)/register')}
+            onPress={() => router.push({ pathname: '/(auth)/register', params: typeof invite === 'string' ? { invite } : {} })}
           >
             Don’t have an account? Create one
           </Text>

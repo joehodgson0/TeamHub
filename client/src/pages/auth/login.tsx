@@ -4,11 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
 export default function Login() {
   const [, navigate] = useLocation();
+  const search = useSearch();
+  const inviteToken = new URLSearchParams(search).get("invite");
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
@@ -77,7 +79,9 @@ export default function Login() {
 
       // Check if user needs to select roles or associate with a club
       const user = result.user;
-      if (!user.roles || user.roles.length === 0) {
+      if (inviteToken) {
+        navigate(`/team-invite?token=${encodeURIComponent(inviteToken)}`);
+      } else if (!user.roles || user.roles.length === 0) {
         navigate("/role-selection");
       } else if (!user.clubId) {
         navigate("/team");
@@ -147,7 +151,7 @@ export default function Login() {
             </Button>
             
             <div className="text-center space-y-2">
-              <Link href="/register">
+              <Link href={inviteToken ? `/register?invite=${encodeURIComponent(inviteToken)}` : "/register"}>
                 <Button variant="link" className="p-0" data-testid="link-register">
                   Don't have an account? Create one
                 </Button>
@@ -169,7 +173,10 @@ export default function Login() {
               type="button"
               variant="outline" 
               className="w-full bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium flex items-center justify-center gap-3 py-3"
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => {
+                if (inviteToken) localStorage.setItem("pendingTeamInvite", inviteToken);
+                window.location.href = '/api/login';
+              }}
               data-testid="button-google-login"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">

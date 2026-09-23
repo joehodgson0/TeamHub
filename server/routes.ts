@@ -11,10 +11,32 @@ import { sendReminderForAssignment, runFeeReminderSweepNow } from "./services/fe
 import { requestPasswordReset, resetPassword } from "./services/passwordResetService";
 import { isSameDependentIdentity } from "./services/dependentIdentity";
 import { buildWeeklyEventTimes, MAX_EVENT_REPEAT_WEEKS } from "@shared/event-duration";
+import { acceptTeamInvitation, getTeamInvitation, sendTeamInvitation } from "./services/teamInvitationService";
 
 const passwordResetRequests = new Map<string, { count: number; resetAt: number }>();
 const PASSWORD_RESET_WINDOW_MS = 15 * 60 * 1000;
 const PASSWORD_RESET_MAX_REQUESTS = 5;
+const teamInvitationRequests = new Map<string, { count: number; resetAt: number }>();
+const TEAM_INVITATION_WINDOW_MS = 60 * 60 * 1000;
+const TEAM_INVITATION_MAX_REQUESTS = 20;
+
+function maskEmail(email: string): string {
+  const [localPart, domain] = email.split("@");
+  if (!localPart || !domain) return "the invited email address";
+  return `${localPart.slice(0, 1)}${"*".repeat(Math.max(3, localPart.length - 1))}@${domain}`;
+}
+
+function canSendTeamInvitation(userId: string): boolean {
+  const now = Date.now();
+  const current = teamInvitationRequests.get(userId);
+  if (!current || current.resetAt <= now) {
+    teamInvitationRequests.set(userId, { count: 1, resetAt: now + TEAM_INVITATION_WINDOW_MS });
+    return true;
+  }
+  if (current.count >= TEAM_INVITATION_MAX_REQUESTS) return false;
+  current.count += 1;
+  return true;
+}
 
 function canRequestPasswordReset(key: string): boolean {
   const now = Date.now();
@@ -607,6 +629,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Create team error:", error);
       res.status(500).json({ success: false, error: "Failed to create team" });
+    }
+  });
+
+  app.post("/api/teams/:teamId/invitations", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const parsed = z.object({
+        email: z.string().trim().email().max(320).transform((email) => email.toLowerCase()),
+        role: z.enum(["parent", "coach"]),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ success: false, error: "Enter a valid email and invitation type" });
+
+      const user = await storage.getUser(userId);
+      const team = await storage.getTeamById(req.params.teamId);
+      if (!user || !team) return res.status(404).json({ success: false, error: "Team not found" });
+      if (!user.roles?.includes("coach") || !user.teamIds?.includes(team.id)) {
+        return res.status(403).json({ success: false, error: "Only this team's coaches can send invitations" });
+      }
+      if (!canSendTeamInvitation(userId)) {
+        return res.status(429).json({ success: false, error: "Too many invitations sent. Try again later." });
+      }
+
+      const inviterName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
+      const invitation = await sendTeamInvitation({
+        teamId: team.id,
+        teamName: team.name,
+        email: parsed.data.email,
+        role: parsed.data.role,
+        invitedBy: userId,
+        inviterName,
+      });
+      res.status(201).json({ success: true, expiresAt: invitation.expiresAt });
+    } catch (error) {
+      console.error("Send team invitation error:", error);
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : "Failed to send invitation" });
+    }
+  });
+
+  app.get("/api/team-invitations/details", async (req, res) => {
+    try {
+      const token = typeof req.query.token === "string" ? req.query.token : "";
+      if (!/^[a-f0-9]{64}$/.test(token)) return res.status(400).json({ success: false, error: "Invalid invitation link" });
+      const result = await getTeamInvitation(token);
+      if (!result) return res.status(404).json({ success: false, error: "This invitation is invalid, expired, or has already been used" });
+      res.json({
+        success: true,
+        invitation: {
+          email: maskEmail(result.invitation.email),
+          role: result.invitation.role,
+          expiresAt: result.invitation.expiresAt,
+          team: { id: result.team.id, name: result.team.name, ageGroup: result.team.ageGroup },
+        },
+      });
+    } catch (error) {
+      console.error("Get team invitation error:", error);
+      res.status(500).json({ success: false, error: "Failed to load invitation" });
+    }
+  });
+
+  app.post("/api/team-invitations/accept", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Sign in or register to accept this invitation" });
+
+      const token = typeof req.body?.token === "string" ? req.body.token : "";
+      if (!/^[a-f0-9]{64}$/.test(token)) return res.status(400).json({ success: false, error: "Invalid invitation link" });
+      const invitation = await getTeamInvitation(token);
+      if (!invitation) return res.status(404).json({ success: false, error: "This invitation is invalid, expired, or has already been used" });
+
+      let dependentName: string | undefined;
+      let dependentDateOfBirth: Date | undefined;
+      if (invitation.invitation.role === "parent") {
+        const parsed = z.object({
+          dependentName: z.string().trim().min(2).max(200),
+          dependentDateOfBirth: z.coerce.date().refine((date) => date <= new Date(), "Date of birth cannot be in the future"),
+        }).safeParse(req.body);
+        if (!parsed.success) return res.status(400).json({ success: false, error: parsed.error.issues[0]?.message || "Enter the dependent's details" });
+        dependentName = parsed.data.dependentName;
+        dependentDateOfBirth = parsed.data.dependentDateOfBirth;
+      }
+
+      const accepted = await acceptTeamInvitation({
+        token,
+        userId,
+        dependentName,
+        dependentDateOfBirth,
+      });
+      res.json({
+        success: true,
+        role: accepted.role,
+        team: accepted.team,
+        player: accepted.player,
+        linkedExistingDependent: accepted.linkedExistingDependent,
+      });
+    } catch (error) {
+      console.error("Accept team invitation error:", error);
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : "Unable to accept invitation" });
     }
   });
 
