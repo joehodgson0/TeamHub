@@ -6,7 +6,7 @@ import { addEventDuration, EVENT_DURATION_OPTIONS, EVENT_MEET_BEFORE_OPTIONS, ge
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,12 +51,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
   
   const updateEventMutation = useMutation({
     mutationFn: async (eventData: any) => {
-      const response = await fetch(`/api/events/${fixture.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData),
-        credentials: 'include',
-      });
+      const response = await apiRequest("PUT", `/api/events/${fixture.id}`, eventData);
       const result = await response.json();
       if (!result.success) throw new Error(result.error);
       return result.event;

@@ -6,7 +6,7 @@ import { addEventDuration, DEFAULT_EVENT_DURATION_MINUTES, EVENT_DURATION_OPTION
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,12 +47,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
   
   const createEventMutation = useMutation({
     mutationFn: async (eventData: any) => {
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData),
-        credentials: 'include',
-      });
+      const response = await apiRequest("POST", "/api/events", eventData);
       const result = await response.json();
       if (!result.success) throw new Error(result.error);
       return result.event;

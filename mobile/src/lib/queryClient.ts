@@ -21,6 +21,7 @@ export async function apiRequest(url: string, options: RequestInit = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'X-Requested-With': 'com.myapp.mobile',
       ...options.headers,
     },
     credentials: 'include',

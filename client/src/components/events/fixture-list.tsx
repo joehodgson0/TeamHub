@@ -161,10 +161,7 @@ export default function FixtureList() {
 
   const deleteEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
-      const response = await fetch(`/api/events/${eventId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+      const response = await apiRequest("DELETE", `/api/events/${eventId}`);
       const result = await response.json();
       if (!result.success) throw new Error(result.error);
       return result;
