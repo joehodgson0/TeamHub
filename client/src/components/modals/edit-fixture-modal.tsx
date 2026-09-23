@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
-import { addEventDuration, EVENT_DURATION_OPTIONS, getEventDurationPreset } from "@shared/event-duration";
+import { addEventDuration, EVENT_DURATION_OPTIONS, EVENT_MEET_BEFORE_OPTIONS, getEventDurationPreset } from "@shared/event-duration";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +39,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
   const { toast } = useToast();
   const initialDuration = getEventDurationPreset(fixture.startTime, fixture.endTime);
   const [duration, setDuration] = useState(initialDuration === null ? "custom" : String(initialDuration));
+  const [meetBeforeMinutes, setMeetBeforeMinutes] = useState(String(fixture.meetBeforeMinutes || 0));
   
   // Fetch user's teams 
   const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
@@ -92,6 +93,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
     const endTime = new Date(fixture.endTime instanceof Date ? fixture.endTime.getTime() : fixture.endTime);
     const preset = getEventDurationPreset(startTime, endTime);
     setDuration(preset === null ? "custom" : String(preset));
+    setMeetBeforeMinutes(String(fixture.meetBeforeMinutes || 0));
     form.reset({
       type: fixture.type,
       friendly: fixture.friendly || false,
@@ -134,6 +136,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
         location: data.location,
         startTime: data.startTime,
         endTime,
+        meetBeforeMinutes: Number(meetBeforeMinutes),
         additionalInfo: data.additionalInfo || undefined,
         homeAway: data.homeAway || undefined,
       };
@@ -274,7 +277,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
                 name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Time</FormLabel>
+                    <FormLabel>Start Date &amp; Time</FormLabel>
                     <FormControl>
                       <Input
                         type="datetime-local"
@@ -345,6 +348,27 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
                 )}
               />
             )}
+
+            <div className="space-y-2">
+              <label htmlFor="edit-event-meet-time" className="text-sm font-medium leading-none">
+                Meet before start
+              </label>
+              <Select value={meetBeforeMinutes} onValueChange={setMeetBeforeMinutes}>
+                <SelectTrigger id="edit-event-meet-time" data-testid="select-meet-before">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EVENT_MEET_BEFORE_OPTIONS.map((option) => (
+                    <SelectItem key={option.minutes} value={String(option.minutes)}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                The calculated meet time will appear on the dashboard.
+              </p>
+            </div>
 
             <FormField
               control={form.control}

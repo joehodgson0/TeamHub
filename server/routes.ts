@@ -49,6 +49,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     location: z.string().trim().min(1, "Location is required"),
     startTime: z.coerce.date(),
     endTime: z.coerce.date(),
+    meetBeforeMinutes: z.union([
+      z.literal(0),
+      z.literal(15),
+      z.literal(30),
+      z.literal(45),
+      z.literal(60),
+    ]).optional().default(0),
     additionalInfo: z.string().trim().optional(),
     teamId: z.string().min(1, "Team is required"),
     homeAway: z.enum(["home", "away"]).optional(),
@@ -1239,6 +1246,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (updates.startTime) updates.startTime = new Date(updates.startTime);
       if (updates.endTime) updates.endTime = new Date(updates.endTime);
+      if (updates.meetBeforeMinutes !== undefined && ![0, 15, 30, 45, 60].includes(updates.meetBeforeMinutes)) {
+        return res.status(400).json({ success: false, error: "Invalid meet-before time" });
+      }
       
       const updatedEvent = await storage.updateEvent(id, updates);
       

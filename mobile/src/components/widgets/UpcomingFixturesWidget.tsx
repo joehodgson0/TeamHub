@@ -2,6 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Calendar, Clock, MapPin, Users, Shield } from 'lucide-react-native';
 import { WidgetCard } from './WidgetCard';
 import { formatDate, formatTime, getEventTypeBadgeColor, getEventDisplayType, getAvailabilityCount, getTeamName } from '@/utils/dashboard';
+import { getEventMeetTime } from '@shared/event-duration';
 
 interface UpcomingFixturesWidgetProps {
   fixtures: any[];
@@ -55,8 +56,20 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
 
             <View style={styles.infoRow}>
               <Clock size={16} color="#6B7280" />
-              <Text style={styles.infoText}>{formatTime(fixture.startTime)}</Text>
+              <Text style={styles.infoText}>
+                {fixture.meetBeforeMinutes > 0 ? 'Starts: ' : ''}{formatTime(fixture.startTime)}
+              </Text>
             </View>
+
+            {fixture.meetBeforeMinutes > 0 && (
+              <View style={styles.infoRow}>
+                <Clock size={16} color="#007AFF" />
+                <Text style={styles.meetTimeText}>
+                  Meet: {formatDate(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes))},{' '}
+                  {formatTime(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes))}
+                </Text>
+              </View>
+            )}
 
             {fixture.location && (
               <View style={styles.infoRow}>
@@ -150,6 +163,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#374151",
     fontWeight: "500",
+  },
+  meetTimeText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '700',
   },
   availabilityContainer: {
     marginTop: 12,

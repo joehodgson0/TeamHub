@@ -2,6 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Calendar, Clock, MapPin, Users } from 'lucide-react-native';
 import { WidgetCard } from './WidgetCard';
 import { formatDate, formatTime, getEventTypeBadgeColor, getEventDisplayType, getTeamName } from '@/utils/dashboard';
+import { getEventMeetTime } from '@shared/event-duration';
 
 interface UpcomingEventsWidgetProps {
   events: any[];
@@ -75,8 +76,20 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
 
           <View style={styles.infoRow}>
             <Clock size={16} color="#6B7280" />
-            <Text style={styles.infoText}>{formatTime(event.startTime)}</Text>
+            <Text style={styles.infoText}>
+              {event.meetBeforeMinutes > 0 ? 'Starts: ' : ''}{formatTime(event.startTime)}
+            </Text>
           </View>
+
+          {event.meetBeforeMinutes > 0 && (
+            <View style={styles.infoRow}>
+              <Clock size={16} color="#007AFF" />
+              <Text style={styles.meetTimeText}>
+                Meet: {formatDate(getEventMeetTime(event.startTime, event.meetBeforeMinutes))},{' '}
+                {formatTime(getEventMeetTime(event.startTime, event.meetBeforeMinutes))}
+              </Text>
+            </View>
+          )}
 
           {event.location && (
             <View style={styles.infoRow}>
@@ -153,6 +166,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#374151",
     fontWeight: "500",
+  },
+  meetTimeText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '700',
   },
   additionalInfoContainer: {
     marginTop: 8,

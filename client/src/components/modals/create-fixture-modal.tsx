@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
-import { addEventDuration, DEFAULT_EVENT_DURATION_MINUTES, EVENT_DURATION_OPTIONS, MAX_EVENT_REPEAT_WEEKS } from "@shared/event-duration";
+import { addEventDuration, DEFAULT_EVENT_DURATION_MINUTES, EVENT_DURATION_OPTIONS, EVENT_MEET_BEFORE_OPTIONS, MAX_EVENT_REPEAT_WEEKS } from "@shared/event-duration";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
   const { user } = useAuth();
   const { toast } = useToast();
   const [duration, setDuration] = useState(String(DEFAULT_EVENT_DURATION_MINUTES));
+  const [meetBeforeMinutes, setMeetBeforeMinutes] = useState("0");
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState("2");
   const initialStartTime = new Date();
@@ -122,6 +123,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         location: data.location,
         startTime: data.startTime,
         endTime,
+        meetBeforeMinutes: Number(meetBeforeMinutes),
         additionalInfo: data.additionalInfo || undefined,
         teamId: managerTeam.id,
         homeAway: data.homeAway || undefined,
@@ -151,6 +153,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         homeAway: "home",
       });
       setDuration(String(DEFAULT_EVENT_DURATION_MINUTES));
+      setMeetBeforeMinutes("0");
       setRepeatWeekly(false);
       setRepeatWeeks("2");
       onOpenChange(false);
@@ -314,7 +317,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                   };
                   return (
                     <FormItem>
-                      <FormLabel>Start Time</FormLabel>
+                      <FormLabel>Start Date &amp; Time</FormLabel>
                       <FormControl>
                         <Input
                           type="datetime-local"
@@ -392,6 +395,27 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                 }}
               />
             )}
+
+            <div className="space-y-2">
+              <label htmlFor="create-event-meet-time" className="text-sm font-medium leading-none">
+                Meet before start
+              </label>
+              <Select value={meetBeforeMinutes} onValueChange={setMeetBeforeMinutes}>
+                <SelectTrigger id="create-event-meet-time" data-testid="select-meet-before">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EVENT_MEET_BEFORE_OPTIONS.map((option) => (
+                    <SelectItem key={option.minutes} value={String(option.minutes)}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                The calculated meet time will appear on the dashboard.
+              </p>
+            </div>
 
             <div className="space-y-3 rounded-md border p-4">
               <div className="flex items-start space-x-3">

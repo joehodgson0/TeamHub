@@ -22,6 +22,7 @@ import {
   addEventDuration,
   DEFAULT_EVENT_DURATION_MINUTES,
   EVENT_DURATION_OPTIONS,
+  EVENT_MEET_BEFORE_OPTIONS,
   getEventDurationPreset,
   MAX_EVENT_REPEAT_WEEKS,
 } from '@shared/event-duration';
@@ -51,6 +52,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   const [startDateTime, setStartDateTime] = useState<Date>(new Date());
   const [endDateTime, setEndDateTime] = useState<Date>(() => addEventDuration(new Date(), DEFAULT_EVENT_DURATION_MINUTES));
   const [durationMinutes, setDurationMinutes] = useState<number | null>(DEFAULT_EVENT_DURATION_MINUTES);
+  const [meetBeforeMinutes, setMeetBeforeMinutes] = useState(0);
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState(2);
   const [additionalInfo, setAdditionalInfo] = useState('');
@@ -84,6 +86,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
         setDurationMinutes(getEventDurationPreset(startTime, endTime));
       }
       setAdditionalInfo(eventToEdit.additionalInfo || '');
+      setMeetBeforeMinutes(eventToEdit.meetBeforeMinutes || 0);
       setHomeAway(eventToEdit.homeAway || 'home');
       setFriendly(eventToEdit.friendly || false);
       setSelectedTeamId(eventToEdit.teamId || '');
@@ -93,6 +96,9 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       setStartDateTime(now);
       setEndDateTime(addEventDuration(now, DEFAULT_EVENT_DURATION_MINUTES));
       setDurationMinutes(DEFAULT_EVENT_DURATION_MINUTES);
+      setMeetBeforeMinutes(0);
+      setRepeatWeekly(false);
+      setRepeatWeeks(2);
     } else if (!visible) {
       // Reset form when modal is closed
       resetForm();
@@ -174,6 +180,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     setStartDateTime(now);
     setEndDateTime(addEventDuration(now, DEFAULT_EVENT_DURATION_MINUTES));
     setDurationMinutes(DEFAULT_EVENT_DURATION_MINUTES);
+    setMeetBeforeMinutes(0);
     setRepeatWeekly(false);
     setRepeatWeeks(2);
     setAdditionalInfo('');
@@ -291,6 +298,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       location: location.trim(),
       startTime: formatDateTime(startDateTime),
       endTime: formatDateTime(resolvedEndDateTime),
+      meetBeforeMinutes,
       additionalInfo: additionalInfo.trim() || undefined,
     };
 
@@ -516,6 +524,37 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Meet time */}
+          <View style={styles.section}>
+            <Text style={styles.label}>Meet before start</Text>
+            <View style={styles.durationButtonsContainer}>
+              {EVENT_MEET_BEFORE_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.minutes}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: meetBeforeMinutes === option.minutes }}
+                  style={[
+                    styles.durationButton,
+                    meetBeforeMinutes === option.minutes && styles.durationButtonActive,
+                  ]}
+                  onPress={() => setMeetBeforeMinutes(option.minutes)}
+                >
+                  <Text
+                    style={[
+                      styles.durationButtonText,
+                      meetBeforeMinutes === option.minutes && styles.durationButtonTextActive,
+                    ]}
+                  >
+                    {option.minutes === 0 ? 'No early meet' : option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.meetTimeHelpText}>
+              The calculated meet time will appear on the dashboard.
+            </Text>
+          </View>
 
           {/* Weekly recurrence is available when creating an event, not while editing one. */}
           {!isEditing && (
@@ -825,6 +864,11 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
     borderRadius: 8,
     padding: 16,
+  },
+  meetTimeHelpText: {
+    color: '#666',
+    fontSize: 14,
+    marginTop: 8,
   },
   recurrenceHelpText: {
     color: '#666',

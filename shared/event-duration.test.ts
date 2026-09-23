@@ -4,6 +4,7 @@ import {
   addEventDuration,
   buildWeeklyEventTimes,
   getEventDurationPreset,
+  getEventMeetTime,
   MAX_EVENT_REPEAT_WEEKS,
 } from "./event-duration.ts";
 
@@ -13,6 +14,12 @@ test("duration presets calculate and round-trip an end time", () => {
 
   assert.equal(endTime.toISOString(), "2026-09-23T19:30:00.000Z");
   assert.equal(getEventDurationPreset(startTime, endTime), 90);
+});
+
+test("meet time is calculated before the event start", () => {
+  const startTime = new Date("2026-09-23T18:00:00.000Z");
+
+  assert.equal(getEventMeetTime(startTime, 45).toISOString(), "2026-09-23T17:15:00.000Z");
 });
 
 test("weekly recurrence creates the requested number of weekly occurrences", () => {

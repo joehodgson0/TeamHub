@@ -1,6 +1,6 @@
 // Shared utility functions for dashboard widgets
 
-export const formatDate = (dateString: string) => {
+export const formatDate = (dateString: string | Date) => {
   const date = new Date(dateString);
   const now = new Date();
   const tomorrow = new Date(now);
@@ -14,7 +14,7 @@ export const formatDate = (dateString: string) => {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 };
 
-export const formatTime = (dateString: string) => {
+export const formatTime = (dateString: string | Date) => {
   const date = new Date(dateString);
   return date.toLocaleTimeString("en-US", {
     hour: "numeric",

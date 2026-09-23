@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Trophy, MapPin, Clock, Users } from "lucide-react";
 import { format } from "date-fns";
+import { getEventMeetTime } from "@shared/event-duration";
 
 export default function UpcomingFixturesWidget() {
   const { user } = useAuth();
@@ -183,10 +184,18 @@ export default function UpcomingFixturesWidget() {
 
                   {/* Date, Time and Location */}
                   <div className="space-y-2 text-xs text-muted-foreground">
+                    {fixture.meetBeforeMinutes > 0 && (
+                      <div className="flex items-center space-x-2 font-medium text-primary">
+                        <Clock className="w-3 h-3" />
+                        <span data-testid={`fixture-meet-time-${fixture.id}`}>
+                          Meet: {formatFixtureTime(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes))}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center space-x-2">
                       <Clock className="w-3 h-3" />
                       <span data-testid={`fixture-datetime-${fixture.id}`}>
-                        {formatFixtureTime(fixture.startTime)}
+                        {fixture.meetBeforeMinutes > 0 ? "Starts: " : ""}{formatFixtureTime(fixture.startTime)}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">

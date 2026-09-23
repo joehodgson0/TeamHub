@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Trophy, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { getEventMeetTime } from "@shared/event-duration";
 
 export default function UpcomingEventsWidget() {
   const { user } = useAuth();
@@ -108,8 +109,13 @@ export default function UpcomingEventsWidget() {
                   <p className="font-medium text-sm" data-testid={`event-name-${event.id}`}>
                     {event.name}
                   </p>
+                  {event.meetBeforeMinutes > 0 && (
+                    <p className="text-xs font-medium text-primary" data-testid={`event-meet-time-${event.id}`}>
+                      Meet: {formatEventTime(getEventMeetTime(event.startTime, event.meetBeforeMinutes))}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground" data-testid={`event-time-${event.id}`}>
-                    {formatEventTime(event.startTime)}
+                    {event.meetBeforeMinutes > 0 ? "Starts: " : ""}{formatEventTime(event.startTime)}
                   </p>
                 </div>
               </div>
