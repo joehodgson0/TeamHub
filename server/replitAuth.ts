@@ -8,6 +8,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { sendWelcomeEmailOnce } from "./services/welcomeEmailService";
 
 // Allow both email/password and Replit OAuth in all environments
 const hasReplitDomains = !!process.env.REPLIT_DOMAINS;
@@ -62,12 +63,15 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
+  const user = await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
+  });
+  await sendWelcomeEmailOnce(user.id).catch((error) => {
+    console.error("[welcome-email] OAuth sign-up succeeded but welcome email processing failed:", error);
   });
 }
 

@@ -12,6 +12,7 @@ import { requestPasswordReset, resetPassword } from "./services/passwordResetSer
 import { isSameDependentIdentity } from "./services/dependentIdentity";
 import { buildWeeklyEventTimes, MAX_EVENT_REPEAT_WEEKS } from "@shared/event-duration";
 import { acceptTeamInvitation, getTeamInvitation, sendTeamInvitation } from "./services/teamInvitationService";
+import { sendWelcomeEmailOnce } from "./services/welcomeEmailService";
 
 const passwordResetRequests = new Map<string, { count: number; resetAt: number }>();
 const PASSWORD_RESET_WINDOW_MS = 15 * 60 * 1000;
@@ -168,6 +169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const user = await storage.upsertUser(userData);
+      await sendWelcomeEmailOnce(user.id).catch((error) => {
+        console.error("[welcome-email] Registration succeeded but welcome email processing failed:", error);
+      });
       
       // Create session by setting req.user for traditional auth
       req.session.userId = user.id;

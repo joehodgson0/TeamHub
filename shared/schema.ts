@@ -24,6 +24,7 @@ export const userSchema = z.object({
   roles: z.array(z.enum(["coach", "parent", "admin"])).default([]),
   clubId: z.string().optional(),
   teamIds: z.array(z.string()).default([]),
+  welcomeEmailSentAt: z.date().optional(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });
@@ -253,6 +254,7 @@ export const users = pgTable("users", {
   roles: json("roles").$type<("coach" | "parent" | "admin")[]>().notNull().default([]),
   clubId: varchar("club_id"),
   teamIds: json("team_ids").$type<string[]>().notNull().default([]),
+  welcomeEmailSentAt: timestamp("welcome_email_sent_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
