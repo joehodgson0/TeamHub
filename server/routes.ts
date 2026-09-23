@@ -13,6 +13,7 @@ import { isSameDependentIdentity } from "./services/dependentIdentity";
 import { buildWeeklyEventTimes, MAX_EVENT_REPEAT_WEEKS } from "@shared/event-duration";
 import { acceptTeamInvitation, getTeamInvitation, sendTeamInvitation } from "./services/teamInvitationService";
 import { sendWelcomeEmailOnce } from "./services/welcomeEmailService";
+import { getEventParticipationPhase } from "@shared/event-participation";
 
 const passwordResetRequests = new Map<string, { count: number; resetAt: number }>();
 const PASSWORD_RESET_WINDOW_MS = 15 * 60 * 1000;
@@ -1081,12 +1082,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/players/team/:teamId", async (req, res) => {
+  app.get("/api/players/team/:teamId", async (req: any, res) => {
     try {
       const { teamId } = req.params;
       
       if (!teamId) {
         return res.status(400).json({ success: false, error: "Team ID required" });
+      }
+
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const [user, team] = await Promise.all([
+        storage.getUser(userId),
+        storage.getTeamById(teamId),
+      ]);
+      if (!team) return res.status(404).json({ success: false, error: "Team not found" });
+
+      const canViewTeamPlayers = Boolean(
+        user && (
+          (user.roles?.includes("coach") && user.teamIds?.includes(teamId)) ||
+          (user.roles?.includes("admin") && user.clubId === team.clubId)
+        ),
+      );
+      if (!canViewTeamPlayers) {
+        return res.status(403).json({ success: false, error: "Only this team's coaches can view full player records" });
       }
 
       const players = await storage.getPlayersByTeamId(teamId);
@@ -1270,6 +1290,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/events/:eventId/roster", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const [event, user] = await Promise.all([
+        storage.getEvent(req.params.eventId),
+        storage.getUser(userId),
+      ]);
+      if (!event) return res.status(404).json({ success: false, error: "Event not found" });
+      if (!user) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const team = await storage.getTeamById(event.teamId);
+      const canViewAsCoach = user.roles?.includes("coach") && user.teamIds?.includes(event.teamId);
+      const canViewAsAdmin = user.roles?.includes("admin") && team && user.clubId === team.clubId;
+      let canViewAsParent = false;
+      if (user.roles?.includes("parent")) {
+        const dependents = await storage.getPlayersByParentId(user.id);
+        canViewAsParent = dependents.some((player) => player.teamId === event.teamId);
+      }
+
+      if (!canViewAsCoach && !canViewAsAdmin && !canViewAsParent) {
+        return res.status(403).json({ success: false, error: "You do not have access to this event's player list" });
+      }
+
+      const players = await storage.getPlayersByTeamId(event.teamId);
+      const roster = players
+        .map((player) => ({ id: player.id, name: player.name }))
+        .sort((left, right) => left.name.localeCompare(right.name));
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json({ success: true, players: roster });
+    } catch (error) {
+      console.error("Get event roster error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch the event player list" });
+    }
+  });
+
   app.get("/api/events/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -1339,7 +1396,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/events/:id", async (req: any, res) => {
     try {
       const { id } = req.params;
-      const updates = req.body;
+      const updates = req.body ?? {};
+
+      if (typeof updates !== "object" || "availability" in updates || "attendance" in updates) {
+        return res.status(400).json({
+          success: false,
+          error: "Use the event availability or attendance controls to update player status",
+        });
+      }
       
       // Get authenticated user ID from session (secure)
       let userId = null;
@@ -1472,8 +1536,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user.roles?.includes("coach") || !user.teamIds?.includes(event.teamId)) {
         return res.status(403).json({ success: false, error: "Only this team's coaches can verify attendance" });
       }
-      if (new Date() < new Date(event.startTime)) {
-        return res.status(400).json({ success: false, error: "Attendance can only be verified once the event starts" });
+      if (getEventParticipationPhase(event.startTime, event.endTime) !== "completed") {
+        return res.status(400).json({ success: false, error: "Attendance can only be recorded after the event ends" });
       }
 
       const updatedAttendance = {

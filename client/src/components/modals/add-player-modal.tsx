@@ -61,6 +61,7 @@ export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalPro
         
         // Invalidate related queries to refresh cached data
         await queryClient.invalidateQueries({ queryKey: ['/api/players/parent'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/events'] });
         await queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
         await queryClient.invalidateQueries({ queryKey: ['/api/teams/club'] });
         // Force refetch by clearing all related cache

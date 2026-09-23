@@ -34,6 +34,7 @@ export default function TeamJoinSection() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/teams/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/players/parent'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       toast({
         title: "Successfully Joined Team!",
         description: data.message,

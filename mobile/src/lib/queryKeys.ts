@@ -23,6 +23,7 @@ export function invalidatePlayerData(opts: { userId?: string; clubId?: string; t
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.playersByParent(userId) }),
     queryClient.invalidateQueries({ queryKey: queryKeys.playersByTeam(teamId) }),
+    queryClient.invalidateQueries({ queryKey: ['/api/events'] }),
     queryClient.invalidateQueries({ queryKey: queryKeys.teamsByClub(clubId) }),
     queryClient.invalidateQueries({ queryKey: queryKeys.eventsAll }),
     queryClient.invalidateQueries({ queryKey: queryKeys.posts }),

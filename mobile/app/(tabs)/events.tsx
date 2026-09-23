@@ -7,6 +7,9 @@ import { invalidateEventData, refreshAllVisibleData } from '@/lib/queryKeys';
 import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
 import { MaterialIcons } from '@expo/vector-icons';
+import { getEventParticipationPhase } from '@shared/event-participation';
+
+type EventRosterPlayer = { id: string; name: string };
 
 const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
   event,
@@ -15,16 +18,18 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
   event: any;
   canManage: boolean;
 }) {
-  const { data: playersResponse, isLoading } = useQuery({
-    queryKey: ['/api/players/team', event.teamId],
+  const { data: playersResponse, isLoading, isError } = useQuery<{ success: boolean; players: EventRosterPlayer[] }>({
+    queryKey: ['/api/events', event.id, 'roster'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/players/team/${event.teamId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/events/${event.id}/roster`, {
         credentials: 'include',
       });
-      if (!response.ok) throw new Error('Failed to load team players');
+      if (!response.ok) throw new Error('Failed to load the event player list');
       return response.json();
     },
-    enabled: !!event.teamId,
+    enabled: !!event.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const updateStatusMutation = useMutation({
@@ -48,18 +53,24 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
   if (isLoading) {
     return <Text style={styles.availabilityLoading}>Loading player availability...</Text>;
   }
+  if (isError) {
+    return <Text style={styles.availabilityError}>The event player list could not be loaded.</Text>;
+  }
 
   const players = playersResponse?.players || [];
   if (players.length === 0) return null;
-  const hasStarted = new Date() >= new Date(event.startTime);
+  const phase = getEventParticipationPhase(event.startTime, event.endTime);
 
-  const available = players.filter((player: any) => event.availability?.[player.id] === 'available');
-  const unavailable = players.filter((player: any) => event.availability?.[player.id] === 'unavailable');
-  const pending = players.filter((player: any) =>
+  const available = players.filter((player) => event.availability?.[player.id] === 'available');
+  const unavailable = players.filter((player) => event.availability?.[player.id] === 'unavailable');
+  const pending = players.filter((player) =>
     !event.availability?.[player.id] || event.availability[player.id] === 'pending'
   );
-  const names = (group: any[]) => group.length > 0
-    ? group.map((player: any) => player.name).join(', ')
+  const attended = players.filter((player) => event.attendance?.[player.id] === 'attended');
+  const absent = players.filter((player) => event.attendance?.[player.id] === 'absent');
+  const attendancePending = players.filter((player) => !event.attendance?.[player.id]);
+  const names = (group: EventRosterPlayer[]) => group.length > 0
+    ? group.map((player) => player.name).join(', ')
     : 'None';
 
   return (
@@ -83,17 +94,39 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
         </Text>
         <Text style={[styles.availabilityNames, styles.pendingNames]}>{names(pending)}</Text>
       </View>
+      {phase === 'completed' && (
+        <>
+          <Text style={styles.availabilityBreakdownTitle}>Recorded attendance</Text>
+          <View style={[styles.availabilityGroup, styles.availableGroup]}>
+            <Text style={[styles.availabilityGroupLabel, styles.availableLabel]}>Attended ({attended.length})</Text>
+            <Text style={[styles.availabilityNames, styles.availableNames]}>{names(attended)}</Text>
+          </View>
+          <View style={[styles.availabilityGroup, styles.unavailableGroup]}>
+            <Text style={[styles.availabilityGroupLabel, styles.unavailableLabel]}>Absent ({absent.length})</Text>
+            <Text style={[styles.availabilityNames, styles.unavailableNames]}>{names(absent)}</Text>
+          </View>
+          <View style={[styles.availabilityGroup, styles.pendingGroup]}>
+            <Text style={[styles.availabilityGroupLabel, styles.pendingLabel]}>Not recorded ({attendancePending.length})</Text>
+            <Text style={[styles.availabilityNames, styles.pendingNames]}>{names(attendancePending)}</Text>
+          </View>
+        </>
+      )}
       {canManage && (
         <View style={styles.coachStatusSection}>
           <Text style={styles.coachStatusTitle}>
-            {hasStarted ? 'Verify actual attendance' : 'Set player availability'}
+            {phase === 'upcoming'
+              ? 'Set player availability'
+              : phase === 'completed'
+                ? 'Record actual attendance'
+                : 'Event in progress - attendance can be recorded after it ends'}
           </Text>
-          {players.map((player: any) => {
-            const status = hasStarted
+          {phase !== 'in_progress' && players.map((player) => {
+            const isCompleted = phase === 'completed';
+            const status = isCompleted
               ? event.attendance?.[player.id]
               : event.availability?.[player.id] || 'pending';
-            const positiveStatus = hasStarted ? 'attended' : 'available';
-            const negativeStatus = hasStarted ? 'absent' : 'unavailable';
+            const positiveStatus = isCompleted ? 'attended' : 'available';
+            const negativeStatus = isCompleted ? 'absent' : 'unavailable';
             return (
               <View key={player.id} style={styles.coachPlayerRow}>
                 <Text style={styles.coachPlayerName}>{player.name}</Text>
@@ -104,11 +137,11 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
                     onPress={() => updateStatusMutation.mutate({
                       playerId: player.id,
                       status: positiveStatus,
-                      kind: hasStarted ? 'attendance' : 'availability',
+                      kind: isCompleted ? 'attendance' : 'availability',
                     })}
                   >
                     <Text style={[styles.coachStatusButtonText, status === positiveStatus && styles.availableBtnTextActive]}>
-                      {hasStarted ? 'Attended' : 'Available'}
+                      {isCompleted ? 'Attended' : 'Available'}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -117,11 +150,11 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
                     onPress={() => updateStatusMutation.mutate({
                       playerId: player.id,
                       status: negativeStatus,
-                      kind: hasStarted ? 'attendance' : 'availability',
+                      kind: isCompleted ? 'attendance' : 'availability',
                     })}
                   >
                     <Text style={[styles.coachStatusButtonText, status === negativeStatus && styles.unavailableBtnTextActive]}>
-                      {hasStarted ? 'Absent' : 'Not available'}
+                      {isCompleted ? 'Absent' : 'Not available'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -677,6 +710,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     color: '#6B7280',
+    fontSize: 12,
+  },
+  availabilityError: {
+    marginTop: 12,
+    color: '#B91C1C',
     fontSize: 12,
   },
   availabilityBreakdown: {

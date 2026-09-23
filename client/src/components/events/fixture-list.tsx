@@ -11,12 +11,17 @@ import { format } from "date-fns";
 import EditFixtureModal from "@/components/modals/edit-fixture-modal";
 import MatchResultModal from "@/components/modals/match-result-modal";
 import type { Fixture } from "@shared/schema";
+import { getEventParticipationPhase } from "@shared/event-participation";
+
+type EventRosterPlayer = { id: string; name: string };
 
 function PlayerAvailabilityBreakdown({ fixture, canManage }: { fixture: any; canManage: boolean }) {
   const { toast } = useToast();
-  const { data: playersResponse, isLoading } = useQuery<{ success: boolean; players: any[] }>({
-    queryKey: ['/api/players/team', fixture.teamId],
-    enabled: !!fixture.teamId,
+  const { data: playersResponse, isLoading, isError } = useQuery<{ success: boolean; players: EventRosterPlayer[] }>({
+    queryKey: ['/api/events', fixture.id, 'roster'],
+    enabled: !!fixture.id,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const updateStatus = useMutation({
@@ -38,23 +43,32 @@ function PlayerAvailabilityBreakdown({ fixture, canManage }: { fixture: any; can
   if (isLoading) {
     return <p className="text-xs text-muted-foreground mt-2">Loading player availability...</p>;
   }
+  if (isError) {
+    return <p className="mt-2 text-xs text-destructive">The event player list could not be loaded.</p>;
+  }
 
   const players = playersResponse?.players || [];
   if (players.length === 0) return null;
-  const hasStarted = new Date() >= new Date(fixture.startTime);
+  const phase = getEventParticipationPhase(fixture.startTime, fixture.endTime);
 
   const groups = {
     available: players.filter((player) => fixture.availability?.[player.id] === "available"),
     unavailable: players.filter((player) => fixture.availability?.[player.id] === "unavailable"),
     pending: players.filter((player) => !fixture.availability?.[player.id] || fixture.availability[player.id] === "pending"),
   };
+  const attendanceGroups = {
+    attended: players.filter((player) => fixture.attendance?.[player.id] === "attended"),
+    absent: players.filter((player) => fixture.attendance?.[player.id] === "absent"),
+    pending: players.filter((player) => !fixture.attendance?.[player.id]),
+  };
 
-  const renderNames = (group: any[]) => group.length > 0
+  const renderNames = (group: EventRosterPlayer[]) => group.length > 0
     ? group.map((player) => player.name).join(", ")
     : "None";
 
   return (
     <div className="grid gap-2 mt-3 sm:grid-cols-3" data-testid={`availability-breakdown-${fixture.id}`}>
+      <p className="text-sm font-semibold sm:col-span-3">Player availability</p>
       <div className="rounded-md border border-green-200 bg-green-50 p-2">
         <p className="text-xs font-semibold text-green-800">Available ({groups.available.length})</p>
         <p className="mt-1 text-xs text-green-700">{renderNames(groups.available)}</p>
@@ -67,13 +81,35 @@ function PlayerAvailabilityBreakdown({ fixture, canManage }: { fixture: any; can
         <p className="text-xs font-semibold text-amber-800">Awaiting response ({groups.pending.length})</p>
         <p className="mt-1 text-xs text-amber-700">{renderNames(groups.pending)}</p>
       </div>
+      {phase === "completed" && (
+        <>
+          <p className="mt-1 text-sm font-semibold sm:col-span-3">Recorded attendance</p>
+          <div className="rounded-md border border-green-200 bg-green-50 p-2">
+            <p className="text-xs font-semibold text-green-800">Attended ({attendanceGroups.attended.length})</p>
+            <p className="mt-1 text-xs text-green-700">{renderNames(attendanceGroups.attended)}</p>
+          </div>
+          <div className="rounded-md border border-red-200 bg-red-50 p-2">
+            <p className="text-xs font-semibold text-red-800">Absent ({attendanceGroups.absent.length})</p>
+            <p className="mt-1 text-xs text-red-700">{renderNames(attendanceGroups.absent)}</p>
+          </div>
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
+            <p className="text-xs font-semibold text-amber-800">Not recorded ({attendanceGroups.pending.length})</p>
+            <p className="mt-1 text-xs text-amber-700">{renderNames(attendanceGroups.pending)}</p>
+          </div>
+        </>
+      )}
       {canManage && (
         <div className="sm:col-span-3 mt-1 space-y-2">
           <p className="text-sm font-semibold">
-            {hasStarted ? "Verify actual attendance" : "Set player availability"}
+            {phase === "upcoming"
+              ? "Set player availability"
+              : phase === "completed"
+                ? "Record actual attendance"
+                : "Event in progress - attendance can be recorded after it ends"}
           </p>
-          {players.map((player) => {
-            const status = hasStarted
+          {phase !== "in_progress" && players.map((player) => {
+            const isCompleted = phase === "completed";
+            const status = isCompleted
               ? fixture.attendance?.[player.id]
               : fixture.availability?.[player.id] || "pending";
             return (
@@ -82,29 +118,29 @@ function PlayerAvailabilityBreakdown({ fixture, canManage }: { fixture: any; can
                 <div className="flex gap-1">
                   <Button
                     size="sm"
-                    variant={status === (hasStarted ? "attended" : "available") ? "default" : "outline"}
+                    variant={status === (isCompleted ? "attended" : "available") ? "default" : "outline"}
                     className="h-7 px-2 text-xs"
                     disabled={updateStatus.isPending}
                     onClick={() => updateStatus.mutate({
                       playerId: player.id,
-                      status: hasStarted ? "attended" : "available",
-                      kind: hasStarted ? "attendance" : "availability",
+                      status: isCompleted ? "attended" : "available",
+                      kind: isCompleted ? "attendance" : "availability",
                     })}
                   >
-                    {hasStarted ? "Attended" : "Available"}
+                    {isCompleted ? "Attended" : "Available"}
                   </Button>
                   <Button
                     size="sm"
-                    variant={status === (hasStarted ? "absent" : "unavailable") ? "destructive" : "outline"}
+                    variant={status === (isCompleted ? "absent" : "unavailable") ? "destructive" : "outline"}
                     className="h-7 px-2 text-xs"
                     disabled={updateStatus.isPending}
                     onClick={() => updateStatus.mutate({
                       playerId: player.id,
-                      status: hasStarted ? "absent" : "unavailable",
-                      kind: hasStarted ? "attendance" : "availability",
+                      status: isCompleted ? "absent" : "unavailable",
+                      kind: isCompleted ? "attendance" : "availability",
                     })}
                   >
-                    {hasStarted ? "Absent" : "Not available"}
+                    {isCompleted ? "Absent" : "Not available"}
                   </Button>
                 </div>
               </div>
@@ -284,8 +320,8 @@ export default function FixtureList() {
   const getAvailabilityCount = (fixture: any) => {
     const availabilityEntries = Object.values(fixture.availability || {});
     const confirmed = availabilityEntries.filter(status => status === "available").length;
-    const total = availabilityEntries.length;
-    return { confirmed, total };
+    const unavailable = availabilityEntries.filter(status => status === "unavailable").length;
+    return { confirmed, unavailable };
   };
 
   const formatFixtureTime = (startTime: Date, endTime: Date) => {
@@ -414,7 +450,7 @@ export default function FixtureList() {
                     <div className="pt-3 border-t border-border">
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-sm text-muted-foreground" data-testid={`fixture-availability-${fixture.id}`}>
-                          Availability: {availability.confirmed}/{availability.total} confirmed
+                          Responses: {availability.confirmed} available, {availability.unavailable} not available
                         </span>
                         {canManageFixture(fixture) && fixture.type === "match" && new Date() > fixture.endTime && (
                           <Button
