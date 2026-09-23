@@ -10,6 +10,7 @@ import { buildInstallmentPlan, determineFeeType } from "./services/feeCalculator
 import { sendReminderForAssignment, runFeeReminderSweepNow } from "./services/feeReminderService";
 import { requestPasswordReset, resetPassword } from "./services/passwordResetService";
 import { isSameDependentIdentity } from "./services/dependentIdentity";
+import { buildWeeklyEventTimes, MAX_EVENT_REPEAT_WEEKS } from "@shared/event-duration";
 
 const passwordResetRequests = new Map<string, { count: number; resetAt: number }>();
 const PASSWORD_RESET_WINDOW_MS = 15 * 60 * 1000;
@@ -38,6 +39,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     name: z.string().trim().min(2).max(200),
     dateOfBirth: z.coerce.date().refine((date) => date <= new Date(), "Date of birth cannot be in the future"),
     teamCode: z.string().trim().length(8).transform((code) => code.toUpperCase()),
+  });
+
+  const createEventRequestSchema = z.object({
+    type: z.enum(["match", "tournament", "training", "social"]),
+    friendly: z.boolean().optional().default(false),
+    name: z.string().trim().optional(),
+    opponent: z.string().trim().optional(),
+    location: z.string().trim().min(1, "Location is required"),
+    startTime: z.coerce.date(),
+    endTime: z.coerce.date(),
+    additionalInfo: z.string().trim().optional(),
+    teamId: z.string().min(1, "Team is required"),
+    homeAway: z.enum(["home", "away"]).optional(),
+    availability: z.record(z.string(), z.enum(["available", "unavailable", "pending"])).optional(),
+    attendance: z.record(z.string(), z.enum(["attended", "absent"])).optional(),
+    repeatWeeks: z.coerce.number().int().min(1).max(MAX_EVENT_REPEAT_WEEKS).optional().default(1),
+  }).refine(({ startTime, endTime }) => endTime > startTime, {
+    message: "End time must be after start time",
+    path: ["endTime"],
   });
 
   const createDependent = async (userId: string, body: unknown) => {
@@ -1134,24 +1154,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/events", async (req, res) => {
+  app.post("/api/events", async (req: any, res) => {
     try {
-      const eventData = req.body;
-      
-      // Generate unique event ID
-      const eventId = `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const newEvent = await storage.createEvent({
+      const userId = getUserIdFromSession(req);
+      if (!userId) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user || !user.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Only coaches can create events" });
+      }
+
+      const parsed = createEventRequestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: parsed.error.issues[0]?.message || "Invalid event details",
+        });
+      }
+
+      const { repeatWeeks, ...eventData } = parsed.data;
+      if (!user.teamIds?.includes(eventData.teamId)) {
+        return res.status(403).json({ success: false, error: "You can only create events for your own team" });
+      }
+
+      const createdAt = new Date();
+      const weeklyTimes = buildWeeklyEventTimes(eventData.startTime, eventData.endTime, repeatWeeks);
+      const eventsToCreate = weeklyTimes.map(({ startTime, endTime }, weekIndex) => ({
         ...eventData,
-        id: eventId,
-        startTime: new Date(eventData.startTime),
-        endTime: new Date(eventData.endTime),
+        id: `event_${Date.now()}_${weekIndex}_${Math.random().toString(36).slice(2, 11)}`,
+        startTime,
+        endTime,
         availability: eventData.availability || {},
         attendance: eventData.attendance || {},
-        createdAt: new Date()
-      });
+        createdAt,
+      }));
 
-      res.json({ success: true, event: newEvent });
+      const createdEvents = await storage.createEvents(eventsToCreate);
+      res.status(201).json({
+        success: true,
+        event: createdEvents[0],
+        events: createdEvents,
+        count: createdEvents.length,
+      });
     } catch (error) {
       console.error("Create event error:", error);
       res.status(500).json({ success: false, error: "Failed to create event" });

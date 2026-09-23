@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEvent, type Event } from "@shared/schema";
-import { addEventDuration, DEFAULT_EVENT_DURATION_MINUTES, EVENT_DURATION_OPTIONS } from "@shared/event-duration";
+import { addEventDuration, DEFAULT_EVENT_DURATION_MINUTES, EVENT_DURATION_OPTIONS, MAX_EVENT_REPEAT_WEEKS } from "@shared/event-duration";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,8 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
   const { user } = useAuth();
   const { toast } = useToast();
   const [duration, setDuration] = useState(String(DEFAULT_EVENT_DURATION_MINUTES));
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState("2");
   const initialStartTime = new Date();
   
   // Fetch user's teams 
@@ -40,7 +42,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
     enabled: !!user?.clubId,
   });
   
-  const userTeams = teamsResponse?.teams || [];
+  const userTeams = (teamsResponse?.teams || []).filter((team) => user?.teamIds?.includes(team.id));
   
   const createEventMutation = useMutation({
     mutationFn: async (eventData: any) => {
@@ -103,6 +105,14 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
     try {
       // Get manager's team from fetched teams
       const managerTeam = userTeams.length > 0 ? userTeams[0] : null;
+      if (!managerTeam) {
+        toast({
+          variant: "destructive",
+          title: "No team available",
+          description: "You must manage a team before creating an event.",
+        });
+        return;
+      }
       
       const eventData = {
         type: data.type,
@@ -113,16 +123,19 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         startTime: data.startTime,
         endTime,
         additionalInfo: data.additionalInfo || undefined,
-        teamId: managerTeam?.id || user.id,
+        teamId: managerTeam.id,
         homeAway: data.homeAway || undefined,
         availability: {},
+        repeatWeeks: repeatWeekly ? Number(repeatWeeks) : 1,
       };
 
       await createEventMutation.mutateAsync(eventData);
 
       toast({
-        title: "Event Created Successfully",
-        description: `${data.name || 'Event'} has been scheduled.`,
+        title: repeatWeekly ? "Events Created Successfully" : "Event Created Successfully",
+        description: repeatWeekly
+          ? `${data.name || 'Event'} has been scheduled weekly for ${repeatWeeks} weeks.`
+          : `${data.name || 'Event'} has been scheduled.`,
       });
 
       const nextStartTime = new Date();
@@ -138,6 +151,8 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
         homeAway: "home",
       });
       setDuration(String(DEFAULT_EVENT_DURATION_MINUTES));
+      setRepeatWeekly(false);
+      setRepeatWeeks("2");
       onOpenChange(false);
     } catch (error) {
       toast({
@@ -378,6 +393,45 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
               />
             )}
 
+            <div className="space-y-3 rounded-md border p-4">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="repeat-event-weekly"
+                  checked={repeatWeekly}
+                  onCheckedChange={(checked) => setRepeatWeekly(checked === true)}
+                  data-testid="checkbox-repeat-weekly"
+                />
+                <div className="space-y-1">
+                  <label htmlFor="repeat-event-weekly" className="text-sm font-medium leading-none">
+                    Repeat every week
+                  </label>
+                  <p className="text-sm text-muted-foreground">
+                    Create the same event at this time each week.
+                  </p>
+                </div>
+              </div>
+
+              {repeatWeekly && (
+                <div className="space-y-2 pl-7">
+                  <label htmlFor="repeat-event-weeks" className="text-sm font-medium leading-none">
+                    Number of weeks
+                  </label>
+                  <Select value={repeatWeeks} onValueChange={setRepeatWeeks}>
+                    <SelectTrigger id="repeat-event-weeks" data-testid="select-repeat-weeks">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: MAX_EVENT_REPEAT_WEEKS - 1 }, (_, index) => index + 2).map((weeks) => (
+                        <SelectItem key={weeks} value={String(weeks)}>
+                          {weeks} weeks ({weeks} events)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
             <FormField
               control={form.control}
               name="additionalInfo"
@@ -413,7 +467,11 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                 disabled={createEventMutation.isPending}
                 data-testid="button-create"
               >
-                {createEventMutation.isPending ? "Creating..." : "Create Event"}
+                {createEventMutation.isPending
+                  ? "Creating..."
+                  : repeatWeekly
+                    ? `Create ${repeatWeeks} Events`
+                    : "Create Event"}
               </Button>
             </div>
           </form>

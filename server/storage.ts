@@ -48,6 +48,7 @@ export interface IStorage {
   getEventsByTeamId(teamId: string): Promise<Event[]>;
   getUpcomingEvents(teamId?: string): Promise<Event[]>;
   createEvent(insertEvent: InsertEvent): Promise<Event>;
+  createEvents(insertEvents: InsertEvent[]): Promise<Event[]>;
   updateEvent(id: string, updates: Partial<Event>): Promise<Event | undefined>;
   
   // Legacy fixture methods for backward compatibility
@@ -500,6 +501,16 @@ export class DatabaseStorage implements IStorage {
       .values(insertEvent)
       .returning();
     return this.normalizeEvent(event);
+  }
+
+  async createEvents(insertEvents: InsertEvent[]): Promise<Event[]> {
+    if (insertEvents.length === 0) return [];
+
+    const createdEvents = await db
+      .insert(events)
+      .values(insertEvents)
+      .returning();
+    return createdEvents.map((event) => this.normalizeEvent(event));
   }
 
   async updateEvent(id: string, updates: Partial<Event>): Promise<Event | undefined> {

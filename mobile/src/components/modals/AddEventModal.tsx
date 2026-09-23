@@ -23,6 +23,7 @@ import {
   DEFAULT_EVENT_DURATION_MINUTES,
   EVENT_DURATION_OPTIONS,
   getEventDurationPreset,
+  MAX_EVENT_REPEAT_WEEKS,
 } from '@shared/event-duration';
 
 interface AddEventModalProps {
@@ -50,6 +51,8 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   const [startDateTime, setStartDateTime] = useState<Date>(new Date());
   const [endDateTime, setEndDateTime] = useState<Date>(() => addEventDuration(new Date(), DEFAULT_EVENT_DURATION_MINUTES));
   const [durationMinutes, setDurationMinutes] = useState<number | null>(DEFAULT_EVENT_DURATION_MINUTES);
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState(2);
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [homeAway, setHomeAway] = useState<string>('home');
   const [friendly, setFriendly] = useState(false);
@@ -130,7 +133,12 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     },
     onSuccess: () => {
       invalidateEventData();
-      Alert.alert('Success', 'Event created successfully');
+      Alert.alert(
+        'Success',
+        repeatWeekly
+          ? `${repeatWeeks} weekly events created successfully`
+          : 'Event created successfully',
+      );
       resetForm();
       onClose();
     },
@@ -166,6 +174,8 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
     setStartDateTime(now);
     setEndDateTime(addEventDuration(now, DEFAULT_EVENT_DURATION_MINUTES));
     setDurationMinutes(DEFAULT_EVENT_DURATION_MINUTES);
+    setRepeatWeekly(false);
+    setRepeatWeeks(2);
     setAdditionalInfo('');
     setHomeAway('home');
     setFriendly(false);
@@ -290,6 +300,10 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       eventData.friendly = friendly;
     } else if (eventType === 'tournament' || eventType === 'social') {
       eventData.name = name.trim();
+    }
+
+    if (!isEditing) {
+      eventData.repeatWeeks = repeatWeekly ? repeatWeeks : 1;
     }
 
     if (isEditing) {
@@ -500,6 +514,55 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
                 </View>
                 <Text style={styles.changeText}>Change</Text>
               </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Weekly recurrence is available when creating an event, not while editing one. */}
+          {!isEditing && (
+            <View style={[styles.section, styles.recurrencePanel]}>
+              <View style={styles.checkboxContainer}>
+                <Checkbox checked={repeatWeekly} onCheckedChange={setRepeatWeekly} />
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  onPress={() => setRepeatWeekly((current) => !current)}
+                >
+                  <Text style={styles.checkboxLabel}>Repeat every week</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.recurrenceHelpText}>
+                Create the same event at this time each week.
+              </Text>
+
+              {repeatWeekly && (
+                <View style={styles.recurrenceWeeksSection}>
+                  <Text style={styles.label}>Number of weeks</Text>
+                  <View style={styles.durationButtonsContainer}>
+                    {Array.from({ length: MAX_EVENT_REPEAT_WEEKS - 1 }, (_, index) => index + 2).map((weeks) => (
+                      <TouchableOpacity
+                        key={weeks}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${weeks} weeks, ${weeks} events`}
+                        accessibilityState={{ selected: repeatWeeks === weeks }}
+                        style={[
+                          styles.durationButton,
+                          repeatWeeks === weeks && styles.durationButtonActive,
+                        ]}
+                        onPress={() => setRepeatWeeks(weeks)}
+                      >
+                        <Text
+                          style={[
+                            styles.durationButtonText,
+                            repeatWeeks === weeks && styles.durationButtonTextActive,
+                          ]}
+                        >
+                          {weeks} weeks
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={styles.recurrenceSummary}>{repeatWeeks} events will be created.</Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -756,6 +819,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 12,
     color: '#333',
+  },
+  recurrencePanel: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 16,
+  },
+  recurrenceHelpText: {
+    color: '#666',
+    fontSize: 14,
+    marginLeft: 32,
+    marginTop: 4,
+  },
+  recurrenceWeeksSection: {
+    marginTop: 16,
+  },
+  recurrenceSummary: {
+    color: '#666',
+    fontSize: 14,
+    marginTop: 8,
   },
   dateTimeButton: {
     borderWidth: 1,

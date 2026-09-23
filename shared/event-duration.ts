@@ -8,6 +8,7 @@ export const EVENT_DURATION_OPTIONS = [
 ] as const;
 
 export const DEFAULT_EVENT_DURATION_MINUTES = 120;
+export const MAX_EVENT_REPEAT_WEEKS = 10;
 
 type DateValue = Date | string | number;
 
@@ -31,4 +32,22 @@ export function getEventDurationPreset(startTime: DateValue, endTime: DateValue)
   if (duration === null) return null;
 
   return EVENT_DURATION_OPTIONS.some((option) => option.minutes === duration) ? duration : null;
+}
+
+export function buildWeeklyEventTimes(startTime: DateValue, endTime: DateValue, weeks: number) {
+  if (!Number.isInteger(weeks) || weeks < 1 || weeks > MAX_EVENT_REPEAT_WEEKS) {
+    throw new RangeError(`Weekly events must contain between 1 and ${MAX_EVENT_REPEAT_WEEKS} occurrences`);
+  }
+
+  const start = startTime instanceof Date ? new Date(startTime.getTime()) : new Date(startTime);
+  const end = endTime instanceof Date ? new Date(endTime.getTime()) : new Date(endTime);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
+    throw new RangeError("End time must be after start time");
+  }
+
+  const weekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
+  return Array.from({ length: weeks }, (_, weekIndex) => ({
+    startTime: new Date(start.getTime() + weekIndex * weekInMilliseconds),
+    endTime: new Date(end.getTime() + weekIndex * weekInMilliseconds),
+  }));
 }
