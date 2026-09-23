@@ -1,0 +1,7 @@
+interface:
+  display_name: "Code Review"
+  short_description: "Friendly, rigorous code review and self-review"
+  default_prompt: "Use $code-review to review these code changes and return the structured assessment."
+
+policy:
+  allow_implicit_invocation: true

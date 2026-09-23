@@ -1,0 +1,4 @@
+interface:
+  display_name: "Karpathy Review Loop"
+  short_description: "Gate every scored review with the developer"
+  default_prompt: "Use $karpathy-review-loop to implement and review this change, pausing after every scored assessment for my decision."
