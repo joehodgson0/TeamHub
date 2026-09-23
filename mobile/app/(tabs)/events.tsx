@@ -169,6 +169,7 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
 
 function Events() {
   const { user, hasRole } = useUser();
+  const [eventView, setEventView] = useState<'upcoming' | 'past'>('upcoming');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedFixture, setSelectedFixture] = useState<any>(null);
@@ -260,8 +261,15 @@ function Events() {
   // Memoize filtered events - prevent recalculation on every render
   const events = useMemo(() => {
     const allEvents = eventsResponse?.events || [];
-    return allEvents;
-  }, [eventsResponse?.events]);
+    const now = new Date();
+    return allEvents
+      .filter((event: any) => eventView === 'upcoming'
+        ? new Date(event.endTime) >= now
+        : new Date(event.endTime) < now)
+      .sort((a: any, b: any) => eventView === 'upcoming'
+        ? new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        : new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+  }, [eventsResponse?.events, eventView]);
 
   // Memoize teams array
   const teams = useMemo(() => teamsResponse?.teams || [], [teamsResponse?.teams]);
@@ -377,6 +385,24 @@ function Events() {
               <Text style={styles.addButtonText}>+ Add Event</Text>
             </TouchableOpacity>
           )}
+        </View>
+        <View style={styles.eventToggle}>
+          <TouchableOpacity
+            style={[styles.eventToggleButton, eventView === 'upcoming' && styles.eventToggleButtonActive]}
+            onPress={() => setEventView('upcoming')}
+          >
+            <Text style={[styles.eventToggleText, eventView === 'upcoming' && styles.eventToggleTextActive]}>
+              Upcoming
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.eventToggleButton, eventView === 'past' && styles.eventToggleButtonActive]}
+            onPress={() => setEventView('past')}
+          >
+            <Text style={[styles.eventToggleText, eventView === 'past' && styles.eventToggleTextActive]}>
+              Past
+            </Text>
+          </TouchableOpacity>
         </View>
         {isLoading ? (
           <Text style={styles.loadingText}>Loading events...</Text>
@@ -532,9 +558,13 @@ function Events() {
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No upcoming events</Text>
+            <Text style={styles.emptyText}>
+              {eventView === 'upcoming' ? 'No upcoming events' : 'No past events'}
+            </Text>
             <Text style={styles.emptySubtext}>
-              Events and fixtures will appear here when scheduled
+              {eventView === 'upcoming'
+                ? 'Events and fixtures will appear here when scheduled'
+                : 'Completed events will appear here'}
             </Text>
           </View>
         )}
@@ -586,6 +616,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  eventToggle: {
+    flexDirection: 'row',
+    padding: 4,
+    marginBottom: 20,
+    borderRadius: 9,
+    backgroundColor: '#F3F4F6',
+  },
+  eventToggleButton: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 7,
+    alignItems: 'center',
+  },
+  eventToggleButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  eventToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  eventToggleTextActive: {
+    color: '#FFFFFF',
   },
   loadingText: {
     textAlign: 'center',

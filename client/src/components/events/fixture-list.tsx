@@ -155,6 +155,7 @@ function PlayerAvailabilityBreakdown({ fixture, canManage }: { fixture: any; can
 export default function FixtureList() {
   const { user, hasRole } = useAuth();
   const { toast } = useToast();
+  const [eventView, setEventView] = useState<"upcoming" | "past">("upcoming");
   const [editingFixture, setEditingFixture] = useState<any | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [matchResultFixture, setMatchResultFixture] = useState<any | null>(null);
@@ -272,7 +273,12 @@ export default function FixtureList() {
     // Show all event types (match, tournament, training, social)
     // No filtering by type - show everything
 
-    return events;
+    const now = new Date();
+    return events
+      .filter((event) => eventView === "upcoming" ? event.endTime >= now : event.endTime < now)
+      .sort((a, b) => eventView === "upcoming"
+        ? a.startTime.getTime() - b.startTime.getTime()
+        : b.startTime.getTime() - a.startTime.getTime());
   };
 
   const fixtures = getFixtures();
@@ -348,17 +354,41 @@ export default function FixtureList() {
   return (
     <>
       <Card data-testid="card-fixtures">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle>Events & Fixtures</CardTitle>
+          <div className="flex rounded-md border border-border p-1" aria-label="Filter events">
+            <Button
+              type="button"
+              size="sm"
+              variant={eventView === "upcoming" ? "default" : "ghost"}
+              className="h-8"
+              onClick={() => setEventView("upcoming")}
+            >
+              Upcoming
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={eventView === "past" ? "default" : "ghost"}
+              className="h-8"
+              onClick={() => setEventView("past")}
+            >
+              Past
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {fixtures.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No Upcoming Events</p>
+                 <p className="text-lg font-medium mb-2">
+                   {eventView === "upcoming" ? "No Upcoming Events" : "No Past Events"}
+                 </p>
                 <p className="text-sm">
-                  {isCoach ? "Create your first event to get started" : "No events scheduled"}
+                   {eventView === "upcoming"
+                     ? (isCoach ? "Create your first event to get started" : "No events scheduled")
+                     : "Completed events will appear here"}
                 </p>
               </div>
             ) : (
