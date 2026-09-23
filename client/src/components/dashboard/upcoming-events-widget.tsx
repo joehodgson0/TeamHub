@@ -1,7 +1,8 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Trophy, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, Trophy, Clock, MapPin, Users } from "lucide-react";
 import { format } from "date-fns";
 import { getEventMeetTime } from "@shared/event-duration";
 
@@ -17,7 +18,7 @@ export default function UpcomingEventsWidget() {
   // Fetch user's teams for filtering
   const { data: teamsResponse } = useQuery<{ success: boolean; teams: any[] }>({
     queryKey: ['/api/teams/club', user?.clubId],
-    enabled: !!user?.clubId && user?.roles.includes('coach'),
+    enabled: !!user?.clubId,
   });
   
   // Fetch user's players for filtering
@@ -49,7 +50,9 @@ export default function UpcomingEventsWidget() {
       events = events.filter(event => teamIds.includes(event.teamId));
     }
 
-    return events.slice(0, 3); // Show only next 3 events
+    return events
+      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+      .slice(0, 3); // Show only next 3 events
   };
 
   const upcomingEvents = getUpcomingEvents();
@@ -80,6 +83,26 @@ export default function UpcomingEventsWidget() {
     }
   };
 
+  const getEventTitle = (event: any) => {
+    if (event.name) return event.name;
+    if (event.type === "training") return "Training Session";
+    if (event.type === "tournament") return "Tournament";
+    if (event.type === "social") return "Social Event";
+    return "Event";
+  };
+
+  const getEventType = (event: any) => {
+    if (event.type === "training") return "Training";
+    if (event.type === "tournament") return "Tournament";
+    if (event.type === "social") return "Social";
+    return event.type;
+  };
+
+  const getTeamName = (teamId: string) => {
+    const team = teamsResponse?.teams?.find((item: any) => item.id === teamId);
+    return team?.ageGroup ? `${team.ageGroup} ${team.name}` : team?.name;
+  };
+
   return (
     <Card data-testid="widget-upcoming-events">
       <CardHeader>
@@ -99,24 +122,48 @@ export default function UpcomingEventsWidget() {
             upcomingEvents.map((event) => (
               <div
                 key={event.id}
-                className="flex items-center space-x-3 p-3 bg-muted/50 rounded-md"
+                className="flex items-start space-x-3 rounded-lg border border-border bg-muted/30 p-3"
                 data-testid={`event-${event.id}`}
               >
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-full flex items-center justify-center">
                   {getEventIcon(event.type)}
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm" data-testid={`event-name-${event.id}`}>
-                    {event.name}
-                  </p>
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-sm" data-testid={`event-name-${event.id}`}>
+                      {getEventTitle(event)}
+                    </p>
+                    <Badge variant="secondary" className="shrink-0 text-[10px] uppercase">
+                      {getEventType(event)}
+                    </Badge>
+                  </div>
+                  {event.teamId && getTeamName(event.teamId) && (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Users className="h-3.5 w-3.5" />
+                      {getTeamName(event.teamId)}
+                    </p>
+                  )}
                   {event.meetBeforeMinutes > 0 && (
-                    <p className="text-xs font-medium text-primary" data-testid={`event-meet-time-${event.id}`}>
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-primary" data-testid={`event-meet-time-${event.id}`}>
+                      <Clock className="h-3.5 w-3.5" />
                       Meet: {formatEventTime(getEventMeetTime(event.startTime, event.meetBeforeMinutes))}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground" data-testid={`event-time-${event.id}`}>
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground" data-testid={`event-time-${event.id}`}>
+                    <Calendar className="h-3.5 w-3.5" />
                     {event.meetBeforeMinutes > 0 ? "Starts: " : ""}{formatEventTime(event.startTime)}
                   </p>
+                  {event.location && (
+                    <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>{event.location}</span>
+                    </p>
+                  )}
+                  {event.additionalInfo && (
+                    <p className="border-t border-border pt-1.5 text-xs text-muted-foreground">
+                      {event.additionalInfo}
+                    </p>
+                  )}
                 </div>
               </div>
             ))
