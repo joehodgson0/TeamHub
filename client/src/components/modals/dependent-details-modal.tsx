@@ -151,7 +151,6 @@ export default function DependentDetailsModal({ open, onOpenChange, player, onSu
             name: `${data.firstName} ${data.lastName}`,
             dateOfBirth: data.dateOfBirth,
             teamCode: data.teamCode,
-            parentId: user.id,
         });
         const createResult = await createResponse.json();
         if (!createResult.success) {
@@ -194,7 +193,10 @@ export default function DependentDetailsModal({ open, onOpenChange, player, onSu
         onSuccess?.();
       }
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "An unexpected error occurred." });
+      const message = error instanceof Error
+        ? error.message.replace(/^\d+:\s*/, "")
+        : "An unexpected error occurred.";
+      toast({ variant: "destructive", title: "Unable to save dependant", description: message });
     } finally {
       setIsLoading(false);
     }

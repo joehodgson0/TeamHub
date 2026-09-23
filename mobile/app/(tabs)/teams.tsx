@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/context/UserContext';
 import { API_BASE_URL } from '@/lib/config';
 import { refreshAllVisibleData } from '@/lib/queryKeys';
 import CreateTeamModal from '@/components/modals/CreateTeamModal';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function Teams() {
   const { user, refreshUser } = useUser();
@@ -13,6 +14,9 @@ export default function Teams() {
   const [clubCode, setClubCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [guardianPlayer, setGuardianPlayer] = useState<any>(null);
+  const [guardianRoster, setGuardianRoster] = useState<any[]>([]);
+  const [guardianEmail, setGuardianEmail] = useState('');
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -46,6 +50,44 @@ export default function Teams() {
   const teams = isCoach && user?.teamIds 
     ? allTeams.filter((team: any) => user.teamIds.includes(team.id))
     : allTeams;
+
+  const { data: guardiansData, isLoading: guardiansLoading } = useQuery({
+    queryKey: ['/api/players', guardianPlayer?.id, 'guardians'],
+    queryFn: () => apiRequest(`/api/players/${guardianPlayer.id}/guardians`),
+    enabled: Boolean(guardianPlayer?.id),
+  });
+
+  const linkGuardianMutation = useMutation({
+    mutationFn: () => apiRequest(`/api/players/${guardianPlayer.id}/guardians`, {
+      method: 'POST',
+      body: JSON.stringify({ email: guardianEmail.trim() }),
+    }),
+    onSuccess: async () => {
+      setGuardianEmail('');
+      await refreshAllVisibleData();
+      Alert.alert('Parent linked', 'The parent can now access this dependant.');
+    },
+    onError: (error: Error) => Alert.alert('Unable to link parent', error.message),
+  });
+
+  const mergeMutation = useMutation({
+    mutationFn: (duplicatePlayerId: string) => apiRequest(`/api/players/${guardianPlayer.id}/merge-duplicate`, {
+      method: 'POST',
+      body: JSON.stringify({ duplicatePlayerId }),
+    }),
+    onSuccess: async () => {
+      await refreshAllVisibleData();
+      setGuardianPlayer(null);
+      Alert.alert('Duplicate merged', 'Parents and activity now use one dependant record.');
+    },
+    onError: (error: Error) => Alert.alert('Unable to merge duplicate', error.message),
+  });
+
+  const duplicateCandidates = guardianPlayer ? guardianRoster.filter((candidate) =>
+    candidate.id !== guardianPlayer.id &&
+    candidate.name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-GB') === guardianPlayer.name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-GB') &&
+    new Date(candidate.dateOfBirth).toISOString().slice(0, 10) === new Date(guardianPlayer.dateOfBirth).toISOString().slice(0, 10)
+  ) : [];
 
   const handleJoinClub = async () => {
     if (!clubCode.trim() || clubCode.trim().length !== 8) {
@@ -127,9 +169,15 @@ export default function Teams() {
             {teamPlayers.map((player: any) => (
               <View key={player.id} style={styles.playerItem}>
                 <Text style={styles.playerName}>{player.name}</Text>
-                {player.position && (
-                  <Text style={styles.playerPosition}>{player.position}</Text>
-                )}
+                <TouchableOpacity
+                  style={styles.manageParentsButton}
+                  onPress={() => {
+                    setGuardianRoster(teamPlayers);
+                    setGuardianPlayer(player);
+                  }}
+                >
+                  <Text style={styles.manageParentsText}>Manage parents</Text>
+                </TouchableOpacity>
               </View>
             ))}
           </View>
@@ -252,6 +300,60 @@ export default function Teams() {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
       />
+      <Modal visible={Boolean(guardianPlayer)} animationType="slide" transparent onRequestClose={() => setGuardianPlayer(null)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.guardianModal}>
+            <Text style={styles.modalTitle}>Parents for {guardianPlayer?.name}</Text>
+            <Text style={styles.modalHelp}>Link a registered parent to the existing record, or merge an exact duplicate.</Text>
+            {guardiansLoading ? <Text style={styles.loadingText}>Loading parents...</Text> : guardiansData?.guardians?.map((guardian: any) => (
+              <View key={guardian.id} style={styles.guardianRow}>
+                <Text style={styles.guardianName}>{[guardian.firstName, guardian.lastName].filter(Boolean).join(' ') || guardian.email}</Text>
+                {guardian.primary && <Text style={styles.primaryLabel}>Primary</Text>}
+              </View>
+            ))}
+            <Text style={styles.label}>Registered parent email</Text>
+            <TextInput
+              style={styles.input}
+              value={guardianEmail}
+              onChangeText={setGuardianEmail}
+              placeholder="parent@example.com"
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <TouchableOpacity
+              style={[styles.actionButton, (!guardianEmail.trim() || linkGuardianMutation.isPending) && styles.joinButtonDisabled]}
+              disabled={!guardianEmail.trim() || linkGuardianMutation.isPending}
+              onPress={() => linkGuardianMutation.mutate()}
+            >
+              <Text style={styles.actionButtonText}>{linkGuardianMutation.isPending ? 'Linking...' : 'Link Parent'}</Text>
+            </TouchableOpacity>
+
+            {duplicateCandidates.map((duplicate) => (
+              <View key={duplicate.id} style={styles.duplicateRow}>
+                <Text style={styles.guardianName}>Duplicate: {duplicate.name}</Text>
+                <TouchableOpacity
+                  style={styles.mergeButton}
+                  disabled={mergeMutation.isPending}
+                  onPress={() => Alert.alert(
+                    'Merge duplicate?',
+                    `Keep this ${guardianPlayer.name} record and remove the duplicate?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Merge', style: 'destructive', onPress: () => mergeMutation.mutate(duplicate.id) },
+                    ],
+                  )}
+                >
+                  <Text style={styles.mergeButtonText}>Merge</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            <TouchableOpacity style={styles.closeButton} onPress={() => setGuardianPlayer(null)}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </>
   );
 }
@@ -462,5 +564,98 @@ const styles = StyleSheet.create({
   playerPosition: {
     fontSize: 12,
     color: '#666',
+  },
+  manageParentsButton: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  manageParentsText: {
+    color: '#007AFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  guardianModal: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  modalHelp: {
+    color: '#666',
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  guardianRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  guardianName: {
+    flex: 1,
+    fontSize: 14,
+  },
+  primaryLabel: {
+    color: '#007AFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  actionButton: {
+    backgroundColor: '#007AFF',
+    padding: 14,
+    alignItems: 'center',
+    borderRadius: 8,
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  duplicateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+  },
+  mergeButton: {
+    backgroundColor: '#dc2626',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  mergeButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  closeButton: {
+    padding: 14,
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: '#333',
+    fontWeight: '600',
   },
 });

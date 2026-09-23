@@ -46,7 +46,6 @@ export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalPro
           name: data.name,
           dateOfBirth: data.dateOfBirth,
           teamCode: data.teamCode,
-          parentId: user.id,
       });
       
       const result = await response.json();
@@ -77,7 +76,9 @@ export default function AddPlayerModal({ open, onOpenChange }: AddPlayerModalPro
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add player. Please try again.",
+        description: error instanceof Error
+          ? error.message.replace(/^\d+:\s*/, "")
+          : "Failed to add player. Please try again.",
       });
     } finally {
       setIsLoading(false);

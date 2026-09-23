@@ -20,7 +20,7 @@ export default function TeamJoinSection() {
   const canJoinTeam = hasRole("parent");
 
   const joinTeamMutation = useMutation({
-    mutationFn: async (data: { teamCode: string; playerName: string; dateOfBirth: string; parentId: string }) => {
+    mutationFn: async (data: { teamCode: string; playerName: string; dateOfBirth: string }) => {
       const response = await fetch('/api/teams/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,7 +65,6 @@ export default function TeamJoinSection() {
         teamCode: data.teamCode,
         playerName: data.name,
         dateOfBirth: data.dateOfBirth.toISOString(),
-        parentId: user.id,
       });
 
       form.reset();

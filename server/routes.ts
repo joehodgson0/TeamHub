@@ -9,6 +9,7 @@ import { getPaymentProvider, isPaymentProviderConfigured, getPaymentProviderType
 import { buildInstallmentPlan, determineFeeType } from "./services/feeCalculator";
 import { sendReminderForAssignment, runFeeReminderSweepNow } from "./services/feeReminderService";
 import { requestPasswordReset, resetPassword } from "./services/passwordResetService";
+import { isSameDependentIdentity } from "./services/dependentIdentity";
 
 const passwordResetRequests = new Map<string, { count: number; resetAt: number }>();
 const PASSWORD_RESET_WINDOW_MS = 15 * 60 * 1000;
@@ -29,6 +30,61 @@ function canRequestPasswordReset(key: string): boolean {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth - referenced from javascript_log_in_with_replit blueprint
   await setupAuth(app);
+
+  const getUserIdFromSession = (req: any): string | null =>
+    req.session?.userId || req.user?.claims?.sub || null;
+
+  const createDependentRequestSchema = z.object({
+    name: z.string().trim().min(2).max(200),
+    dateOfBirth: z.coerce.date().refine((date) => date <= new Date(), "Date of birth cannot be in the future"),
+    teamCode: z.string().trim().length(8).transform((code) => code.toUpperCase()),
+  });
+
+  const createDependent = async (userId: string, body: unknown) => {
+    const parsed = createDependentRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return { status: 400, error: "Enter a name, valid date of birth, and 8-character team code" } as const;
+    }
+
+    const parent = await storage.getUser(userId);
+    if (!parent || !parent.roles?.includes("parent")) {
+      return { status: 403, error: "Only parents or guardians can add a dependant" } as const;
+    }
+
+    const team = await storage.getTeamByCode(parsed.data.teamCode);
+    if (!team) return { status: 404, error: "No team found with that code" } as const;
+    if (parent.clubId && parent.clubId !== team.clubId) {
+      return { status: 400, error: "All dependants must join teams from the same club" } as const;
+    }
+
+    const duplicate = await storage.findDuplicatePlayer(
+      team.id,
+      parsed.data.name,
+      parsed.data.dateOfBirth,
+    );
+    if (duplicate) {
+      return {
+        status: 409,
+        error: "This dependant is already registered with the team. Ask an existing parent or the team coach to link your account instead.",
+        code: "DUPLICATE_DEPENDANT",
+      } as const;
+    }
+
+    if (!parent.clubId) await storage.updateUser(userId, { clubId: team.clubId });
+    const player = await storage.createPlayer({
+      id: `player_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+      name: parsed.data.name.replace(/\s+/g, " "),
+      dateOfBirth: parsed.data.dateOfBirth,
+      teamId: team.id,
+      parentId: userId,
+      attendance: 0,
+      totalEvents: 0,
+    });
+    await storage.updateTeam(team.id, {
+      playerIds: [...new Set([...(team.playerIds || []), player.id])],
+    });
+    return { status: 200, player, team } as const;
+  };
 
   // Traditional username/password auth routes
   app.post('/api/auth/register', async (req, res) => {
@@ -659,127 +715,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/teams/join", async (req, res) => {
+  app.post("/api/teams/join", async (req: any, res) => {
     try {
-      const { teamCode, playerName, dateOfBirth, parentId } = req.body;
-      
-      if (!teamCode || !playerName || !dateOfBirth || !parentId) {
-        return res.status(400).json({ success: false, error: "Missing required fields" });
-      }
-
-      // Find the team by code
-      const team = await storage.getTeamByCode(teamCode);
-      if (!team) {
-        return res.status(404).json({ success: false, error: "No team found with that code" });
-      }
-
-      // Get the parent user to check club association
-      const parent = await storage.getUser(parentId);
-      if (!parent) {
-        return res.status(404).json({ success: false, error: "Parent not found" });
-      }
-
-      // Check club association rules
-      if (parent.clubId) {
-        // Parent already has a club - validate new team is from same club
-        if (parent.clubId !== team.clubId) {
-          return res.status(400).json({ 
-            success: false, 
-            error: "All dependents must join teams from the same club" 
-          });
-        }
-      } else {
-        // First team join - assign parent to team's club
-        await storage.updateUser(parentId, { clubId: team.clubId });
-      }
-
-      // Generate unique player ID
-      const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Create the player
-      const newPlayer = await storage.createPlayer({
-        id: playerId,
-        name: playerName,
-        dateOfBirth: new Date(dateOfBirth),
-        teamId: team.id,
-        parentId: parentId,
-        attendance: 0,
-        totalEvents: 0
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+      const result = await createDependent(userId, {
+        name: req.body?.playerName,
+        dateOfBirth: req.body?.dateOfBirth,
+        teamCode: req.body?.teamCode,
       });
-
-      res.json({ 
-        success: true, 
-        player: newPlayer, 
-        team: team,
-        message: `Successfully joined ${team.name}!`
-      });
+      if (!("player" in result)) {
+        return res.status(result.status).json({ success: false, error: result.error, code: "code" in result ? result.code : undefined });
+      }
+      res.json({ success: true, player: result.player, team: result.team, message: `Successfully joined ${result.team.name}!` });
     } catch (error) {
+      if (error instanceof Error && error.message === "DUPLICATE_DEPENDANT") {
+        return res.status(409).json({ success: false, code: "DUPLICATE_DEPENDANT", error: "This dependant is already registered with the team. Ask an existing parent or the team coach to link your account instead." });
+      }
       console.error("Join team error:", error);
       res.status(500).json({ success: false, error: "Failed to join team" });
     }
   });
 
-  app.post("/api/players", async (req, res) => {
+  app.post("/api/players", async (req: any, res) => {
     try {
-      const { name, dateOfBirth, teamCode, parentId } = req.body;
-      
-      if (!name || !dateOfBirth || !teamCode || !parentId) {
-        return res.status(400).json({ success: false, error: "Missing required fields" });
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+      const result = await createDependent(userId, req.body);
+      if (!("player" in result)) {
+        return res.status(result.status).json({ success: false, error: result.error, code: "code" in result ? result.code : undefined });
       }
-
-      // Find team by code
-      const team = await storage.getTeamByCode(teamCode);
-      if (!team) {
-        return res.status(404).json({ success: false, error: "No team found with code " + teamCode });
-      }
-
-      // Get the parent user to check club association
-      const parent = await storage.getUser(parentId);
-      if (!parent) {
-        return res.status(404).json({ success: false, error: "Parent not found" });
-      }
-
-      // Check club association rules
-      if (parent.clubId) {
-        // Parent already has a club - validate new team is from same club
-        if (parent.clubId !== team.clubId) {
-          return res.status(400).json({ 
-            success: false, 
-            error: "All dependents must join teams from the same club" 
-          });
-        }
-      } else {
-        // First team join - assign parent to team's club
-        await storage.updateUser(parentId, { clubId: team.clubId });
-      }
-
-      // Generate unique player ID
-      const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const newPlayer = await storage.createPlayer({
-        id: playerId,
-        name,
-        dateOfBirth: new Date(dateOfBirth),
-        teamId: team.id,
-        parentId,
-        attendance: 0,
-        totalEvents: 0
-      });
-
-      // Update team's player list
-      const updatedPlayerIds = [...team.playerIds, playerId];
-      await storage.updateTeam(team.id, {
-        playerIds: updatedPlayerIds
-      });
-
-      res.json({ success: true, player: newPlayer, team: team.name, clubId: team.clubId });
+      res.json({ success: true, player: result.player, team: result.team.name, clubId: result.team.clubId });
     } catch (error) {
+      if (error instanceof Error && error.message === "DUPLICATE_DEPENDANT") {
+        return res.status(409).json({ success: false, code: "DUPLICATE_DEPENDANT", error: "This dependant is already registered with the team. Ask an existing parent or the team coach to link your account instead." });
+      }
       console.error("Create player error:", error);
       res.status(500).json({ success: false, error: "Failed to create player" });
     }
   });
 
-  app.put("/api/players/:id", async (req, res) => {
+  app.put("/api/players/:id", async (req: any, res) => {
     try {
       const { id } = req.params;
       if (!id) {
@@ -789,6 +765,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existing = await storage.getPlayer(id);
       if (!existing) {
         return res.status(404).json({ success: false, error: "Player not found" });
+      }
+
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+      const user = await storage.getUser(userId);
+      const canManageAsCoach = Boolean(user?.roles?.includes("coach") && user.teamIds?.includes(existing.teamId));
+      if (!canManageAsCoach && !(await storage.isPlayerGuardian(id, userId))) {
+        return res.status(403).json({ success: false, error: "You cannot edit this dependant" });
       }
 
       const {
@@ -834,7 +818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/players/parent/:parentId", async (req, res) => {
+  app.get("/api/players/parent/:parentId", async (req: any, res) => {
     try {
       const { parentId } = req.params;
       
@@ -842,11 +826,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, error: "Parent ID required" });
       }
 
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+      if (userId !== parentId) return res.status(403).json({ success: false, error: "Access denied" });
+
       const players = await storage.getPlayersByParentId(parentId);
       res.json({ success: true, players });
     } catch (error) {
       console.error("Get players by parent error:", error);
       res.status(500).json({ success: false, error: "Failed to fetch players" });
+    }
+  });
+
+  app.get("/api/players/:id/guardians", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+      const player = await storage.getPlayer(req.params.id);
+      if (!player) return res.status(404).json({ success: false, error: "Dependant not found" });
+      const user = await storage.getUser(userId);
+      const canManageAsCoach = Boolean(user?.roles?.includes("coach") && user.teamIds?.includes(player.teamId));
+      if (!canManageAsCoach && !(await storage.isPlayerGuardian(player.id, userId))) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+      const guardians = await storage.getPlayerGuardians(player.id);
+      res.json({
+        success: true,
+        guardians: guardians.map((guardian) => ({
+          id: guardian.id,
+          email: guardian.email,
+          firstName: guardian.firstName,
+          lastName: guardian.lastName,
+          primary: guardian.id === player.parentId,
+        })),
+      });
+    } catch (error) {
+      console.error("Get guardians error:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch parents or guardians" });
+    }
+  });
+
+  app.post("/api/players/:id/guardians", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+      const parsed = z.object({ email: z.string().trim().email().max(320) }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ success: false, error: "Enter a valid registered parent email" });
+
+      const player = await storage.getPlayer(req.params.id);
+      if (!player) return res.status(404).json({ success: false, error: "Dependant not found" });
+      const team = await storage.getTeam(player.teamId);
+      const actingUser = await storage.getUser(userId);
+      const canManageAsCoach = Boolean(actingUser?.roles?.includes("coach") && actingUser.teamIds?.includes(player.teamId));
+      if (!canManageAsCoach && !(await storage.isPlayerGuardian(player.id, userId))) {
+        return res.status(403).json({ success: false, error: "Only a linked parent or this team's coach can add another parent" });
+      }
+
+      const guardian = await storage.getUserByEmail(parsed.data.email.toLowerCase());
+      if (!guardian || !guardian.roles?.includes("parent")) {
+        return res.status(404).json({ success: false, error: "That email must register a TeamHub parent account before it can be linked" });
+      }
+      if (guardian.clubId && team && guardian.clubId !== team.clubId) {
+        return res.status(400).json({ success: false, error: "That parent belongs to a different club" });
+      }
+      if (!guardian.clubId && team) await storage.updateUser(guardian.id, { clubId: team.clubId });
+      await storage.addPlayerGuardian(player.id, guardian.id);
+      res.json({ success: true, guardian: { id: guardian.id, email: guardian.email, firstName: guardian.firstName, lastName: guardian.lastName } });
+    } catch (error) {
+      console.error("Add guardian error:", error);
+      res.status(500).json({ success: false, error: "Failed to link parent or guardian" });
+    }
+  });
+
+  app.post("/api/players/:id/merge-duplicate", async (req: any, res) => {
+    try {
+      const userId = getUserIdFromSession(req);
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+      const parsed = z.object({ duplicatePlayerId: z.string().min(1) }).safeParse(req.body);
+      if (!parsed.success || parsed.data.duplicatePlayerId === req.params.id) {
+        return res.status(400).json({ success: false, error: "Choose two different dependant records" });
+      }
+      const [user, primary, duplicate] = await Promise.all([
+        storage.getUser(userId),
+        storage.getPlayer(req.params.id),
+        storage.getPlayer(parsed.data.duplicatePlayerId),
+      ]);
+      if (!primary || !duplicate) return res.status(404).json({ success: false, error: "Dependant record not found" });
+      if (!user?.roles?.includes("coach") || !user.teamIds?.includes(primary.teamId) || primary.teamId !== duplicate.teamId) {
+        return res.status(403).json({ success: false, error: "Only this team's coach can merge these records" });
+      }
+      if (!isSameDependentIdentity(primary, duplicate)) {
+        return res.status(400).json({ success: false, error: "Records can only be merged when name, date of birth, and team match" });
+      }
+      const player = await storage.mergeDuplicatePlayers(primary.id, duplicate.id);
+      res.json({ success: true, player });
+    } catch (error) {
+      if (error instanceof Error && error.message === "DUPLICATE_HAS_FINANCIAL_RECORDS") {
+        return res.status(409).json({ success: false, error: "This duplicate has fee records and cannot be merged automatically. Contact a club administrator." });
+      }
+      console.error("Merge duplicate error:", error);
+      res.status(500).json({ success: false, error: "Failed to merge duplicate records" });
     }
   });
 
@@ -1160,7 +1239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const isTeamCoach = user.roles?.includes("coach") && user.teamIds?.includes(event.teamId);
-      const isPlayerParent = user.roles?.includes("parent") && player.parentId === user.id;
+      const isPlayerParent = user.roles?.includes("parent") && await storage.isPlayerGuardian(player.id, user.id);
       if (!isTeamCoach && !isPlayerParent) {
         return res.status(403).json({ success: false, error: "You cannot update this player's availability" });
       }
@@ -1876,11 +1955,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fee Management Routes (Club Managers Only)
   // ============================================
 
-  // Helper to get user ID from session
-  const getUserIdFromSession = (req: any): string | null => {
-    return req.session?.userId || req.user?.claims?.sub || null;
-  };
-
   // Helper to check if user is a coach/manager
   const isCoach = async (userId: string): Promise<boolean> => {
     const user = await storage.getUser(userId);
@@ -2235,7 +2309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify the user is the parent of this player
       const player = await storage.getPlayer(assignment.playerId);
-      if (!player || player.parentId !== userId) {
+      if (!player || !(await storage.isPlayerGuardian(player.id, userId))) {
         return res.status(403).json({ success: false, error: "You can only pay fees for your own children" });
       }
 
@@ -2325,7 +2399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const player = await storage.getPlayer(assignment.playerId);
-      if (!player || player.parentId !== userId) {
+      if (!player || !(await storage.isPlayerGuardian(player.id, userId))) {
         return res.status(403).json({ success: false, error: "You can only pay fees for your own children" });
       }
 
@@ -2779,7 +2853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const team = await storage.getTeam(player.teamId);
       if (!team) return res.status(404).json({ success: false, error: "Team not found" });
 
-      const isOwnChild = player.parentId === userId;
+      const isOwnChild = await storage.isPlayerGuardian(player.id, userId);
       const isAdminForClub = await isClubAdmin(userId, team.clubId);
       if (!isOwnChild && !isAdminForClub) {
         return res.status(403).json({ success: false, error: "Access denied" });
@@ -2816,7 +2890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!team) return res.status(404).json({ success: false, error: "Team not found" });
 
       const user = await storage.getUser(userId);
-      const isOwnChild = player.parentId === userId;
+      const isOwnChild = await storage.isPlayerGuardian(player.id, userId);
       const isAdminForClub = await isClubAdmin(userId, team.clubId);
       if (!isOwnChild && !isAdminForClub) {
         return res.status(403).json({ success: false, error: "Access denied" });
@@ -2843,7 +2917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         season: validated.season,
         playerId: player.id,
         teamId: team.id,
-        parentUserId: player.parentId,
+        parentUserId: isOwnChild ? userId : player.parentId,
         feeType,
         paymentOption: validated.paymentOption,
         totalAmount,

@@ -4,15 +4,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Users } from "lucide-react";
 import AddPlayerModal from "@/components/modals/add-player-modal";
 import DependentDetailsModal from "@/components/modals/dependent-details-modal";
+import ManageGuardiansDialog from "@/components/modals/manage-guardians-dialog";
 import type { Player, Team } from "@shared/schema";
 
 export default function Dependents() {
   const { user, hasRole } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editPlayer, setEditPlayer] = useState<Player | null>(null);
+  const [guardianPlayer, setGuardianPlayer] = useState<Player | null>(null);
 
   const canAddPlayer = hasRole("parent");
 
@@ -137,6 +139,18 @@ export default function Dependents() {
                           variant="ghost"
                           size="sm"
                           className="flex-shrink-0"
+                          onClick={() => setGuardianPlayer(player)}
+                          data-testid={`button-manage-guardians-${player.id}`}
+                        >
+                          <Users className="w-4 h-4" />
+                          <span className="sr-only">Manage parents and guardians</span>
+                        </Button>
+                      )}
+                      {canAddPlayer && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-shrink-0"
                           onClick={() => setEditPlayer(player)}
                           data-testid={`button-edit-player-${player.id}`}
                         >
@@ -169,6 +183,12 @@ export default function Dependents() {
           onSuccess={() => refetchPlayers()}
         />
       )}
+
+      <ManageGuardiansDialog
+        player={guardianPlayer}
+        onOpenChange={(open) => { if (!open) setGuardianPlayer(null); }}
+        onChanged={() => refetchPlayers()}
+      />
     </div>
   );
 }

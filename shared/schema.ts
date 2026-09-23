@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, varchar, text, timestamp, integer, json, serial, boolean, index, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, timestamp, integer, json, serial, boolean, index, jsonb, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { sql } from 'drizzle-orm';
 
@@ -321,6 +321,25 @@ export const players = pgTable("players", {
   emergencyContacts: json("emergency_contacts").$type<EmergencyContact[]>(),
 });
 
+// A player can be managed by more than one parent/guardian. `players.parentId`
+// remains the primary contact for compatibility with existing records and billing.
+export const playerGuardians = pgTable(
+  "player_guardians",
+  {
+    playerId: varchar("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.playerId, table.userId] }),
+    index("IDX_player_guardians_user").on(table.userId),
+  ],
+);
+
 export const events = pgTable("events", {
   id: varchar("id").primaryKey(),
   type: varchar("type").notNull(),
@@ -570,6 +589,7 @@ export const insertUserSchema = createInsertSchema(users).omit({ createdAt: true
 export const insertClubSchema = createInsertSchema(clubs).omit({ createdAt: true });
 export const insertTeamSchema = createInsertSchema(teams).omit({ createdAt: true });
 export const insertPlayerSchema = createInsertSchema(players).omit({ createdAt: true });
+export const insertPlayerGuardianSchema = createInsertSchema(playerGuardians).omit({ createdAt: true });
 export const insertEventSchema = createInsertSchema(events).omit({ createdAt: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ createdAt: true });
 export const insertMatchResultSchema = createInsertSchema(matchResults).omit({ createdAt: true });
@@ -589,6 +609,7 @@ export type Team = z.infer<typeof teamSchema>;
 export type CreateTeam = z.infer<typeof createTeamSchema>;
 export type TeamAssociation = z.infer<typeof teamAssociationSchema>;
 export type Player = typeof players.$inferSelect;
+export type PlayerGuardian = typeof playerGuardians.$inferSelect;
 export type AddPlayer = z.infer<typeof addPlayerSchema>;
 export type Event = z.infer<typeof eventSchema>;
 export type CreateEvent = z.infer<typeof createEventSchema>;
@@ -612,6 +633,7 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertClub = z.infer<typeof insertClubSchema>;
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
+export type InsertPlayerGuardian = z.infer<typeof insertPlayerGuardianSchema>;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 // Legacy type for backward compatibility
 export type InsertFixture = InsertEvent;

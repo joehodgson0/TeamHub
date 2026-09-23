@@ -1,6 +1,7 @@
-import { users, clubs, teams, players, events, posts, matchResults, fees, feeAssignments, payments, feeSchedules, feeEnrollments, type User, type UpsertUser, type Club, type Team, type Player, type Event, type Post, type MatchResult, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertMatchResult, type Fee, type InsertFee, type FeeAssignment, type InsertFeeAssignment, type Payment, type InsertPayment, type FeeSchedule, type InsertFeeSchedule, type FeeEnrollment, type InsertFeeEnrollment } from "@shared/schema";
+import { users, clubs, teams, players, playerGuardians, events, posts, matchResults, fees, feeAssignments, payments, feeSchedules, feeEnrollments, type User, type UpsertUser, type Club, type Team, type Player, type Event, type Post, type MatchResult, type InsertClub, type InsertTeam, type InsertPlayer, type InsertEvent, type InsertPost, type InsertMatchResult, type Fee, type InsertFee, type FeeAssignment, type InsertFeeAssignment, type Payment, type InsertPayment, type FeeSchedule, type InsertFeeSchedule, type FeeEnrollment, type InsertFeeEnrollment } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gt, inArray, or, isNull, lt, lte } from "drizzle-orm";
+import { eq, and, gt, inArray, or, isNull, lt, lte, sql } from "drizzle-orm";
+import { dependentDateKey, isSameDependentIdentity, normalizeDependentName } from "./services/dependentIdentity";
 
 export interface IStorage {
   // User methods for Replit Auth - MANDATORY
@@ -32,6 +33,11 @@ export interface IStorage {
   getPlayers(): Promise<Player[]>;
   getPlayersByTeamId(teamId: string): Promise<Player[]>;
   getPlayersByParentId(parentId: string): Promise<Player[]>;
+  getPlayerGuardians(playerId: string): Promise<User[]>;
+  isPlayerGuardian(playerId: string, userId: string): Promise<boolean>;
+  addPlayerGuardian(playerId: string, userId: string): Promise<void>;
+  findDuplicatePlayer(teamId: string, name: string, dateOfBirth: Date): Promise<Player | undefined>;
+  mergeDuplicatePlayers(primaryPlayerId: string, duplicatePlayerId: string): Promise<Player>;
   createPlayer(insertPlayer: InsertPlayer): Promise<Player>;
   updatePlayer(id: string, updates: Partial<Player>): Promise<Player | undefined>;
   deletePlayersByParentId(parentId: string): Promise<boolean>;
@@ -146,7 +152,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await db.select().from(users)
+      .where(sql`lower(${users.email}) = ${email.trim().toLowerCase()}`);
     return user ? {
       ...user,
       email: user.email || undefined,
@@ -289,15 +296,81 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPlayersByParentId(parentId: string): Promise<Player[]> {
-    return await db.select().from(players).where(eq(players.parentId, parentId));
+    const linkedPlayerIds = db
+      .select({ playerId: playerGuardians.playerId })
+      .from(playerGuardians)
+      .where(eq(playerGuardians.userId, parentId));
+    return await db
+      .select()
+      .from(players)
+      .where(or(eq(players.parentId, parentId), inArray(players.id, linkedPlayerIds)));
+  }
+
+  async getPlayerGuardians(playerId: string): Promise<User[]> {
+    const player = await this.getPlayer(playerId);
+    if (!player) return [];
+
+    const linked = await db
+      .select({ user: users })
+      .from(playerGuardians)
+      .innerJoin(users, eq(playerGuardians.userId, users.id))
+      .where(eq(playerGuardians.playerId, playerId));
+    const guardianMap = new Map<string, User>(
+      linked.map(({ user }: { user: User }) => [user.id, user] as const),
+    );
+    if (!guardianMap.has(player.parentId)) {
+      const primary = await this.getUser(player.parentId);
+      if (primary) guardianMap.set(primary.id, primary);
+    }
+    return [...guardianMap.values()];
+  }
+
+  async isPlayerGuardian(playerId: string, userId: string): Promise<boolean> {
+    const player = await this.getPlayer(playerId);
+    if (!player) return false;
+    if (player.parentId === userId) return true;
+    const [link] = await db
+      .select({ userId: playerGuardians.userId })
+      .from(playerGuardians)
+      .where(and(eq(playerGuardians.playerId, playerId), eq(playerGuardians.userId, userId)))
+      .limit(1);
+    return Boolean(link);
+  }
+
+  async addPlayerGuardian(playerId: string, userId: string): Promise<void> {
+    await db
+      .insert(playerGuardians)
+      .values({ playerId, userId })
+      .onConflictDoNothing();
+  }
+
+  async findDuplicatePlayer(teamId: string, name: string, dateOfBirth: Date): Promise<Player | undefined> {
+    const candidates = await this.getPlayersByTeamId(teamId);
+    return candidates.find((candidate) => isSameDependentIdentity(
+      candidate,
+      { teamId, name, dateOfBirth },
+    ));
   }
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
-    const [player] = await db
-      .insert(players)
-      .values(insertPlayer)
-      .returning();
-    return player as Player;
+    return db.transaction(async (tx: any) => {
+      const normalizedName = normalizeDependentName(insertPlayer.name);
+      const dateKey = dependentDateKey(insertPlayer.dateOfBirth);
+      const identityKey = `${insertPlayer.teamId}|${normalizedName}|${dateKey}`;
+      // Serialize creation of the same child identity across server instances. Existing
+      // historical duplicates are tolerated until a coach merges them.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${identityKey}))`);
+      const candidates = await tx.select().from(players).where(eq(players.teamId, insertPlayer.teamId));
+      const duplicate = candidates.some((candidate: Player) => isSameDependentIdentity(candidate, insertPlayer));
+      if (duplicate) throw new Error("DUPLICATE_DEPENDANT");
+
+      const [player] = await tx.insert(players).values(insertPlayer).returning();
+      await tx
+        .insert(playerGuardians)
+        .values({ playerId: player.id, userId: insertPlayer.parentId })
+        .onConflictDoNothing();
+      return player as Player;
+    });
   }
 
   async updatePlayer(id: string, updates: Partial<Player>): Promise<Player | undefined> {
@@ -307,6 +380,72 @@ export class DatabaseStorage implements IStorage {
       .where(eq(players.id, id))
       .returning();
     return player || undefined;
+  }
+
+  async mergeDuplicatePlayers(primaryPlayerId: string, duplicatePlayerId: string): Promise<Player> {
+    return db.transaction(async (tx: any) => {
+      const [primary] = await tx.select().from(players).where(eq(players.id, primaryPlayerId));
+      const [duplicate] = await tx.select().from(players).where(eq(players.id, duplicatePlayerId));
+      if (!primary || !duplicate) throw new Error("PLAYER_NOT_FOUND");
+      if (primary.teamId !== duplicate.teamId) throw new Error("PLAYERS_NOT_ON_SAME_TEAM");
+
+      const duplicateAssignments = await tx.select({ id: feeAssignments.id }).from(feeAssignments)
+        .where(eq(feeAssignments.playerId, duplicatePlayerId));
+      const duplicateEnrollments = await tx.select({ id: feeEnrollments.id }).from(feeEnrollments)
+        .where(eq(feeEnrollments.playerId, duplicatePlayerId));
+      if (duplicateAssignments.length || duplicateEnrollments.length) {
+        throw new Error("DUPLICATE_HAS_FINANCIAL_RECORDS");
+      }
+
+      const guardianLinks = await tx.select().from(playerGuardians)
+        .where(inArray(playerGuardians.playerId, [primaryPlayerId, duplicatePlayerId]));
+      const guardianIds = new Set<string>([
+        primary.parentId,
+        duplicate.parentId,
+        ...guardianLinks.map((link: { userId: string }) => link.userId),
+      ]);
+      for (const userId of guardianIds) {
+        await tx.insert(playerGuardians).values({ playerId: primaryPlayerId, userId }).onConflictDoNothing();
+      }
+
+      const teamEvents = await tx.select().from(events).where(eq(events.teamId, primary.teamId));
+      for (const event of teamEvents) {
+        const availability = { ...(event.availability || {}) };
+        const attendance = { ...(event.attendance || {}) };
+        if (availability[primaryPlayerId] === undefined && availability[duplicatePlayerId] !== undefined) {
+          availability[primaryPlayerId] = availability[duplicatePlayerId];
+        }
+        if (attendance[primaryPlayerId] === undefined && attendance[duplicatePlayerId] !== undefined) {
+          attendance[primaryPlayerId] = attendance[duplicatePlayerId];
+        }
+        delete availability[duplicatePlayerId];
+        delete attendance[duplicatePlayerId];
+        await tx.update(events).set({ availability, attendance }).where(eq(events.id, event.id));
+      }
+
+      const teamResults = await tx.select().from(matchResults).where(eq(matchResults.teamId, primary.teamId));
+      for (const result of teamResults) {
+        const playerStats = { ...(result.playerStats || {}) };
+        if (playerStats[primaryPlayerId] === undefined && playerStats[duplicatePlayerId] !== undefined) {
+          playerStats[primaryPlayerId] = playerStats[duplicatePlayerId];
+        }
+        delete playerStats[duplicatePlayerId];
+        await tx.update(matchResults).set({ playerStats }).where(eq(matchResults.id, result.id));
+      }
+
+      const [team] = await tx.select().from(teams).where(eq(teams.id, primary.teamId));
+      if (team) {
+        const playerIds = [...new Set([
+          ...(team.playerIds || []).map((id: string) => id === duplicatePlayerId ? primaryPlayerId : id),
+          primaryPlayerId,
+        ])];
+        await tx.update(teams).set({ playerIds }).where(eq(teams.id, team.id));
+      }
+
+      await tx.delete(playerGuardians).where(eq(playerGuardians.playerId, duplicatePlayerId));
+      await tx.delete(players).where(eq(players.id, duplicatePlayerId));
+      return primary as Player;
+    });
   }
 
   // Event methods
@@ -605,8 +744,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deletePlayersByParentId(parentId: string): Promise<boolean> {
-    const result = await db.delete(players).where(eq(players.parentId, parentId)).returning();
-    return result.length > 0;
+    return db.transaction(async (tx: any) => {
+      const linkedPlayerIds = tx.select({ playerId: playerGuardians.playerId }).from(playerGuardians)
+        .where(eq(playerGuardians.userId, parentId));
+      const linkedPlayers = await tx.select().from(players)
+        .where(or(eq(players.parentId, parentId), inArray(players.id, linkedPlayerIds)));
+      let changed = false;
+
+      for (const player of linkedPlayers) {
+        const links = await tx.select().from(playerGuardians).where(eq(playerGuardians.playerId, player.id));
+        const remainingIds = [...new Set(links.map((link: { userId: string }) => link.userId))]
+          .filter((userId) => userId !== parentId);
+        if (player.parentId === parentId && remainingIds.length > 0) {
+          await tx.update(players).set({ parentId: remainingIds[0] }).where(eq(players.id, player.id));
+        } else if (player.parentId === parentId) {
+          await tx.delete(players).where(eq(players.id, player.id));
+          const [team] = await tx.select().from(teams).where(eq(teams.id, player.teamId));
+          if (team) {
+            await tx.update(teams)
+              .set({ playerIds: (team.playerIds || []).filter((id: string) => id !== player.id) })
+              .where(eq(teams.id, team.id));
+          }
+        }
+        await tx.delete(playerGuardians).where(and(
+          eq(playerGuardians.playerId, player.id),
+          eq(playerGuardians.userId, parentId),
+        ));
+        changed = true;
+      }
+      return changed;
+    });
   }
 
   // Fee methods

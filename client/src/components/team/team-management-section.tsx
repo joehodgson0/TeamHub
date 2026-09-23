@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { clubAssociationSchema, type ClubAssociation, type Team } from "@shared/schema";
+import { clubAssociationSchema, type ClubAssociation, type Player, type Team } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle } from "lucide-react";
+import { Users, Edit, Plus, Building, Info, CheckCircle, XCircle, UserRoundCog } from "lucide-react";
 import CreateTeamModal from "@/components/modals/create-team-modal";
 import EditTeamModal from "@/components/modals/edit-team-modal";
+import ManageGuardiansDialog from "@/components/modals/manage-guardians-dialog";
 
 export default function TeamManagementSection() {
   const { user, hasRole, associateWithClub } = useAuth();
@@ -28,6 +29,8 @@ export default function TeamManagementSection() {
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [guardianPlayer, setGuardianPlayer] = useState<Player | null>(null);
+  const [guardianRoster, setGuardianRoster] = useState<Player[]>([]);
   
   // Fetch club data from database
   const { data: clubData, isLoading: clubLoading } = useQuery<{ club: any }>({
@@ -100,7 +103,7 @@ export default function TeamManagementSection() {
     setEditingTeam: (team: Team) => void, 
     setShowEditModal: (show: boolean) => void 
   }) => {
-    const { data: playersData, isLoading: playersLoading } = useQuery<{ success: boolean; players: any[] }>({
+    const { data: playersData, isLoading: playersLoading } = useQuery<{ success: boolean; players: Player[] }>({
       queryKey: ['/api/players/team', team.id],
       enabled: Boolean(team?.id),
     });
@@ -211,7 +214,7 @@ export default function TeamManagementSection() {
           <div className="space-y-1" data-testid={`players-list-${team.id}`}>
             <p className="text-xs font-medium text-muted-foreground mb-2">Players:</p>
             <div className="grid grid-cols-1 gap-1">
-              {teamPlayers.map((player: any) => (
+              {teamPlayers.map((player: Player) => (
                 <div
                   key={player.id}
                   className="flex items-center justify-between text-xs p-2 bg-background/50 rounded"
@@ -219,9 +222,18 @@ export default function TeamManagementSection() {
                 >
                   <span className="font-medium">{player.name}</span>
                   <div className="flex items-center space-x-2 text-muted-foreground">
-                    {player.position && (
-                      <span>{player.position}</span>
-                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setGuardianRoster(teamPlayers);
+                        setGuardianPlayer(player);
+                      }}
+                      title="Manage parents or merge duplicate"
+                    >
+                      <UserRoundCog className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -426,6 +438,15 @@ export default function TeamManagementSection() {
         open={showEditModal} 
         onOpenChange={setShowEditModal}
         team={editingTeam}
+      />
+      <ManageGuardiansDialog
+        player={guardianPlayer}
+        onOpenChange={(open) => { if (!open) setGuardianPlayer(null); }}
+        duplicateCandidates={guardianPlayer ? guardianRoster.filter((candidate) =>
+          candidate.id !== guardianPlayer.id &&
+          candidate.name.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-GB") === guardianPlayer.name.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-GB") &&
+          new Date(candidate.dateOfBirth).toISOString().slice(0, 10) === new Date(guardianPlayer.dateOfBirth).toISOString().slice(0, 10)
+        ) : []}
       />
     </div>
   );

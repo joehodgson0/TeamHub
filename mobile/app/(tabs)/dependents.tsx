@@ -12,6 +12,8 @@ export default function Dependents() {
   const { user, refreshUser } = useUser();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [guardianPlayer, setGuardianPlayer] = useState<any>(null);
+  const [guardianEmail, setGuardianEmail] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     dateOfBirth: new Date(new Date().getFullYear() - 10, 0, 1), // Default to 10 years ago
@@ -46,6 +48,25 @@ export default function Dependents() {
 
   const players = playersData?.players || [];
   const teams = teamsData?.teams || [];
+
+  const { data: guardiansData, isLoading: guardiansLoading } = useQuery({
+    queryKey: ['/api/players', guardianPlayer?.id, 'guardians'],
+    queryFn: () => apiRequest(`/api/players/${guardianPlayer.id}/guardians`),
+    enabled: Boolean(guardianPlayer?.id),
+  });
+
+  const linkGuardianMutation = useMutation({
+    mutationFn: () => apiRequest(`/api/players/${guardianPlayer.id}/guardians`, {
+      method: 'POST',
+      body: JSON.stringify({ email: guardianEmail.trim() }),
+    }),
+    onSuccess: async () => {
+      setGuardianEmail('');
+      await invalidatePlayerData({ userId: user?.id, clubId: user?.clubId, teamId: guardianPlayer?.teamId });
+      Alert.alert('Parent linked', 'They can now access this dependant from their own account.');
+    },
+    onError: (error: Error) => Alert.alert('Unable to link parent', error.message),
+  });
 
   const getPlayerTeam = (teamId: string) => {
     return teams.find((team: any) => team.id === teamId);
@@ -118,7 +139,6 @@ export default function Dependents() {
       name: formData.name,
       dateOfBirth: formattedDate,
       teamCode: formData.teamCode,
-      parentId: user?.id,
     });
   };
 
@@ -180,6 +200,9 @@ export default function Dependents() {
                       {team?.name || 'Unknown Team'} • Age {age}
                     </Text>
                   </View>
+                  <TouchableOpacity style={styles.guardiansButton} onPress={() => setGuardianPlayer(player)}>
+                    <Text style={styles.guardiansButtonText}>Parents</Text>
+                  </TouchableOpacity>
                 </View>
               );
             })}
@@ -274,6 +297,55 @@ export default function Dependents() {
           />
         </KeyboardAvoidingView>
       </Modal>
+
+      <Modal
+        visible={Boolean(guardianPlayer)}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setGuardianPlayer(null)}
+      >
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Parents for {guardianPlayer?.name}</Text>
+            <Text style={styles.guardianHelp}>
+              Link another registered TeamHub parent to this existing dependant. They must register and select the Parent role first.
+            </Text>
+            {guardiansLoading ? (
+              <Text style={styles.loadingText}>Loading parents...</Text>
+            ) : (
+              guardiansData?.guardians?.map((guardian: any) => (
+                <View key={guardian.id} style={styles.guardianRow}>
+                  <Text style={styles.guardianName}>
+                    {[guardian.firstName, guardian.lastName].filter(Boolean).join(' ') || guardian.email}
+                  </Text>
+                  {guardian.primary && <Text style={styles.primaryLabel}>Primary</Text>}
+                </View>
+              ))
+            )}
+            <Text style={styles.label}>Registered parent email</Text>
+            <TextInput
+              style={styles.input}
+              value={guardianEmail}
+              onChangeText={setGuardianEmail}
+              placeholder="parent@example.com"
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setGuardianPlayer(null)}>
+                <Text style={styles.cancelButtonText}>Close</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.submitButton]}
+                disabled={!guardianEmail.trim() || linkGuardianMutation.isPending}
+                onPress={() => linkGuardianMutation.mutate()}
+              >
+                <Text style={styles.submitButtonText}>{linkGuardianMutation.isPending ? 'Linking...' : 'Link Parent'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -362,6 +434,43 @@ const styles = StyleSheet.create({
   playerDetails: {
     fontSize: 14,
     color: '#666',
+  },
+  guardiansButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: '#E3F2FD',
+  },
+  guardiansButtonText: {
+    color: '#007AFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  guardianHelp: {
+    color: '#666',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  guardianRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  guardianName: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+  },
+  primaryLabel: {
+    color: '#007AFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   modalOverlay: {
     flex: 1,
