@@ -5,6 +5,7 @@ import { useUser, clearUserCache } from '@/context/UserContext';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { API_BASE_URL } from '@/lib/config';
+import { Baby, ChevronRight, Users } from 'lucide-react-native';
 
 export default function Settings() {
   const { user, logout, updateUserRoles } = useUser();
@@ -137,6 +138,49 @@ export default function Settings() {
       <View style={styles.content}>
         <Text style={styles.title}>Settings</Text>
 
+        {(user?.roles?.includes('coach') || user?.roles?.includes('parent')) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Management</Text>
+            <Text style={styles.sectionDescription}>
+              Manage the teams and dependants connected to your account.
+            </Text>
+            {user?.roles?.includes('coach') && (
+              <TouchableOpacity
+                style={styles.managementRow}
+                onPress={() => router.push('/(tabs)/teams')}
+                accessibilityRole="button"
+                accessibilityLabel="Open team management"
+              >
+                <View style={styles.managementIcon}>
+                  <Users size={21} color="#2563EB" />
+                </View>
+                <View style={styles.managementContent}>
+                  <Text style={styles.managementTitle}>Team management</Text>
+                  <Text style={styles.managementDescription}>Manage team details, coaches, parents and players.</Text>
+                </View>
+                <ChevronRight size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+            {user?.roles?.includes('parent') && (
+              <TouchableOpacity
+                style={styles.managementRow}
+                onPress={() => router.push('/(tabs)/dependents')}
+                accessibilityRole="button"
+                accessibilityLabel="Open dependent management"
+              >
+                <View style={styles.managementIcon}>
+                  <Baby size={21} color="#2563EB" />
+                </View>
+                <View style={styles.managementContent}>
+                  <Text style={styles.managementTitle}>Dependent management</Text>
+                  <Text style={styles.managementDescription}>Add dependants and update their details.</Text>
+                </View>
+                <ChevronRight size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Information</Text>
           <View style={styles.infoCard}>
@@ -234,6 +278,47 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 15,
+  },
+  sectionDescription: {
+    color: '#6B7280',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  managementRow: {
+    minHeight: 72,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    marginBottom: 10,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  managementIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  managementContent: {
+    flex: 1,
+    marginRight: 8,
+  },
+  managementTitle: {
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  managementDescription: {
+    color: '#6B7280',
+    fontSize: 13,
+    lineHeight: 18,
   },
   infoCard: {
     padding: 15,

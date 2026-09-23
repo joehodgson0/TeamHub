@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Baby, ChevronRight, Users } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -97,6 +98,57 @@ export default function Settings() {
   return (
     <div className="space-y-6" data-testid="settings-page">
       <h1 className="text-2xl font-bold" data-testid="heading-settings">Settings</h1>
+
+      {(user?.roles?.includes("coach") || user?.roles?.includes("parent")) && (
+        <Card data-testid="card-management-settings">
+          <CardHeader>
+            <CardTitle>Management</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Manage the teams and dependants connected to your account.
+            </p>
+            {user?.roles?.includes("coach") && (
+              <Button
+                variant="outline"
+                className="h-auto w-full justify-between p-4"
+                onClick={() => navigate("/team")}
+                data-testid="button-team-management"
+              >
+                <span className="flex items-center gap-3 text-left">
+                  <Users className="h-5 w-5 text-primary" />
+                  <span>
+                    <span className="block font-medium">Team management</span>
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      Manage team details, coaches, parents and players.
+                    </span>
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0" />
+              </Button>
+            )}
+            {user?.roles?.includes("parent") && (
+              <Button
+                variant="outline"
+                className="h-auto w-full justify-between p-4"
+                onClick={() => navigate("/dependents")}
+                data-testid="button-dependent-management"
+              >
+                <span className="flex items-center gap-3 text-left">
+                  <Baby className="h-5 w-5 text-primary" />
+                  <span>
+                    <span className="block font-medium">Dependent management</span>
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      Add dependants and update their details.
+                    </span>
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0" />
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
       
       {/* Profile Settings */}
       <Card data-testid="card-profile-settings">

@@ -1,18 +1,10 @@
 import { Tabs } from 'expo-router';
 import { memo, useCallback, useMemo } from 'react';
-import { LayoutDashboard, Baby, Calendar, MessageSquare, Settings, PoundSterling } from 'lucide-react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useUser } from '@/context/UserContext';
+import { LayoutDashboard, Calendar, MessageSquare, Settings, PoundSterling } from 'lucide-react-native';
 
 // Pre-create stable icon components to prevent re-renders
 const DashboardIcon = memo(({ color, size }: { color: string; size: number }) => (
   <LayoutDashboard size={size} color={color} />
-));
-const TeamsIcon = memo(({ color, size }: { color: string; size: number }) => (
-  <MaterialIcons name="sports-soccer" size={size} color={color} />
-));
-const DependentsIcon = memo(({ color, size }: { color: string; size: number }) => (
-  <Baby size={size} color={color} />
 ));
 const EventsIcon = memo(({ color, size }: { color: string; size: number }) => (
   <Calendar size={size} color={color} />
@@ -28,9 +20,6 @@ const SettingsIcon = memo(({ color, size }: { color: string; size: number }) => 
 ));
 
 function TabsLayout() {
-  // Use memoized context values - no network requests on tab switch
-  const { isCoach, isParent } = useUser();
-
   // Memoize screen options to prevent recalculation
   const screenOptions = useMemo(() => ({
     headerShown: true,
@@ -41,12 +30,6 @@ function TabsLayout() {
   // Stable icon callbacks
   const renderDashboardIcon = useCallback(({ color, size }: { color: string; size: number }) => (
     <DashboardIcon color={color} size={size} />
-  ), []);
-  const renderTeamsIcon = useCallback(({ color, size }: { color: string; size: number }) => (
-    <TeamsIcon color={color} size={size} />
-  ), []);
-  const renderDependentsIcon = useCallback(({ color, size }: { color: string; size: number }) => (
-    <DependentsIcon color={color} size={size} />
   ), []);
   const renderEventsIcon = useCallback(({ color, size }: { color: string; size: number }) => (
     <EventsIcon color={color} size={size} />
@@ -76,9 +59,7 @@ function TabsLayout() {
         name="teams"
         options={{
           title: 'Team',
-          tabBarLabel: 'Team',
-          href: isCoach ? '/teams' : null,
-          tabBarIcon: renderTeamsIcon,
+          href: null,
           lazy: true,
         }}
       />
@@ -86,9 +67,7 @@ function TabsLayout() {
         name="dependents"
         options={{
           title: 'Dependents',
-          tabBarLabel: 'Dependents',
-          href: isParent ? '/dependents' : null,
-          tabBarIcon: renderDependentsIcon,
+          href: null,
           lazy: true,
         }}
       />

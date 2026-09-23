@@ -37,7 +37,7 @@ export default function AddDependent() {
               Fill in Dependent Details
             </Button>
             <Button variant="ghost" className="w-full text-muted-foreground" onClick={handleSkip}>
-              Skip for now – I'll add details later from My Dependents
+              Skip for now – I'll add details later from Settings
             </Button>
           </CardContent>
         </Card>
