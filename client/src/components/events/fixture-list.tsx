@@ -465,7 +465,7 @@ export default function FixtureList() {
                       <PlayerAvailabilityBreakdown fixture={fixture} canManage={canManageFixture(fixture)} />
                       
                       {/* Parent availability controls */}
-                      {isParent && new Date() < fixture.startTime && playersResponse?.players && (
+                      {isParent && !canManageFixture(fixture) && new Date() < fixture.startTime && playersResponse?.players && (
                         <div className="space-y-2 mt-3">
                           {playersResponse.players
                             .filter(player => player.teamId === fixture.teamId)

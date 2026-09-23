@@ -468,7 +468,7 @@ function Events() {
 
                 <EventAvailabilityBreakdown event={event} canManage={canManageEvent(event)} />
 
-                {getUserPlayersForEvent(event).length > 0 && new Date() < new Date(event.startTime) && (
+                {!canManageEvent(event) && getUserPlayersForEvent(event).length > 0 && new Date() < new Date(event.startTime) && (
                   <View style={styles.availabilitySection}>
                     <Text style={styles.availabilitySectionTitle}>Mark Player Availability:</Text>
                     {getUserPlayersForEvent(event).map((player: any) => {
