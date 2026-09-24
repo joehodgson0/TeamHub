@@ -64,6 +64,19 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   const [activePicker, setActivePicker] = useState<{ field: 'start' | 'end'; step: 'date' | 'time' } | null>(null);
   // Holds the next step to open once the current picker has fully closed (avoids racing the close animation)
   const pendingNextStepRef = useRef<{ field: 'start' | 'end'; step: 'date' | 'time' } | null>(null);
+  const nextPickerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearNextPicker = () => {
+    pendingNextStepRef.current = null;
+    if (nextPickerTimerRef.current) {
+      clearTimeout(nextPickerTimerRef.current);
+      nextPickerTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => () => {
+    if (nextPickerTimerRef.current) clearTimeout(nextPickerTimerRef.current);
+  }, []);
 
   // Populate form when editing, reset when not
   useEffect(() => {
@@ -172,6 +185,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   });
 
   const resetForm = () => {
+    clearNextPicker();
     setEventType('match');
     setName('');
     setOpponent('');
@@ -200,6 +214,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       return;
     }
 
+    clearNextPicker();
     setActivePicker({ field: dateTimeType, step: 'date' });
   };
 
@@ -207,6 +222,8 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
   const handlePickerConfirm = (selected: Date) => {
     const current = activePicker;
     if (!current) return;
+    // Hide the native dialog before changing the selected date or opening another picker.
+    setActivePicker(null);
 
     const base = current.field === 'start' ? startDateTime : endDateTime;
     const merged = new Date(base);
@@ -228,19 +245,26 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
 
     // Queue the time step after the date step closes instead of relying on a combined "datetime" mode
     pendingNextStepRef.current = current.step === 'date' ? { field: current.field, step: 'time' } : null;
-    setActivePicker(null);
   };
 
   const handlePickerCancel = () => {
-    pendingNextStepRef.current = null;
+    clearNextPicker();
     setActivePicker(null);
   };
 
   // Only open the next step once the previous picker has fully closed, avoiding the close-animation race
   const handlePickerHide = () => {
-    if (pendingNextStepRef.current) {
-      setActivePicker(pendingNextStepRef.current);
-      pendingNextStepRef.current = null;
+    const next = pendingNextStepRef.current;
+    pendingNextStepRef.current = null;
+    if (!next) return;
+    if (Platform.OS === 'android') {
+      // Android calls onHide synchronously, before its native date dialog is fully dismissed.
+      nextPickerTimerRef.current = setTimeout(() => {
+        nextPickerTimerRef.current = null;
+        setActivePicker(next);
+      }, 250);
+    } else {
+      setActivePicker(next);
     }
   };
 
@@ -675,6 +699,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
       </KeyboardAvoidingView>
 
       <DateTimePickerModal
+        key={Platform.OS === 'android' ? (activePicker ? `${activePicker.field}-${activePicker.step}` : 'closed') : 'ios-picker'}
         isVisible={!!activePicker}
         mode={activePicker?.step || 'date'}
         date={activePicker ? (activePicker.field === 'start' ? startDateTime : endDateTime) : new Date()}
