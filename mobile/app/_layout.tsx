@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { UserProvider, useUser } from '@/context/UserContext';
 import { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 function RootLayoutNav() {
   const { isAuthenticated, user, isLoading } = useUser();
@@ -27,8 +28,25 @@ function RootLayoutNav() {
     }
   }, [isAuthenticated, user, segments, isLoading]);
 
+  if (isLoading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
+
   return <Slot />;
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+});
 
 export default function RootLayout() {
   return (
