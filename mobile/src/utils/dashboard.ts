@@ -45,18 +45,6 @@ export const getEventDisplayType = (event: any) => {
   return event.type.charAt(0).toUpperCase() + event.type.slice(1);
 };
 
-export const getAvailabilityCount = (fixture: any, teams: any[]) => {
-  const team = teams.find((t: any) => t.id === fixture.teamId);
-  const teamPlayerCount = team?.playerIds?.length || 0;
-
-  const availabilityEntries = Object.values(fixture.availability || {});
-  const confirmed = availabilityEntries.filter(
-    (status) => status === "available",
-  ).length;
-
-  return { confirmed, total: teamPlayerCount };
-};
-
 export const getTeamName = (teamId: string, teams: any[]) => {
   const team = teams.find((t: any) => t.id === teamId);
   return team ? `${team.ageGroup} ${team.name}` : "Unknown Team";

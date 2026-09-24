@@ -1,12 +1,43 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Calendar, Clock, MapPin, Users, Shield } from 'lucide-react-native';
+import { useQuery } from '@tanstack/react-query';
+import { Calendar, Clock, MapPin } from 'lucide-react-native';
 import { WidgetCard } from './WidgetCard';
-import { formatDate, formatTime, getEventTypeBadgeColor, getEventDisplayType, getAvailabilityCount, getTeamName } from '@/utils/dashboard';
+import { formatDate, formatTime, getEventTypeBadgeColor, getEventDisplayType, getTeamName } from '@/utils/dashboard';
+import { API_BASE_URL } from '@/lib/config';
 import { getEventMeetTime } from '@shared/event-duration';
+import { getRosterAvailabilityCount } from '@shared/event-availability-count';
 
 interface UpcomingFixturesWidgetProps {
   fixtures: any[];
   teams: any[];
+}
+
+function FixtureAvailability({ fixture }: { fixture: any }) {
+  const { data, isLoading, isError } = useQuery<{ success: boolean; players: { id: string }[] }>({
+    queryKey: ['/api/events', fixture.id, 'roster'],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/events/${fixture.id}/roster`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to load event roster');
+      return response.json();
+    },
+    enabled: !!fixture.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  if (isLoading) return <Text style={styles.availabilityText}>Loading availability...</Text>;
+  if (isError || !data?.success || !Array.isArray(data.players)) return <Text style={styles.availabilityText}>Availability unavailable</Text>;
+
+  const { confirmed, total } = getRosterAvailabilityCount(data.players, fixture.availability);
+  if (total === 0) return <Text style={styles.availabilityText}>No players on team</Text>;
+  return (
+    <View style={styles.availabilityContainer}>
+      <View style={styles.availabilityBar}>
+        <View style={[styles.availabilityFill, { width: `${(confirmed / total) * 100}%` }]} />
+      </View>
+      <Text style={styles.availabilityText}>{confirmed}/{total} players available</Text>
+    </View>
+  );
 }
 
 export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidgetProps) {
@@ -17,7 +48,6 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
       emptyMessage="No upcoming fixtures"
     >
       {fixtures.map((fixture: any) => {
-        const availability = getAvailabilityCount(fixture, teams);
         const teamName = fixture.teamId ? getTeamName(fixture.teamId, teams) : '';
         const opponent = fixture.opponent || 'TBD';
         
@@ -80,21 +110,7 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
               </View>
             )}
 
-            {availability.total > 0 && (
-              <View style={styles.availabilityContainer}>
-                <View style={styles.availabilityBar}>
-                  <View 
-                    style={[
-                      styles.availabilityFill, 
-                      { width: `${(availability.confirmed / availability.total) * 100}%` }
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.availabilityText}>
-                  {availability.confirmed}/{availability.total} players available
-                </Text>
-              </View>
-            )}
+            <FixtureAvailability fixture={fixture} />
 
             {fixture.additionalInfo && (
               <View style={styles.additionalInfoContainer}>

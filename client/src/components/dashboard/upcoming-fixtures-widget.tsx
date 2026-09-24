@@ -5,6 +5,23 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Trophy, MapPin, Clock, Users } from "lucide-react";
 import { format } from "date-fns";
 import { getEventMeetTime } from "@shared/event-duration";
+import { getRosterAvailabilityCount } from "@shared/event-availability-count";
+
+function FixtureAvailability({ fixture }: { fixture: any }) {
+  const { data, isLoading, isError } = useQuery<{ success: boolean; players: { id: string }[] }>({
+    queryKey: ["/api/events", fixture.id, "roster"],
+    enabled: !!fixture.id,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+
+  if (isLoading) return <span>Loading availability...</span>;
+  if (isError || !data?.success || !Array.isArray(data.players)) return <span>Availability unavailable</span>;
+
+  const { confirmed, total } = getRosterAvailabilityCount(data.players, fixture.availability);
+  if (total === 0) return <span>No players on team</span>;
+  return <span data-testid={`fixture-availability-${fixture.id}`}>{confirmed}/{total} available</span>;
+}
 
 export default function UpcomingFixturesWidget() {
   const { user } = useAuth();
@@ -79,13 +96,6 @@ export default function UpcomingFixturesWidget() {
 
   const upcomingFixtures = getUpcomingFixtures();
 
-  const getAvailabilityCount = (fixture: any) => {
-    const availabilityEntries = Object.values(fixture.availability || {});
-    const confirmed = availabilityEntries.filter(status => status === "available").length;
-    const total = availabilityEntries.length;
-    return { confirmed, total };
-  };
-
   const getTeamName = (teamId: string) => {
     if (!teamsResponse?.teams) return "Unknown Team";
     const team = teamsResponse.teams.find((team: any) => team.id === teamId);
@@ -142,8 +152,6 @@ export default function UpcomingFixturesWidget() {
             </div>
           ) : (
             upcomingFixtures.map((fixture) => {
-              const availability = getAvailabilityCount(fixture);
-              
               return (
                 <div
                   key={fixture.id}
@@ -210,9 +218,7 @@ export default function UpcomingFixturesWidget() {
                   <div className="flex items-center justify-between pt-2 border-t border-border">
                     <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                       <Users className="w-3 h-3" />
-                      <span data-testid={`fixture-availability-${fixture.id}`}>
-                        {availability.confirmed}/{availability.total} available
-                      </span>
+                       <FixtureAvailability fixture={fixture} />
                     </div>
                   </div>
                 </div>
