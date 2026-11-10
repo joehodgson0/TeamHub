@@ -4,4 +4,5 @@
 - [Live database targeting](live-database-targeting.md) — the available Neon connection is an older copy; verify the live database before any data write.
 - [Match location map links](match-location-maps.md) — saved venue text opens Apple or Google Maps directions; no place-search provider.
 - [Expo SDK alignment](expo-sdk-alignment.md) — Expo install-fix may need manual config sync; if EAS cannot parse app.config.ts remotely, use a JS config and verify a cloud build.
+- [EAS build registry portability](eas-build-registry.md) — EAS cannot reach Replit’s internal npm proxy URLs; normalize lockfile URLs only in the remote pre-install hook.
 - [Post-merge database safety](post-merge-database-safety.md) — Keep automated merge setup away from database writes unless a safe migration path is explicitly configured.
