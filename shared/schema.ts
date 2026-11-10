@@ -175,6 +175,11 @@ export const updateDependentSchema = dependentDetailsSchema.omit({ teamCode: tru
 export type UpdateDependent = z.infer<typeof updateDependentSchema>;
 
 // Event schema
+export type EventResult =
+  | { homeScore: number; awayScore: number; outcome: "W" | "L" | "D" }
+  | { status: "cancelled" }
+  | { status: "forfeit"; forfeitedSide: "team" | "opponent" };
+
 export const eventSchema = z.object({
   id: z.string(),
   type: z.enum(["match", "tournament", "training", "social"]),
@@ -194,11 +199,15 @@ export const eventSchema = z.object({
   additionalInfo: z.string().optional(),
   teamId: z.string(),
   homeAway: z.enum(["home", "away"]).optional(),
-  result: z.object({
-    homeScore: z.number(),
-    awayScore: z.number(),
-    outcome: z.enum(["W", "L", "D"]),
-  }).optional(),
+  result: z.union([
+    z.object({
+      homeScore: z.number(),
+      awayScore: z.number(),
+      outcome: z.enum(["W", "L", "D"]),
+    }),
+    z.object({ status: z.literal("cancelled") }),
+    z.object({ status: z.literal("forfeit"), forfeitedSide: z.enum(["team", "opponent"]) }),
+  ]).nullable().optional(),
   availability: z.record(z.string(), z.enum(["available", "unavailable", "pending"])).default({}),
   attendance: z.record(z.string(), z.enum(["attended", "absent"])).default({}),
   createdAt: z.date().default(() => new Date()),
@@ -383,7 +392,7 @@ export const events = pgTable("events", {
   additionalInfo: text("additional_info"),
   teamId: varchar("team_id").notNull(),
   homeAway: varchar("home_away"),
-  result: json("result").$type<{homeScore: number; awayScore: number; outcome: "W" | "L" | "D"}>(),
+  result: json("result").$type<EventResult>(),
   availability: json("availability").$type<Record<string, "available" | "unavailable" | "pending">>().notNull().default({}),
   attendance: json("attendance").$type<Record<string, "attended" | "absent">>().notNull().default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),

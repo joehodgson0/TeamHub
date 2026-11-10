@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
+import { isUnplayedMatchOutcome } from "@shared/event-outcome";
 
 export default function EventsStats() {
   const { user } = useAuth();
@@ -45,6 +46,9 @@ export default function EventsStats() {
       const teamIds = playersResponse.players.map(player => player.teamId);
       events = events.filter(event => teamIds.includes(event.teamId));
     }
+
+    // No-score match outcomes should not inflate attendance or pending-result stats.
+    events = events.filter(event => !isUnplayedMatchOutcome(event.result));
 
     // This month's events
     const thisMonthEvents = events.filter(

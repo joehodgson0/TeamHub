@@ -3,6 +3,7 @@ import { Calendar, Clock, MapPin, Users } from 'lucide-react-native';
 import { WidgetCard } from './WidgetCard';
 import { formatDate, formatTime, getEventTypeBadgeColor, getEventDisplayType, getTeamName } from '@/utils/dashboard';
 import { getEventMeetTime } from '@shared/event-duration';
+import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from '@shared/event-outcome';
 
 interface UpcomingEventsWidgetProps {
   events: any[];
@@ -39,6 +40,11 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
               <Text style={styles.eventTitle} numberOfLines={2}>
                 {getEventTitle(event)}
               </Text>
+              {isUnplayedMatchOutcome(event.result) && (
+                <Text style={{ color: '#92400E', fontSize: 12, fontWeight: '700' }}>
+                  {getUnplayedMatchOutcomeLabel(event.result)}
+                </Text>
+              )}
               {event.type === 'match' && event.friendly && (
                 <Text style={styles.friendlyLabel}>⚽ Friendly Match</Text>
               )}

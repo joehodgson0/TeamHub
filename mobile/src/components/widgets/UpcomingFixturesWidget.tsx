@@ -6,6 +6,7 @@ import { formatDate, formatTime, getEventTypeBadgeColor, getEventDisplayType, ge
 import { API_BASE_URL } from '@/lib/config';
 import { getEventMeetTime } from '@shared/event-duration';
 import { getRosterAvailabilityCount } from '@shared/event-availability-count';
+import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from '@shared/event-outcome';
 
 interface UpcomingFixturesWidgetProps {
   fixtures: any[];
@@ -20,11 +21,14 @@ function FixtureAvailability({ fixture }: { fixture: any }) {
       if (!response.ok) throw new Error('Failed to load event roster');
       return response.json();
     },
-    enabled: !!fixture.id,
+    enabled: !!fixture.id && !isUnplayedMatchOutcome(fixture.result),
     staleTime: 0,
     refetchOnMount: 'always',
   });
 
+  if (isUnplayedMatchOutcome(fixture.result)) {
+    return <Text style={styles.availabilityText}>{getUnplayedMatchOutcomeLabel(fixture.result)}</Text>;
+  }
   if (isLoading) return <Text style={styles.availabilityText}>Loading availability...</Text>;
   if (isError || !data?.success || !Array.isArray(data.players)) return <Text style={styles.availabilityText}>Availability unavailable</Text>;
 

@@ -6,15 +6,19 @@ import { Calendar, Trophy, MapPin, Clock, Users } from "lucide-react";
 import { format } from "date-fns";
 import { getEventMeetTime } from "@shared/event-duration";
 import { getRosterAvailabilityCount } from "@shared/event-availability-count";
+import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from "@shared/event-outcome";
 
 function FixtureAvailability({ fixture }: { fixture: any }) {
   const { data, isLoading, isError } = useQuery<{ success: boolean; players: { id: string }[] }>({
     queryKey: ["/api/events", fixture.id, "roster"],
-    enabled: !!fixture.id,
+    enabled: !!fixture.id && !isUnplayedMatchOutcome(fixture.result),
     staleTime: 0,
     refetchOnMount: "always",
   });
 
+  if (isUnplayedMatchOutcome(fixture.result)) {
+    return <span className="font-medium text-muted-foreground">{getUnplayedMatchOutcomeLabel(fixture.result)}</span>;
+  }
   if (isLoading) return <span>Loading availability...</span>;
   if (isError || !data?.success || !Array.isArray(data.players)) return <span>Availability unavailable</span>;
 

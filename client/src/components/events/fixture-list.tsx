@@ -10,10 +10,12 @@ import { ChevronDown, Edit, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import EditFixtureModal from "@/components/modals/edit-fixture-modal";
 import MatchResultModal from "@/components/modals/match-result-modal";
+import MatchOutcomeModal from "@/components/modals/match-outcome-modal";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Fixture } from "@shared/schema";
 import { getEventParticipationPhase } from "@shared/event-participation";
 import { getEventMeetTime } from "@shared/event-duration";
+import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from "@shared/event-outcome";
 
 type EventRosterPlayer = { id: string; name: string };
 
@@ -184,6 +186,7 @@ export default function FixtureList() {
   const { toast } = useToast();
   const [eventView, setEventView] = useState<"upcoming" | "past">("upcoming");
   const [editingFixture, setEditingFixture] = useState<any | null>(null);
+  const [matchOutcomeFixture, setMatchOutcomeFixture] = useState<any | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [matchResultFixture, setMatchResultFixture] = useState<any | null>(null);
 
@@ -421,6 +424,7 @@ export default function FixtureList() {
             ) : (
               fixtures.map((fixture) => {
                 const availability = getAvailabilityCount(fixture);
+                const unplayedOutcome = isUnplayedMatchOutcome(fixture.result) ? fixture.result : null;
 
                 return (
                   <div
@@ -443,9 +447,32 @@ export default function FixtureList() {
                         <h4 className="font-medium" data-testid={`fixture-name-${fixture.id}`}>
                           {getEventName(fixture)}
                         </h4>
+                        {unplayedOutcome && (
+                          <Badge
+                            variant={unplayedOutcome.status === "cancelled" ? "destructive" : "secondary"}
+                            className="mt-1"
+                            data-testid={`fixture-outcome-${fixture.id}`}
+                          >
+                            {getUnplayedMatchOutcomeLabel(
+                              unplayedOutcome,
+                              getTeamName(fixture.teamId),
+                              fixture.opponent || "Opponent",
+                            )}
+                          </Badge>
+                        )}
                       </div>
                       {canManageFixture(fixture) && (
                         <div className="flex items-center space-x-2">
+                          {fixture.type === "match" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setMatchOutcomeFixture(fixture)}
+                              data-testid={`button-match-outcome-${fixture.id}`}
+                            >
+                              Match outcome
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -511,6 +538,14 @@ export default function FixtureList() {
                     )}
 
                     <div className="pt-3 border-t border-border">
+                      {unplayedOutcome ? (
+                        <p className="text-sm text-muted-foreground" data-testid={`fixture-no-score-${fixture.id}`}>
+                          {unplayedOutcome.status === "cancelled"
+                            ? "This match was cancelled. No score or player attendance was recorded."
+                            : "This match was forfeited. No score or team statistics were recorded."}
+                        </p>
+                      ) : (
+                        <>
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-sm text-muted-foreground" data-testid={`fixture-availability-${fixture.id}`}>
                           Responses: {availability.confirmed} available, {availability.unavailable} not available
@@ -569,6 +604,8 @@ export default function FixtureList() {
                             })}
                         </div>
                       )}
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -577,6 +614,14 @@ export default function FixtureList() {
           </div>
         </CardContent>
       </Card>
+
+      {matchOutcomeFixture && (
+        <MatchOutcomeModal
+          fixture={matchOutcomeFixture}
+          open={!!matchOutcomeFixture}
+          onOpenChange={(open) => !open && setMatchOutcomeFixture(null)}
+        />
+      )}
 
       {editingFixture && (
         <EditFixtureModal

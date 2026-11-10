@@ -14,6 +14,7 @@ import { buildWeeklyEventTimes, MAX_EVENT_REPEAT_WEEKS } from "@shared/event-dur
 import { acceptTeamInvitation, getTeamInvitation, sendTeamInvitation } from "./services/teamInvitationService";
 import { sendWelcomeEmailOnce } from "./services/welcomeEmailService";
 import { getEventParticipationPhase } from "@shared/event-participation";
+import { isUnplayedMatchOutcome } from "@shared/event-outcome";
 
 const passwordResetRequests = new Map<string, { count: number; resetAt: number }>();
 const PASSWORD_RESET_WINDOW_MS = 15 * 60 * 1000;
@@ -1393,15 +1394,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/events/:id/outcome", async (req: any, res) => {
+    try {
+      const outcomeSchema = z.discriminatedUnion("status", [
+        z.object({ status: z.literal("scheduled") }),
+        z.object({ status: z.literal("cancelled") }),
+        z.object({
+          status: z.literal("forfeit"),
+          forfeitedSide: z.enum(["team", "opponent"]),
+        }),
+      ]);
+      const parsed = outcomeSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ success: false, error: "Choose a valid match outcome" });
+      }
+
+      const userId = req.session?.userId || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+      const user = await storage.getUser(userId);
+      if (!user?.roles?.includes("coach")) {
+        return res.status(403).json({ success: false, error: "Only coaches can update match outcomes" });
+      }
+
+      const { id } = req.params;
+      const event = await storage.getEvent(id);
+      if (!event) return res.status(404).json({ success: false, error: "Match not found" });
+      if (event.type !== "match") {
+        return res.status(400).json({ success: false, error: "Only matches can be cancelled or forfeited" });
+      }
+      if (!user.teamIds?.includes(event.teamId)) {
+        return res.status(403).json({ success: false, error: "You can only update matches for your own team" });
+      }
+
+      const savedScore = await storage.getMatchResultByFixtureId(id);
+      const legacyScore = event.result && !("status" in event.result);
+      if (savedScore || legacyScore) {
+        return res.status(409).json({
+          success: false,
+          error: "A match with a recorded score cannot be changed to a no-score outcome",
+        });
+      }
+
+      const result = parsed.data.status === "scheduled" ? null : parsed.data;
+      const updatedEvent = await storage.updateEvent(id, { result });
+      if (!updatedEvent) return res.status(404).json({ success: false, error: "Match not found" });
+      res.json({ success: true, event: updatedEvent });
+    } catch (error) {
+      console.error("Update match outcome error:", error);
+      res.status(500).json({ success: false, error: "Failed to update match outcome" });
+    }
+  });
+
   app.put("/api/events/:id", async (req: any, res) => {
     try {
       const { id } = req.params;
       const updates = req.body ?? {};
 
-      if (typeof updates !== "object" || "availability" in updates || "attendance" in updates) {
+      if (typeof updates !== "object" || "availability" in updates || "attendance" in updates || "result" in updates) {
         return res.status(400).json({
           success: false,
-          error: "Use the event availability or attendance controls to update player status",
+          error: "Use the dedicated event controls to update availability, attendance, or match outcome",
         });
       }
       
@@ -1469,6 +1522,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!event) {
         return res.status(404).json({ success: false, error: "Event not found" });
       }
+      if (isUnplayedMatchOutcome(event.result)) {
+        return res.status(409).json({ success: false, error: "Availability cannot be changed for a cancelled or forfeited match" });
+      }
 
       const userId = req.session?.userId || req.user?.claims?.sub;
       if (!userId) {
@@ -1529,6 +1585,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
       if (!event) {
         return res.status(404).json({ success: false, error: "Event not found" });
+      }
+      if (isUnplayedMatchOutcome(event.result)) {
+        return res.status(409).json({ success: false, error: "Attendance cannot be recorded for a cancelled or forfeited match" });
       }
       if (!user || !player || player.teamId !== event.teamId) {
         return res.status(403).json({ success: false, error: "You cannot update this player" });
@@ -1808,6 +1867,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fixture = await storage.getEvent(fixtureId);
       if (!fixture) {
         return res.status(404).json({ success: false, error: "Fixture not found" });
+      }
+      if (isUnplayedMatchOutcome(fixture.result)) {
+        return res.status(409).json({ success: false, error: "A cancelled or forfeited match cannot have a score recorded" });
       }
       
       // Check if coach owns this team

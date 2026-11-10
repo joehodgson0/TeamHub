@@ -6,8 +6,10 @@ import { API_BASE_URL } from '@/lib/config';
 import { invalidateEventData, refreshAllVisibleData } from '@/lib/queryKeys';
 import { AddEventModal } from '@/components/modals/AddEventModal';
 import { MatchResultModal } from '@/components/modals/MatchResultModal';
+import { MatchOutcomeModal } from '@/components/modals/MatchOutcomeModal';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getEventParticipationPhase } from '@shared/event-participation';
+import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from '@shared/event-outcome';
 
 type EventRosterPlayer = { id: string; name: string };
 
@@ -173,6 +175,7 @@ function Events() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [selectedFixture, setSelectedFixture] = useState<any>(null);
+  const [matchOutcomeFixture, setMatchOutcomeFixture] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -256,6 +259,37 @@ function Events() {
     onError: (error: any) => {
       Alert.alert('Error', error?.message || 'Failed to update availability');
     },
+  });
+
+  const updateMatchOutcomeMutation = useMutation({
+    mutationFn: async ({
+      eventId,
+      status,
+      forfeitedSide,
+    }: {
+      eventId: string;
+      status: 'scheduled' | 'cancelled' | 'forfeit';
+      forfeitedSide?: 'team' | 'opponent';
+    }) => {
+      const response = await fetch(`${API_BASE_URL}/api/events/${eventId}/outcome`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'com.myapp.mobile',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ status, ...(status === 'forfeit' ? { forfeitedSide } : {}) }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Failed to update match outcome');
+      return result;
+    },
+    onSuccess: () => {
+      invalidateEventData();
+      setMatchOutcomeFixture(null);
+      Alert.alert('Success', 'Match outcome updated. No score or team statistics were changed.');
+    },
+    onError: (error: Error) => Alert.alert('Could not update match', error.message),
   });
 
   // Memoize filtered events - prevent recalculation on every render
@@ -348,6 +382,7 @@ function Events() {
   const canUpdateResult = (event: any) => {
     return hasRole('coach') && 
            event.type === 'match' && 
+           !isUnplayedMatchOutcome(event.result) &&
            user?.teamIds?.includes(event.teamId) &&
            isEventCompleted(event);
   };
@@ -427,6 +462,7 @@ function Events() {
                 }
               }
               
+              const unplayedOutcome = isUnplayedMatchOutcome(event.result) ? event.result : null;
               return (
               <View key={event.id} style={styles.eventCard}>
                 <View style={styles.eventHeader}>
@@ -451,6 +487,14 @@ function Events() {
                     <Text style={styles.typeBadgeText}>{event.type}</Text>
                   </View>
                 </View>
+
+                {unplayedOutcome && (
+                  <View style={styles.outcomeBadge} testID={`event-outcome-${event.id}`}>
+                    <Text style={styles.outcomeBadgeText}>
+                      {getUnplayedMatchOutcomeLabel(unplayedOutcome, teamName, opponent || 'Opponent')}
+                    </Text>
+                  </View>
+                )}
                 
                 <Text style={styles.eventDate}>{formatEventDate(event.startTime)}</Text>
                 <Text style={styles.eventTime}>{formatEventTime(event.startTime, event.endTime)}</Text>
@@ -468,6 +512,16 @@ function Events() {
                 
                 {canManageEvent(event) && (
                   <View style={styles.actionButtons}>
+                    {isMatch && (
+                      <TouchableOpacity
+                        style={styles.matchOutcomeButton}
+                        accessibilityRole="button"
+                        accessibilityLabel="Manage match outcome"
+                        onPress={() => setMatchOutcomeFixture(event)}
+                      >
+                        <Text style={styles.matchOutcomeButtonText}>Outcome</Text>
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity
                       style={styles.iconButton}
                       onPress={() => setEditingEvent(event)}
@@ -492,9 +546,9 @@ function Events() {
                   </TouchableOpacity>
                 )}
 
-                <EventAvailabilityBreakdown event={event} canManage={canManageEvent(event)} />
+                {!unplayedOutcome && <EventAvailabilityBreakdown event={event} canManage={!!canManageEvent(event)} />}
 
-                {!canManageEvent(event) && getUserPlayersForEvent(event).length > 0 && new Date() < new Date(event.startTime) && (
+                {!unplayedOutcome && !canManageEvent(event) && getUserPlayersForEvent(event).length > 0 && new Date() < new Date(event.startTime) && (
                   <View style={styles.availabilitySection}>
                     <Text style={styles.availabilitySectionTitle}>Mark Player Availability:</Text>
                     {getUserPlayersForEvent(event).map((player: any) => {
@@ -583,6 +637,20 @@ function Events() {
         visible={!!selectedFixture}
         fixture={selectedFixture}
         onClose={() => setSelectedFixture(null)}
+      />
+      <MatchOutcomeModal
+        visible={!!matchOutcomeFixture}
+        fixture={matchOutcomeFixture}
+        saving={updateMatchOutcomeMutation.isPending}
+        onClose={() => setMatchOutcomeFixture(null)}
+        onSave={(status, forfeitedSide) => {
+          if (!matchOutcomeFixture) return;
+          updateMatchOutcomeMutation.mutate({
+            eventId: matchOutcomeFixture.id,
+            status,
+            forfeitedSide,
+          });
+        }}
       />
     </ScrollView>
   );
@@ -688,6 +756,19 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
   },
+  outcomeBadge: {
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: '#FEF3C7',
+  },
+  outcomeBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400E',
+  },
   typeBadgeText: {
     color: '#fff',
     fontSize: 11,
@@ -737,6 +818,18 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexDirection: 'row',
     gap: 12,
+  },
+  matchOutcomeButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 6,
+  },
+  matchOutcomeButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
   },
   iconButton: {
     padding: 8,

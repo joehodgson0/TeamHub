@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Trophy, Clock, MapPin, Users } from "lucide-react";
 import { format } from "date-fns";
 import { getEventMeetTime } from "@shared/event-duration";
+import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from "@shared/event-outcome";
 
 export default function UpcomingEventsWidget() {
   const { user } = useAuth();
@@ -133,6 +134,11 @@ export default function UpcomingEventsWidget() {
                     <p className="font-semibold text-sm" data-testid={`event-name-${event.id}`}>
                       {getEventTitle(event)}
                     </p>
+                    {isUnplayedMatchOutcome(event.result) && (
+                      <Badge variant={event.result.status === "cancelled" ? "destructive" : "secondary"} className="shrink-0 text-[10px]">
+                        {getUnplayedMatchOutcomeLabel(event.result)}
+                      </Badge>
+                    )}
                     <Badge variant="secondary" className="shrink-0 text-[10px] uppercase">
                       {getEventType(event)}
                     </Badge>
