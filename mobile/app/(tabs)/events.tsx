@@ -21,6 +21,7 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
   event: any;
   canManage: boolean;
 }) {
+  const [isExpanded, setIsExpanded] = useState(!canManage);
   const { data: playersResponse, isLoading, isError } = useQuery<{ success: boolean; players: EventRosterPlayer[] }>({
     queryKey: ['/api/events', event.id, 'roster'],
     queryFn: async () => {
@@ -78,92 +79,116 @@ const EventAvailabilityBreakdown = memo(function EventAvailabilityBreakdown({
 
   return (
     <View style={styles.availabilityBreakdown}>
-      <Text style={styles.availabilityBreakdownTitle}>Player availability</Text>
-      <View style={[styles.availabilityGroup, styles.availableGroup]}>
-        <Text style={[styles.availabilityGroupLabel, styles.availableLabel]}>
-          Available ({available.length})
-        </Text>
-        <Text style={[styles.availabilityNames, styles.availableNames]}>{names(available)}</Text>
-      </View>
-      <View style={[styles.availabilityGroup, styles.unavailableGroup]}>
-        <Text style={[styles.availabilityGroupLabel, styles.unavailableLabel]}>
-          Not available ({unavailable.length})
-        </Text>
-        <Text style={[styles.availabilityNames, styles.unavailableNames]}>{names(unavailable)}</Text>
-      </View>
-      <View style={[styles.availabilityGroup, styles.pendingGroup]}>
-        <Text style={[styles.availabilityGroupLabel, styles.pendingLabel]}>
-          Awaiting response ({pending.length})
-        </Text>
-        <Text style={[styles.availabilityNames, styles.pendingNames]}>{names(pending)}</Text>
-      </View>
-      {phase === 'completed' && (
-        <>
-          <Text style={styles.availabilityBreakdownTitle}>Recorded attendance</Text>
+      <TouchableOpacity
+        style={styles.availabilityHeader}
+        accessibilityRole="button"
+        accessibilityLabel={`Player availability: ${available.length} available, ${unavailable.length} not available, ${pending.length} awaiting response`}
+        accessibilityHint={isExpanded ? 'Hide player lists and coach controls' : 'Show player lists and coach controls'}
+        accessibilityState={{ expanded: isExpanded }}
+        testID={`event-availability-toggle-${event.id}`}
+        onPress={() => setIsExpanded((expanded) => !expanded)}
+      >
+        <View style={styles.availabilityHeaderText}>
+          <Text style={styles.availabilityBreakdownTitle}>Player availability</Text>
+          <Text style={styles.availabilitySummary}>
+            {available.length} available · {unavailable.length} not available · {pending.length} awaiting
+          </Text>
+        </View>
+        <MaterialIcons
+          name={isExpanded ? 'expand-less' : 'expand-more'}
+          size={24}
+          color="#6B7280"
+        />
+      </TouchableOpacity>
+      {isExpanded && (
+        <View style={styles.availabilityDetails}>
           <View style={[styles.availabilityGroup, styles.availableGroup]}>
-            <Text style={[styles.availabilityGroupLabel, styles.availableLabel]}>Attended ({attended.length})</Text>
-            <Text style={[styles.availabilityNames, styles.availableNames]}>{names(attended)}</Text>
+            <Text style={[styles.availabilityGroupLabel, styles.availableLabel]}>
+              Available ({available.length})
+            </Text>
+            <Text style={[styles.availabilityNames, styles.availableNames]}>{names(available)}</Text>
           </View>
           <View style={[styles.availabilityGroup, styles.unavailableGroup]}>
-            <Text style={[styles.availabilityGroupLabel, styles.unavailableLabel]}>Absent ({absent.length})</Text>
-            <Text style={[styles.availabilityNames, styles.unavailableNames]}>{names(absent)}</Text>
+            <Text style={[styles.availabilityGroupLabel, styles.unavailableLabel]}>
+              Not available ({unavailable.length})
+            </Text>
+            <Text style={[styles.availabilityNames, styles.unavailableNames]}>{names(unavailable)}</Text>
           </View>
           <View style={[styles.availabilityGroup, styles.pendingGroup]}>
-            <Text style={[styles.availabilityGroupLabel, styles.pendingLabel]}>Not recorded ({attendancePending.length})</Text>
-            <Text style={[styles.availabilityNames, styles.pendingNames]}>{names(attendancePending)}</Text>
+            <Text style={[styles.availabilityGroupLabel, styles.pendingLabel]}>
+              Awaiting response ({pending.length})
+            </Text>
+            <Text style={[styles.availabilityNames, styles.pendingNames]}>{names(pending)}</Text>
           </View>
-        </>
-      )}
-      {canManage && (
-        <View style={styles.coachStatusSection}>
-          <Text style={styles.coachStatusTitle}>
-            {phase === 'upcoming'
-              ? 'Set player availability'
-              : phase === 'completed'
-                ? 'Record actual attendance'
-                : 'Event in progress - attendance can be recorded after it ends'}
-          </Text>
-          {phase !== 'in_progress' && players.map((player) => {
-            const isCompleted = phase === 'completed';
-            const status = isCompleted
-              ? event.attendance?.[player.id]
-              : event.availability?.[player.id] || 'pending';
-            const positiveStatus = isCompleted ? 'attended' : 'available';
-            const negativeStatus = isCompleted ? 'absent' : 'unavailable';
-            return (
-              <View key={player.id} style={styles.coachPlayerRow}>
-                <Text style={styles.coachPlayerName}>{player.name}</Text>
-                <View style={styles.availabilityButtons}>
-                  <TouchableOpacity
-                    style={[styles.coachStatusButton, status === positiveStatus && styles.availableBtnActive]}
-                    disabled={updateStatusMutation.isPending}
-                    onPress={() => updateStatusMutation.mutate({
-                      playerId: player.id,
-                      status: positiveStatus,
-                      kind: isCompleted ? 'attendance' : 'availability',
-                    })}
-                  >
-                    <Text style={[styles.coachStatusButtonText, status === positiveStatus && styles.availableBtnTextActive]}>
-                      {isCompleted ? 'Attended' : 'Available'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.coachStatusButton, status === negativeStatus && styles.unavailableBtnActive]}
-                    disabled={updateStatusMutation.isPending}
-                    onPress={() => updateStatusMutation.mutate({
-                      playerId: player.id,
-                      status: negativeStatus,
-                      kind: isCompleted ? 'attendance' : 'availability',
-                    })}
-                  >
-                    <Text style={[styles.coachStatusButtonText, status === negativeStatus && styles.unavailableBtnTextActive]}>
-                      {isCompleted ? 'Absent' : 'Not available'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+          {phase === 'completed' && (
+            <>
+              <Text style={styles.availabilityBreakdownTitle}>Recorded attendance</Text>
+              <View style={[styles.availabilityGroup, styles.availableGroup]}>
+                <Text style={[styles.availabilityGroupLabel, styles.availableLabel]}>Attended ({attended.length})</Text>
+                <Text style={[styles.availabilityNames, styles.availableNames]}>{names(attended)}</Text>
               </View>
-            );
-          })}
+              <View style={[styles.availabilityGroup, styles.unavailableGroup]}>
+                <Text style={[styles.availabilityGroupLabel, styles.unavailableLabel]}>Absent ({absent.length})</Text>
+                <Text style={[styles.availabilityNames, styles.unavailableNames]}>{names(absent)}</Text>
+              </View>
+              <View style={[styles.availabilityGroup, styles.pendingGroup]}>
+                <Text style={[styles.availabilityGroupLabel, styles.pendingLabel]}>Not recorded ({attendancePending.length})</Text>
+                <Text style={[styles.availabilityNames, styles.pendingNames]}>{names(attendancePending)}</Text>
+              </View>
+            </>
+          )}
+          {canManage && (
+            <View style={styles.coachStatusSection}>
+              <Text style={styles.coachStatusTitle}>
+                {phase === 'upcoming'
+                  ? 'Set player availability'
+                  : phase === 'completed'
+                    ? 'Record actual attendance'
+                    : 'Event in progress - attendance can be recorded after it ends'}
+              </Text>
+              {phase !== 'in_progress' && players.map((player) => {
+                const isCompleted = phase === 'completed';
+                const status = isCompleted
+                  ? event.attendance?.[player.id]
+                  : event.availability?.[player.id] || 'pending';
+                const positiveStatus = isCompleted ? 'attended' : 'available';
+                const negativeStatus = isCompleted ? 'absent' : 'unavailable';
+                return (
+                  <View key={player.id} style={styles.coachPlayerRow}>
+                    <Text style={styles.coachPlayerName}>{player.name}</Text>
+                    <View style={styles.availabilityButtons}>
+                      <TouchableOpacity
+                        style={[styles.coachStatusButton, status === positiveStatus && styles.availableBtnActive]}
+                        disabled={updateStatusMutation.isPending}
+                        onPress={() => updateStatusMutation.mutate({
+                          playerId: player.id,
+                          status: positiveStatus,
+                          kind: isCompleted ? 'attendance' : 'availability',
+                        })}
+                      >
+                        <Text style={[styles.coachStatusButtonText, status === positiveStatus && styles.availableBtnTextActive]}>
+                          {isCompleted ? 'Attended' : 'Available'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.coachStatusButton, status === negativeStatus && styles.unavailableBtnActive]}
+                        disabled={updateStatusMutation.isPending}
+                        onPress={() => updateStatusMutation.mutate({
+                          playerId: player.id,
+                          status: negativeStatus,
+                          kind: isCompleted ? 'attendance' : 'availability',
+                        })}
+                      >
+                        <Text style={[styles.coachStatusButtonText, status === negativeStatus && styles.unavailableBtnTextActive]}>
+                          {isCompleted ? 'Absent' : 'Not available'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -881,6 +906,25 @@ const styles = StyleSheet.create({
     color: '#374151',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  availabilityHeader: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  availabilityHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  availabilitySummary: {
+    color: '#6B7280',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  availabilityDetails: {
+    gap: 8,
   },
   availabilityGroup: {
     padding: 10,
