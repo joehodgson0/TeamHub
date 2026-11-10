@@ -568,28 +568,28 @@ function Posts() {
             >
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Type</Text>
-                <View style={styles.radioGroup}>
+                <View style={styles.typeButtons}>
                   <TouchableOpacity
-                    style={[styles.radioButton, formData.type === 'announcement' && styles.radioButtonActive]}
+                    style={[styles.typeButton, formData.type === 'announcement' && styles.typeButtonActive]}
                     onPress={() => setFormData({ ...formData, type: 'announcement' })}
                   >
-                    <Text style={[styles.radioText, formData.type === 'announcement' && styles.radioTextActive]}>
+                    <Text style={[styles.typeButtonText, formData.type === 'announcement' && styles.typeButtonTextActive]}>
                       Announcement
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.radioButton, formData.type === 'kit_request' && styles.radioButtonActive]}
+                    style={[styles.typeButton, formData.type === 'kit_request' && styles.typeButtonActive]}
                     onPress={() => setFormData({ ...formData, type: 'kit_request' })}
                   >
-                    <Text style={[styles.radioText, formData.type === 'kit_request' && styles.radioTextActive]}>
+                    <Text style={[styles.typeButtonText, formData.type === 'kit_request' && styles.typeButtonTextActive]}>
                       Kit Request
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.radioButton, formData.type === 'player_request' && styles.radioButtonActive]}
+                    style={[styles.typeButton, formData.type === 'player_request' && styles.typeButtonActive]}
                     onPress={() => setFormData({ ...formData, type: 'player_request' })}
                   >
-                    <Text style={[styles.radioText, formData.type === 'player_request' && styles.radioTextActive]}>
+                    <Text style={[styles.typeButtonText, formData.type === 'player_request' && styles.typeButtonTextActive]}>
                       Player Request
                     </Text>
                   </TouchableOpacity>
@@ -598,20 +598,20 @@ function Posts() {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Scope</Text>
-                <View style={styles.radioGroup}>
+                <View style={styles.scopeButtons}>
                   <TouchableOpacity
-                    style={[styles.radioButton, formData.scope === 'team' && styles.radioButtonActive]}
+                    style={[styles.scopeButton, formData.scope === 'team' && styles.scopeButtonActive]}
                     onPress={() => setFormData({ ...formData, scope: 'team' })}
                   >
-                    <Text style={[styles.radioText, formData.scope === 'team' && styles.radioTextActive]}>
+                    <Text style={[styles.scopeButtonText, formData.scope === 'team' && styles.scopeButtonTextActive]}>
                       Team
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.radioButton, formData.scope === 'club' && styles.radioButtonActive]}
+                    style={[styles.scopeButton, formData.scope === 'club' && styles.scopeButtonActive]}
                     onPress={() => setFormData({ ...formData, scope: 'club' })}
                   >
-                    <Text style={[styles.radioText, formData.scope === 'club' && styles.radioTextActive]}>
+                    <Text style={[styles.scopeButtonText, formData.scope === 'club' && styles.scopeButtonTextActive]}>
                       Club-wide
                     </Text>
                   </TouchableOpacity>
@@ -621,19 +621,19 @@ function Posts() {
               {formData.scope === 'team' && (
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Team</Text>
-                  <View style={styles.pickerWrapper}>
+                  <View style={styles.teamButtons}>
                     {userTeams.map((team: any) => (
                       <TouchableOpacity
                         key={team.id}
                         style={[
-                          styles.teamOption,
-                          formData.teamId === team.id && styles.teamOptionActive
+                          styles.teamButton,
+                          formData.teamId === team.id && styles.teamButtonActive
                         ]}
                         onPress={() => setFormData({ ...formData, teamId: team.id })}
                       >
                         <Text style={[
-                          styles.teamOptionText,
-                          formData.teamId === team.id && styles.teamOptionTextActive
+                          styles.teamButtonText,
+                          formData.teamId === team.id && styles.teamButtonTextActive
                         ]}>
                           {team.name}
                         </Text>

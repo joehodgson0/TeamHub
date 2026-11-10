@@ -3,7 +3,7 @@ import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-nat
 interface ButtonProps {
   title: string;
   onPress?: () => void;
-  variant?: 'primary' | 'outline';
+  variant?: 'primary' | 'outline' | 'destructive';
   disabled?: boolean;
 }
 
@@ -13,6 +13,7 @@ export function Button({ title, onPress, variant = 'primary', disabled }: Button
       style={[
         styles.button,
         variant === 'outline' && styles.buttonOutline,
+        variant === 'destructive' && styles.buttonDestructive,
         disabled && styles.buttonDisabled,
       ]}
       onPress={onPress}
@@ -22,6 +23,7 @@ export function Button({ title, onPress, variant = 'primary', disabled }: Button
         style={[
           styles.text,
           variant === 'outline' && styles.textOutline,
+          variant === 'destructive' && styles.textDestructive,
           disabled && styles.textDisabled,
         ]}
       >
@@ -43,6 +45,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#007AFF',
   },
+  buttonDestructive: {
+    backgroundColor: '#D32F2F',
+  },
   buttonDisabled: {
     backgroundColor: '#ccc',
     borderColor: '#ccc',
@@ -54,6 +59,9 @@ const styles = StyleSheet.create({
   },
   textOutline: {
     color: '#007AFF',
+  },
+  textDestructive: {
+    color: '#fff',
   },
   textDisabled: {
     color: '#999',

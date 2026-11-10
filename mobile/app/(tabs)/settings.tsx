@@ -14,7 +14,9 @@ export default function Settings() {
 
   useEffect(() => {
     if (user?.roles) {
-      setSelectedRoles(user.roles);
+      setSelectedRoles(user.roles.filter(
+        (role): role is 'coach' | 'parent' => role === 'coach' || role === 'parent'
+      ));
     }
   }, [user?.roles]);
 

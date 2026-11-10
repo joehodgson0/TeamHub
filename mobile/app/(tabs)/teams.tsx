@@ -50,8 +50,9 @@ export default function Teams() {
   });
 
   const allTeams = teamsData?.teams || [];
-  const teams = isCoach && user?.teamIds 
-    ? allTeams.filter((team: any) => user.teamIds.includes(team.id))
+  const teamIds = user?.teamIds;
+  const teams = isCoach && teamIds
+    ? allTeams.filter((team: any) => teamIds.includes(team.id))
     : allTeams;
 
   const { data: guardiansData, isLoading: guardiansLoading } = useQuery({
