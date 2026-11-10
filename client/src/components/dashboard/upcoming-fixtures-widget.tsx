@@ -195,8 +195,8 @@ export default function UpcomingFixturesWidget() {
                     {fixture.meetBeforeMinutes > 0 && (
                       <div className="flex items-center space-x-2 font-medium text-primary">
                         <Clock className="w-3 h-3" />
-                        <span data-testid={`fixture-meet-time-${fixture.id}`}>
-                          Meet: {formatFixtureTime(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes))}
+                        <span className="font-semibold" data-testid={`fixture-meet-time-${fixture.id}`}>
+                          Meet-up: {formatFixtureTime(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes))}
                         </span>
                       </div>
                     )}

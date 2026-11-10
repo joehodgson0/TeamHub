@@ -13,6 +13,7 @@ import MatchResultModal from "@/components/modals/match-result-modal";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Fixture } from "@shared/schema";
 import { getEventParticipationPhase } from "@shared/event-participation";
+import { getEventMeetTime } from "@shared/event-duration";
 
 type EventRosterPlayer = { id: string; name: string };
 
@@ -470,7 +471,16 @@ export default function FixtureList() {
                     <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                       <div>
                         <p className="text-muted-foreground">Date & Time</p>
-                        <p className="font-medium" data-testid={`fixture-datetime-${fixture.id}`}>
+                        {fixture.meetBeforeMinutes > 0 && (
+                          <p className="font-semibold text-primary" data-testid={`fixture-meet-time-${fixture.id}`}>
+                            Meet-up: {format(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes), "MMM d, h:mm a")}
+                          </p>
+                        )}
+                        <p
+                          className={fixture.meetBeforeMinutes > 0 ? "text-sm text-muted-foreground" : "font-medium"}
+                          data-testid={`fixture-datetime-${fixture.id}`}
+                        >
+                          {fixture.meetBeforeMinutes > 0 ? "Starts: " : ""}
                           {formatFixtureTime(fixture.startTime, fixture.endTime)}
                         </p>
                       </div>

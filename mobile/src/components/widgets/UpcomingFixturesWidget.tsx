@@ -84,22 +84,22 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
               <Text style={styles.infoText}>{formatDate(fixture.startTime)}</Text>
             </View>
 
+            {fixture.meetBeforeMinutes > 0 && (
+              <View style={styles.infoRow}>
+                <Clock size={16} color="#007AFF" />
+                <Text style={styles.meetTimeText}>
+                  Meet-up: {formatDate(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes))},{' '}
+                  {formatTime(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes))}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.infoRow}>
               <Clock size={16} color="#6B7280" />
               <Text style={styles.infoText}>
                 {fixture.meetBeforeMinutes > 0 ? 'Starts: ' : ''}{formatTime(fixture.startTime)}
               </Text>
             </View>
-
-            {fixture.meetBeforeMinutes > 0 && (
-              <View style={styles.infoRow}>
-                <Clock size={16} color="#007AFF" />
-                <Text style={styles.meetTimeText}>
-                  Meet: {formatDate(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes))},{' '}
-                  {formatTime(getEventMeetTime(fixture.startTime, fixture.meetBeforeMinutes))}
-                </Text>
-              </View>
-            )}
 
             {fixture.location && (
               <View style={styles.infoRow}>
