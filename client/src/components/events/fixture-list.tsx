@@ -6,16 +6,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Users } from "lucide-react";
+import { ChevronDown, Edit, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import EditFixtureModal from "@/components/modals/edit-fixture-modal";
 import MatchResultModal from "@/components/modals/match-result-modal";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Fixture } from "@shared/schema";
 import { getEventParticipationPhase } from "@shared/event-participation";
 
 type EventRosterPlayer = { id: string; name: string };
 
 function PlayerAvailabilityBreakdown({ fixture, canManage }: { fixture: any; canManage: boolean }) {
+  const [availabilityListOpen, setAvailabilityListOpen] = useState(false);
   const { toast } = useToast();
   const { data: playersResponse, isLoading, isError } = useQuery<{ success: boolean; players: EventRosterPlayer[] }>({
     queryKey: ['/api/events', fixture.id, 'roster'],
@@ -67,87 +69,111 @@ function PlayerAvailabilityBreakdown({ fixture, canManage }: { fixture: any; can
     : "None";
 
   return (
-    <div className="grid gap-2 mt-3 sm:grid-cols-3" data-testid={`availability-breakdown-${fixture.id}`}>
-      <p className="text-sm font-semibold sm:col-span-3">Player availability</p>
-      <div className="rounded-md border border-green-200 bg-green-50 p-2">
-        <p className="text-xs font-semibold text-green-800">Available ({groups.available.length})</p>
-        <p className="mt-1 text-xs text-green-700">{renderNames(groups.available)}</p>
-      </div>
-      <div className="rounded-md border border-red-200 bg-red-50 p-2">
-        <p className="text-xs font-semibold text-red-800">Not available ({groups.unavailable.length})</p>
-        <p className="mt-1 text-xs text-red-700">{renderNames(groups.unavailable)}</p>
-      </div>
-      <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
-        <p className="text-xs font-semibold text-amber-800">Awaiting response ({groups.pending.length})</p>
-        <p className="mt-1 text-xs text-amber-700">{renderNames(groups.pending)}</p>
-      </div>
-      {phase === "completed" && (
-        <>
-          <p className="mt-1 text-sm font-semibold sm:col-span-3">Recorded attendance</p>
-          <div className="rounded-md border border-green-200 bg-green-50 p-2">
-            <p className="text-xs font-semibold text-green-800">Attended ({attendanceGroups.attended.length})</p>
-            <p className="mt-1 text-xs text-green-700">{renderNames(attendanceGroups.attended)}</p>
-          </div>
-          <div className="rounded-md border border-red-200 bg-red-50 p-2">
-            <p className="text-xs font-semibold text-red-800">Absent ({attendanceGroups.absent.length})</p>
-            <p className="mt-1 text-xs text-red-700">{renderNames(attendanceGroups.absent)}</p>
-          </div>
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
-            <p className="text-xs font-semibold text-amber-800">Not recorded ({attendanceGroups.pending.length})</p>
-            <p className="mt-1 text-xs text-amber-700">{renderNames(attendanceGroups.pending)}</p>
-          </div>
-        </>
-      )}
-      {canManage && (
-        <div className="sm:col-span-3 mt-1 space-y-2">
-          <p className="text-sm font-semibold">
-            {phase === "upcoming"
-              ? "Set player availability"
-              : phase === "completed"
-                ? "Record actual attendance"
-                : "Event in progress - attendance can be recorded after it ends"}
-          </p>
-          {phase !== "in_progress" && players.map((player) => {
-            const isCompleted = phase === "completed";
-            const status = isCompleted
-              ? fixture.attendance?.[player.id]
-              : fixture.availability?.[player.id] || "pending";
-            return (
-              <div key={player.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-2">
-                <span className="text-sm font-medium">{player.name}</span>
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant={status === (isCompleted ? "attended" : "available") ? "default" : "outline"}
-                    className="h-7 px-2 text-xs"
-                    disabled={updateStatus.isPending}
-                    onClick={() => updateStatus.mutate({
-                      playerId: player.id,
-                      status: isCompleted ? "attended" : "available",
-                      kind: isCompleted ? "attendance" : "availability",
-                    })}
-                  >
-                    {isCompleted ? "Attended" : "Available"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={status === (isCompleted ? "absent" : "unavailable") ? "destructive" : "outline"}
-                    className="h-7 px-2 text-xs"
-                    disabled={updateStatus.isPending}
-                    onClick={() => updateStatus.mutate({
-                      playerId: player.id,
-                      status: isCompleted ? "absent" : "unavailable",
-                      kind: isCompleted ? "attendance" : "availability",
-                    })}
-                  >
-                    {isCompleted ? "Absent" : "Not available"}
-                  </Button>
+    <div className="mt-3" data-testid={`availability-breakdown-${fixture.id}`}>
+      <Collapsible open={availabilityListOpen} onOpenChange={setAvailabilityListOpen}>
+        <CollapsibleTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-auto w-full justify-between gap-3 px-2 py-2 text-left"
+            data-testid={`toggle-availability-list-${fixture.id}`}
+          >
+            <span className="flex min-w-0 flex-col items-start sm:flex-row sm:items-center sm:gap-3">
+              <span className="text-sm font-semibold">Player availability</span>
+              <span className="text-xs text-muted-foreground">
+                {groups.available.length} available · {groups.unavailable.length} unavailable · {groups.pending.length} awaiting
+              </span>
+            </span>
+            <ChevronDown
+              aria-hidden="true"
+              className={`h-4 w-4 shrink-0 transition-transform ${availabilityListOpen ? "rotate-180" : ""}`}
+            />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="grid gap-2 pt-1 sm:grid-cols-3">
+            <div className="rounded-md border border-green-200 bg-green-50 p-2">
+              <p className="text-xs font-semibold text-green-800">Available ({groups.available.length})</p>
+              <p className="mt-1 text-xs text-green-700">{renderNames(groups.available)}</p>
+            </div>
+            <div className="rounded-md border border-red-200 bg-red-50 p-2">
+              <p className="text-xs font-semibold text-red-800">Not available ({groups.unavailable.length})</p>
+              <p className="mt-1 text-xs text-red-700">{renderNames(groups.unavailable)}</p>
+            </div>
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
+              <p className="text-xs font-semibold text-amber-800">Awaiting response ({groups.pending.length})</p>
+              <p className="mt-1 text-xs text-amber-700">{renderNames(groups.pending)}</p>
+            </div>
+            {phase === "completed" && (
+              <>
+                <p className="mt-1 text-sm font-semibold sm:col-span-3">Recorded attendance</p>
+                <div className="rounded-md border border-green-200 bg-green-50 p-2">
+                  <p className="text-xs font-semibold text-green-800">Attended ({attendanceGroups.attended.length})</p>
+                  <p className="mt-1 text-xs text-green-700">{renderNames(attendanceGroups.attended)}</p>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                <div className="rounded-md border border-red-200 bg-red-50 p-2">
+                  <p className="text-xs font-semibold text-red-800">Absent ({attendanceGroups.absent.length})</p>
+                  <p className="mt-1 text-xs text-red-700">{renderNames(attendanceGroups.absent)}</p>
+                </div>
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
+                  <p className="text-xs font-semibold text-amber-800">Not recorded ({attendanceGroups.pending.length})</p>
+                  <p className="mt-1 text-xs text-amber-700">{renderNames(attendanceGroups.pending)}</p>
+                </div>
+              </>
+            )}
+          </div>
+          {canManage && (
+            <div className="mt-3 space-y-2 border-t pt-3">
+              <p className="text-sm font-semibold">
+                {phase === "upcoming"
+                  ? "Set player availability"
+                  : phase === "completed"
+                    ? "Record actual attendance"
+                    : "Event in progress - attendance can be recorded after it ends"}
+              </p>
+              {phase !== "in_progress" && players.map((player) => {
+                const isCompleted = phase === "completed";
+                const status = isCompleted
+                  ? fixture.attendance?.[player.id]
+                  : fixture.availability?.[player.id] || "pending";
+                return (
+                  <div key={player.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-2">
+                    <span className="text-sm font-medium">{player.name}</span>
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant={status === (isCompleted ? "attended" : "available") ? "default" : "outline"}
+                        className="h-7 px-2 text-xs"
+                        disabled={updateStatus.isPending}
+                        onClick={() => updateStatus.mutate({
+                          playerId: player.id,
+                          status: isCompleted ? "attended" : "available",
+                          kind: isCompleted ? "attendance" : "availability",
+                        })}
+                      >
+                        {isCompleted ? "Attended" : "Available"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={status === (isCompleted ? "absent" : "unavailable") ? "destructive" : "outline"}
+                        className="h-7 px-2 text-xs"
+                        disabled={updateStatus.isPending}
+                        onClick={() => updateStatus.mutate({
+                          playerId: player.id,
+                          status: isCompleted ? "absent" : "unavailable",
+                          kind: isCompleted ? "attendance" : "availability",
+                        })}
+                      >
+                        {isCompleted ? "Absent" : "Not available"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
