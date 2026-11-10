@@ -464,7 +464,7 @@ export function AddEventModal({ visible, onClose, eventToEdit }: AddEventModalPr
               style={styles.input}
               value={location}
               onChangeText={setLocation}
-              placeholder="Enter location"
+              placeholder="Venue or full address"
             />
           </View>
 

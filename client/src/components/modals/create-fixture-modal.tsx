@@ -291,7 +291,7 @@ export default function CreateFixtureModal({ open, onOpenChange }: CreateFixture
                   <FormLabel>Location</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter location"
+                      placeholder="Venue or full address"
                       data-testid="input-location"
                       {...field}
                     />

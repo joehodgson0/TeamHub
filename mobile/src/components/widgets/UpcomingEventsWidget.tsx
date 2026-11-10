@@ -4,6 +4,7 @@ import { WidgetCard } from './WidgetCard';
 import { formatDate, formatTime, getEventTypeBadgeColor, getEventDisplayType, getTeamName } from '@/utils/dashboard';
 import { getEventMeetTime } from '@shared/event-duration';
 import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from '@shared/event-outcome';
+import { LocationMapLinks } from '@/components/LocationMapLinks';
 
 interface UpcomingEventsWidgetProps {
   events: any[];
@@ -98,12 +99,17 @@ export function UpcomingEventsWidget({ events, teams }: UpcomingEventsWidgetProp
           )}
 
           {event.location && (
-            <View style={styles.infoRow}>
-              <MapPin size={16} color="#6B7280" />
-              <Text style={styles.infoText} numberOfLines={1}>
-                {event.location}
-              </Text>
-            </View>
+            <>
+              <View style={styles.infoRow}>
+                <MapPin size={16} color="#6B7280" />
+                <Text style={styles.infoText} numberOfLines={1}>
+                  {event.location}
+                </Text>
+              </View>
+              {event.type === 'match' && !isUnplayedMatchOutcome(event.result) && (
+                <LocationMapLinks location={event.location} />
+              )}
+            </>
           )}
 
           {event.additionalInfo && (

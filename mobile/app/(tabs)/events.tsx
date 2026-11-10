@@ -10,6 +10,7 @@ import { MatchOutcomeModal } from '@/components/modals/MatchOutcomeModal';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getEventParticipationPhase } from '@shared/event-participation';
 import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from '@shared/event-outcome';
+import { LocationMapLinks } from '@/components/LocationMapLinks';
 
 type EventRosterPlayer = { id: string; name: string };
 
@@ -500,7 +501,10 @@ function Events() {
                 <Text style={styles.eventTime}>{formatEventTime(event.startTime, event.endTime)}</Text>
                 
                 {event.location && (
-                  <Text style={styles.eventLocation}>📍 {event.location}</Text>
+                  <>
+                    <Text style={styles.eventLocation}>📍 {event.location}</Text>
+                    {isMatch && !unplayedOutcome && <LocationMapLinks location={event.location} />}
+                  </>
                 )}
                 
                 {event.additionalInfo && (

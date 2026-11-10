@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { getEventMeetTime } from "@shared/event-duration";
 import { getRosterAvailabilityCount } from "@shared/event-availability-count";
 import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from "@shared/event-outcome";
+import { LocationMapLinks } from "@/components/events/location-map-links";
 
 function FixtureAvailability({ fixture }: { fixture: any }) {
   const { data, isLoading, isError } = useQuery<{ success: boolean; players: { id: string }[] }>({
@@ -210,11 +211,14 @@ export default function UpcomingFixturesWidget() {
                         {fixture.meetBeforeMinutes > 0 ? "Starts: " : ""}{formatFixtureTime(fixture.startTime)}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-3 h-3" />
-                      <span data-testid={`fixture-location-${fixture.id}`}>
-                        {fixture.location}
-                      </span>
+                    <div className="flex items-start space-x-2">
+                      <MapPin className="mt-0.5 w-3 h-3 shrink-0" />
+                      <div className="min-w-0">
+                        <span data-testid={`fixture-location-${fixture.id}`}>
+                          {fixture.location}
+                        </span>
+                        <LocationMapLinks location={fixture.location} />
+                      </div>
                     </div>
                   </div>
 

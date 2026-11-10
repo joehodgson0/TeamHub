@@ -7,6 +7,7 @@ import { API_BASE_URL } from '@/lib/config';
 import { getEventMeetTime } from '@shared/event-duration';
 import { getRosterAvailabilityCount } from '@shared/event-availability-count';
 import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from '@shared/event-outcome';
+import { LocationMapLinks } from '@/components/LocationMapLinks';
 
 interface UpcomingFixturesWidgetProps {
   fixtures: any[];
@@ -106,12 +107,15 @@ export function UpcomingFixturesWidget({ fixtures, teams }: UpcomingFixturesWidg
             </View>
 
             {fixture.location && (
-              <View style={styles.infoRow}>
-                <MapPin size={16} color="#6B7280" />
-                <Text style={styles.infoText} numberOfLines={1}>
-                  {fixture.location}
-                </Text>
-              </View>
+              <>
+                <View style={styles.infoRow}>
+                  <MapPin size={16} color="#6B7280" />
+                  <Text style={styles.infoText} numberOfLines={1}>
+                    {fixture.location}
+                  </Text>
+                </View>
+                <LocationMapLinks location={fixture.location} />
+              </>
             )}
 
             <FixtureAvailability fixture={fixture} />

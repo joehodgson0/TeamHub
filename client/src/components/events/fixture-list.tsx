@@ -16,6 +16,7 @@ import type { Fixture } from "@shared/schema";
 import { getEventParticipationPhase } from "@shared/event-participation";
 import { getEventMeetTime } from "@shared/event-duration";
 import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from "@shared/event-outcome";
+import { LocationMapLinks } from "@/components/events/location-map-links";
 
 type EventRosterPlayer = { id: string; name: string };
 
@@ -516,6 +517,9 @@ export default function FixtureList() {
                         <p className="font-medium" data-testid={`fixture-location-${fixture.id}`}>
                           {fixture.location}
                         </p>
+                        {fixture.type === "match" && !unplayedOutcome && (
+                          <LocationMapLinks location={fixture.location} />
+                        )}
                       </div>
                     </div>
 

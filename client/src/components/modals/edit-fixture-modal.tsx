@@ -256,7 +256,7 @@ export default function EditFixtureModal({ fixture, open, onOpenChange }: EditFi
                   <FormLabel>Location</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter location"
+                      placeholder="Venue or full address"
                       data-testid="input-location"
                       {...field}
                     />

@@ -6,6 +6,7 @@ import { Calendar, Trophy, Clock, MapPin, Users } from "lucide-react";
 import { format } from "date-fns";
 import { getEventMeetTime } from "@shared/event-duration";
 import { getUnplayedMatchOutcomeLabel, isUnplayedMatchOutcome } from "@shared/event-outcome";
+import { LocationMapLinks } from "@/components/events/location-map-links";
 
 export default function UpcomingEventsWidget() {
   const { user } = useAuth();
@@ -160,10 +161,15 @@ export default function UpcomingEventsWidget() {
                     {event.meetBeforeMinutes > 0 ? "Starts: " : ""}{formatEventTime(event.startTime)}
                   </p>
                   {event.location && (
-                    <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <span>{event.location}</span>
-                    </p>
+                    <>
+                      <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>{event.location}</span>
+                      </p>
+                      {event.type === "match" && !isUnplayedMatchOutcome(event.result) && (
+                        <LocationMapLinks location={event.location} />
+                      )}
+                    </>
                   )}
                   {event.additionalInfo && (
                     <p className="border-t border-border pt-1.5 text-xs text-muted-foreground">

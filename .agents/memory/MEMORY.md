@@ -2,3 +2,4 @@
 - [Event status and match outcomes](event-status-model.md) — availability, verified turnout, and no-score cancellations/forfeits must remain separate.
 - [Android date/time picker transition](android-picker-transition.md) — separate native date and time dialogs need a fresh picker and a brief dismissal delay.
 - [Live database targeting](live-database-targeting.md) — the available Neon connection is an older copy; verify the live database before any data write.
+- [Match location map links](match-location-maps.md) — saved venue text opens Apple or Google Maps directions; no place-search provider.
