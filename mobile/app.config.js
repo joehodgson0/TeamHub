@@ -1,6 +1,4 @@
-import type { ExpoConfig } from 'expo/config';
-
-const config: ExpoConfig = {
+module.exports = {
   name: 'TeamHub',
   slug: 'team-hub-uk',
   version: '1.0.4',
@@ -50,7 +48,6 @@ const config: ExpoConfig = {
     eas: {
       projectId: 'ed10bc6f-85ab-46fc-a604-5e10a809e5e6',
     },
-    // Use environment variable for API URL, fallback to development
     apiUrl:
       process.env.EXPO_PUBLIC_API_URL ||
       'https://82e7b365-1a35-4433-9dd4-e760ea332ce1-00-1atx8t3ayfoav.picard.replit.dev',
@@ -63,5 +60,3 @@ const config: ExpoConfig = {
     url: 'https://u.expo.dev/ed10bc6f-85ab-46fc-a604-5e10a809e5e6',
   },
 };
-
-export default config;
