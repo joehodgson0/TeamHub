@@ -4,3 +4,4 @@
 - [Live database targeting](live-database-targeting.md) — the available Neon connection is an older copy; verify the live database before any data write.
 - [Match location map links](match-location-maps.md) — saved venue text opens Apple or Google Maps directions; no place-search provider.
 - [Expo SDK alignment](expo-sdk-alignment.md) — Expo install-fix may update packages before exiting on dynamic config; sync requested config changes, then rerun checks.
+- [Post-merge database safety](post-merge-database-safety.md) — Keep automated merge setup away from database writes unless a safe migration path is explicitly configured.
