@@ -1,7 +1,7 @@
 module.exports = {
   name: 'TeamHub',
   slug: 'team-hub-uk',
-  version: '1.0.4',
+  version: '1.0.5',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'teamhub',

@@ -30,6 +30,9 @@
       "android": {
         "serviceAccountKeyPath": "../teamhub-494016-68b02d200e81.json",
         "track": "internal"
+      },
+      "ios": {
+        "ascAppId": "6756577052"
       }
     }
   }
